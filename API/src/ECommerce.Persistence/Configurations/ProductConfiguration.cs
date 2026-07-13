@@ -1,0 +1,103 @@
+using ECommerce.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace ECommerce.Persistence.Configurations;
+
+public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
+{
+    public void Configure(EntityTypeBuilder<Product> builder)
+    {
+        builder.ToTable("Products");
+
+        builder.HasKey(product => product.Id);
+
+        builder.Property(product => product.Title)
+            .HasMaxLength(250)
+            .IsRequired();
+
+        builder.Property(product => product.Description)
+            .HasMaxLength(4000);
+
+        builder.Property(product => product.Url)
+            .HasMaxLength(250)
+            .IsRequired();
+
+        builder.Property(product => product.Status)
+            .HasConversion<string>()
+            .HasMaxLength(30)
+            .IsRequired();
+
+        builder.Property(product => product.SeoTitle)
+            .HasMaxLength(250);
+
+        builder.Property(product => product.SeoDescription)
+            .HasMaxLength(500);
+
+        builder.Property(product => product.AverageRating)
+            .HasPrecision(3, 2);
+
+        builder.HasOne(product => product.Type)
+            .WithMany(type => type.Products)
+            .HasForeignKey(product => product.TypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(product => product.Brand)
+            .WithMany(brand => brand.Products)
+            .HasForeignKey(product => product.BrandId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasMany(product => product.Variants)
+            .WithOne(variant => variant.Product)
+            .HasForeignKey(variant => variant.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(product => product.Images)
+            .WithOne(image => image.Product)
+            .HasForeignKey(image => image.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(product => product.ProductCollections)
+            .WithOne(productCollection => productCollection.Product)
+            .HasForeignKey(productCollection => productCollection.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(product => product.ProductTags)
+            .WithOne(productTag => productTag.Product)
+            .HasForeignKey(productTag => productTag.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(product => product.DailyMetrics)
+            .WithOne(metric => metric.Product)
+            .HasForeignKey(metric => metric.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(product => product.Ratings)
+            .WithOne(rating => rating.Product)
+            .HasForeignKey(rating => rating.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(product => product.Reviews)
+            .WithOne(review => review.Product)
+            .HasForeignKey(review => review.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(product => product.Favorites)
+            .WithOne(favorite => favorite.Product)
+            .HasForeignKey(favorite => favorite.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(product => product.BundleItems)
+            .WithOne(bundleItem => bundleItem.BundleProduct)
+            .HasForeignKey(bundleItem => bundleItem.BundleProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(product => product.Url)
+            .IsUnique();
+
+        builder.HasIndex(product => product.TypeId);
+        builder.HasIndex(product => product.BrandId);
+        builder.HasIndex(product => product.Status);
+        builder.HasIndex(product => product.DisplayOrder);
+    }
+}
