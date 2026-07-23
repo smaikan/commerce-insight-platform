@@ -1,10 +1,11 @@
 using ECommerce.Domain.Entities;
+using ECommerce.Application.Common.Identifiers;
 
 namespace ECommerce.Application.Products.Dtos;
 
 public sealed record ProductImageDto(
     Guid Id,
-    Guid ProductId,
+    string ProductId,
     string ImageUrl,
     string? AltText,
     int DisplayOrder,
@@ -16,7 +17,7 @@ public static class ProductImageDtoMapping
     {
         return new ProductImageDto(
             image.Id,
-            image.ProductId,
+            PublicIdCodec.EncodeProductId(image.Product?.Id ?? image.ProductId),
             image.ImageUrl,
             image.AltText,
             image.DisplayOrder,

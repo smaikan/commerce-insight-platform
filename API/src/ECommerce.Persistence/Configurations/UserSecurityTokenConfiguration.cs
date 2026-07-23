@@ -21,10 +21,14 @@ public sealed class UserSecurityTokenConfiguration : IEntityTypeConfiguration<Us
             .HasMaxLength(120)
             .IsRequired();
 
+        builder.Property(token => token.ConcurrencyToken)
+            .IsConcurrencyToken();
+
         builder.HasIndex(token => token.TokenHash);
         builder.HasIndex(token => new { token.Type, token.TokenHash });
         builder.HasIndex(token => token.UserId);
         builder.HasIndex(token => token.ExpiresAt);
         builder.HasIndex(token => token.UsedAt);
+        builder.HasIndex(token => token.InvalidatedAt);
     }
 }

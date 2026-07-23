@@ -1,14 +1,15 @@
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
+using ECommerce.Application.Common.Identifiers;
 
 namespace ECommerce.Application.Products.Dtos;
 
 public sealed record ProductDto(
-    Guid Id,
+    string Id,
     string Title,
     string? Description,
     string Url,
-    Guid TypeId,
+    Guid? TypeId,
     string? TypeName,
     Guid? BrandId,
     string? BrandName,
@@ -18,20 +19,23 @@ public sealed record ProductDto(
     int DisplayOrder,
     string? SeoTitle,
     string? SeoDescription,
-    int ClickCount,
-    int TotalAddToCartCount,
-    int TotalPurchaseCount,
-    int FavoriteCount,
+    long ClickCount,
+    long TotalAddToCartCount,
+    long TotalPurchaseCount,
+    long FavoriteCount,
+    long PopularityScore,
     decimal AverageRating,
-    int RatingCount,
-    int ReviewCount);
+    long RatingCount,
+    long ReviewCount,
+    IReadOnlyList<ProductVariantDto> Variants);
 
 public static class ProductDtoMapping
 {
+    // Burada ürün entity'sini dışarıya güvenli public kimlikle dönen DTO'ya çeviriyorum.
     public static ProductDto ToDto(this Product product)
     {
         return new ProductDto(
-            product.Id,
+            PublicIdCodec.EncodeProductId(product.Id),
             product.Title,
             product.Description,
             product.Url,
@@ -49,8 +53,14 @@ public static class ProductDtoMapping
             product.TotalAddToCartCount,
             product.TotalPurchaseCount,
             product.FavoriteCount,
+            product.PopularityScore,
             product.AverageRating,
             product.RatingCount,
-            product.ReviewCount);
+            product.ReviewCount,
+            product.Variants
+                .OrderBy(variant => variant.Name)
+                .ThenBy(variant => variant.Sku)
+                .Select(variant => variant.ToDto())
+                .ToList());
     }
 }

@@ -3,7 +3,7 @@ using ECommerce.Domain.Enums;
 
 namespace ECommerce.Domain.Entities;
 
-public sealed class User : AuditableEntity
+public sealed class User : AuditableEntity<long>
 {
     public string Email { get; private set; } = null!;
     public string PasswordHash { get; private set; } = null!;
@@ -12,9 +12,8 @@ public sealed class User : AuditableEntity
     public string? PhoneNumber { get; private set; }
     public UserRole Role { get; private set; }
     public UserStatus Status { get; private set; }
-    public bool EmailConfirmed { get; private set; }
-    public int AccessFailedCount { get; private set; }
-    public DateTime? LockoutEndAt { get; private set; }
+    public int SecurityVersion { get; private set; }
+    public Guid ConcurrencyToken { get; private set; }
     public DateTime? LastLoginAt { get; private set; }
     public DateTime? PasswordChangedAt { get; private set; }
 
@@ -38,8 +37,7 @@ public sealed class User : AuditableEntity
         string firstName,
         string lastName,
         string? phoneNumber = null,
-        UserRole role = UserRole.Customer,
-        bool emailConfirmed = false)
+        UserRole role = UserRole.Customer)
     {
         SetEmail(email);
         SetPasswordHash(passwordHash);
@@ -47,40 +45,36 @@ public sealed class User : AuditableEntity
         SetPhoneNumber(phoneNumber);
         Role = role;
         Status = UserStatus.Active;
-        EmailConfirmed = emailConfirmed;
+        SecurityVersion = 1;
+        ConcurrencyToken = Guid.NewGuid();
     }
 
     public string FullName => $"{FirstName} {LastName}";
 
-    public bool IsLocked(DateTime utcNow)
+    public bool CanLogin()
     {
-        return LockoutEndAt.HasValue && LockoutEndAt.Value > utcNow;
-    }
-
-    public bool CanLogin(DateTime utcNow)
-    {
-        return Status == UserStatus.Active && EmailConfirmed && !IsLocked(utcNow);
+        return Status == UserStatus.Active;
     }
 
     public void ChangeEmail(string email)
     {
         SetEmail(email);
-        EmailConfirmed = false;
+        IncreaseSecurityVersion();
         MarkAsUpdated();
     }
 
-    public void ConfirmEmail()
-    {
-        EmailConfirmed = true;
-        MarkAsUpdated();
-    }
-
-    public void ChangePassword(string passwordHash)
+    public void ChangePassword(string passwordHash, DateTime utcNow)
     {
         SetPasswordHash(passwordHash);
-        PasswordChangedAt = DateTime.UtcNow;
-        AccessFailedCount = 0;
-        LockoutEndAt = null;
+        PasswordChangedAt = utcNow;
+        IncreaseSecurityVersion();
+        MarkAsUpdated();
+    }
+
+    public void UpgradePasswordHash(string passwordHash)
+    {
+        SetPasswordHash(passwordHash);
+        ConcurrencyToken = Guid.NewGuid();
         MarkAsUpdated();
     }
 
@@ -88,12 +82,14 @@ public sealed class User : AuditableEntity
     {
         SetName(firstName, lastName);
         SetPhoneNumber(phoneNumber);
+        ConcurrencyToken = Guid.NewGuid();
         MarkAsUpdated();
     }
 
     public void ChangeRole(UserRole role)
     {
         Role = role;
+        IncreaseSecurityVersion();
         MarkAsUpdated();
     }
 
@@ -105,19 +101,21 @@ public sealed class User : AuditableEntity
         }
 
         Status = UserStatus.Active;
-        LockoutEndAt = null;
+        IncreaseSecurityVersion();
         MarkAsUpdated();
     }
 
     public void Deactivate()
     {
         Status = UserStatus.Passive;
+        IncreaseSecurityVersion();
         MarkAsUpdated();
     }
 
     public void MarkAsDeleted()
     {
         Status = UserStatus.Deleted;
+        IncreaseSecurityVersion();
         MarkAsUpdated();
     }
 
@@ -128,72 +126,13 @@ public sealed class User : AuditableEntity
             throw new DomainException("Inactive users cannot login.");
         }
 
-        if (IsLocked(utcNow))
-        {
-            throw new DomainException("Locked users cannot login before lockout ends.");
-        }
-
         LastLoginAt = utcNow;
-        AccessFailedCount = 0;
-        LockoutEndAt = null;
-
         MarkAsUpdated();
     }
 
-    public void RecordFailedLogin(int maxFailedAccessAttempts, TimeSpan lockoutDuration, DateTime utcNow)
+    public void InvalidateAccessTokens()
     {
-        if (maxFailedAccessAttempts <= 0)
-        {
-            throw new DomainException("Max failed access attempts must be greater than zero.");
-        }
-
-        if (lockoutDuration <= TimeSpan.Zero)
-        {
-            throw new DomainException("Lockout duration must be greater than zero.");
-        }
-
-        if (Status == UserStatus.Deleted || Status == UserStatus.Passive)
-        {
-            throw new DomainException("Inactive users cannot login.");
-        }
-
-        AccessFailedCount++;
-
-        if (AccessFailedCount >= maxFailedAccessAttempts)
-        {
-            LockUntil(utcNow.Add(lockoutDuration), utcNow);
-        }
-        else
-        {
-            MarkAsUpdated();
-        }
-    }
-
-    public void LockUntil(DateTime lockoutEndAt)
-    {
-        LockUntil(lockoutEndAt, DateTime.UtcNow);
-    }
-
-    private void LockUntil(DateTime lockoutEndAt, DateTime utcNow)
-    {
-        if (lockoutEndAt <= utcNow)
-        {
-            throw new DomainException("Lockout end date must be in the future.");
-        }
-
-        LockoutEndAt = lockoutEndAt;
-        MarkAsUpdated();
-    }
-
-    public void Unlock()
-    {
-        if (Status == UserStatus.Deleted)
-        {
-            throw new DomainException("Deleted users cannot be unlocked.");
-        }
-
-        AccessFailedCount = 0;
-        LockoutEndAt = null;
+        IncreaseSecurityVersion();
         MarkAsUpdated();
     }
 
@@ -240,5 +179,14 @@ public sealed class User : AuditableEntity
         PhoneNumber = string.IsNullOrWhiteSpace(phoneNumber)
             ? null
             : phoneNumber.Trim();
+    }
+
+    private void IncreaseSecurityVersion()
+    {
+        checked
+        {
+            SecurityVersion++;
+            ConcurrencyToken = Guid.NewGuid();
+        }
     }
 }

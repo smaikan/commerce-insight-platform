@@ -19,11 +19,18 @@ public sealed class ProductImageConfiguration : IEntityTypeConfiguration<Product
         builder.Property(image => image.AltText)
             .HasMaxLength(250);
 
+        builder.Property(image => image.ConcurrencyToken)
+            .IsConcurrencyToken();
+
         builder.HasOne(image => image.Product)
             .WithMany(product => product.Images)
             .HasForeignKey(image => image.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(image => new { image.ProductId, image.DisplayOrder });
+
+        builder.HasIndex(image => image.ProductId)
+            .IsUnique()
+            .HasFilter("[IsMain] = 1");
     }
 }

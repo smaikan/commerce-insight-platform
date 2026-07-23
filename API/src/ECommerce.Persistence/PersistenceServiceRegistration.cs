@@ -1,6 +1,7 @@
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Persistence.Context;
 using ECommerce.Persistence.Repositories;
+using ECommerce.Persistence.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +10,7 @@ namespace ECommerce.Persistence;
 
 public static class PersistenceServiceRegistration
 {
+    // Burada SQL Server bağlamını ve persistence servislerini dependency injection'a kaydediyorum.
     public static IServiceCollection AddPersistenceServices(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -26,12 +28,15 @@ public static class PersistenceServiceRegistration
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
         services.AddScoped<IProductImageRepository, ProductImageRepository>();
+        services.AddScoped<IProductEngagementRepository, ProductEngagementRepository>();
         services.AddScoped<IProductTypeRepository, ProductTypeRepository>();
         services.AddScoped<IBrandRepository, BrandRepository>();
         services.AddScoped<ICollectionRepository, CollectionRepository>();
         services.AddScoped<ITagRepository, TagRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUserTokenCleanupService, UserTokenCleanupService>();
+        services.AddScoped<IEmailOutboxRepository, EmailOutboxRepository>();
 
         return services;
     }

@@ -6,6 +6,7 @@ namespace ECommerce.Persistence.Configurations;
 
 public sealed class ProductDailyMetricConfiguration : IEntityTypeConfiguration<ProductDailyMetric>
 {
+    // Burada günlük ürün sayaçlarını bigint kolonlarıyla ve tekil gün indeksiyle eşliyorum.
     public void Configure(EntityTypeBuilder<ProductDailyMetric> builder)
     {
         builder.ToTable("ProductDailyMetrics");

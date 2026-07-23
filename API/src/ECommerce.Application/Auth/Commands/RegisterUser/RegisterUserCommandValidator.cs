@@ -13,7 +13,7 @@ public sealed class RegisterUserCommandValidator : AbstractValidator<RegisterUse
 
         RuleFor(command => command.Password)
             .NotEmpty()
-            .MinimumLength(8)
+            .MinimumLength(6)
             .MaximumLength(128);
 
         RuleFor(command => command.FirstName)

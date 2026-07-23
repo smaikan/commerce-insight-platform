@@ -19,11 +19,17 @@ public sealed class UserRefreshTokenConfiguration : IEntityTypeConfiguration<Use
         builder.Property(token => token.CreatedByIp)
             .HasMaxLength(80);
 
+        builder.Property(token => token.DeviceName)
+            .HasMaxLength(200);
+
         builder.Property(token => token.RevokedByIp)
             .HasMaxLength(80);
 
         builder.Property(token => token.ReplacedByTokenHash)
             .HasMaxLength(120);
+
+        builder.Property(token => token.ConcurrencyToken)
+            .IsConcurrencyToken();
 
         builder.HasIndex(token => token.TokenHash)
             .IsUnique();

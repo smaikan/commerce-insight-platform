@@ -8,6 +8,7 @@ public sealed class PasswordHasher : IPasswordHasher
     private const int SaltSize = 16;
     private const int KeySize = 32;
     private const int Iterations = 210_000;
+    private const int MaximumAcceptedIterations = 1_000_000;
     private const char Separator = '.';
 
     public string Hash(string password)
@@ -40,22 +41,7 @@ public sealed class PasswordHasher : IPasswordHasher
             return false;
         }
 
-        var parts = passwordHash.Split(Separator);
-
-        if (parts.Length != 4 || parts[0] != "PBKDF2-SHA256")
-        {
-            return false;
-        }
-
-        if (!int.TryParse(parts[1], out var iterations) || iterations <= 0)
-        {
-            return false;
-        }
-
-        var salt = DecodeBase64Url(parts[2]);
-        var expectedHash = DecodeBase64Url(parts[3]);
-
-        if (salt.Length != SaltSize || expectedHash.Length != KeySize)
+        if (!TryParseHash(passwordHash, out var iterations, out var salt, out var expectedHash))
         {
             return false;
         }
@@ -68,6 +54,48 @@ public sealed class PasswordHasher : IPasswordHasher
             expectedHash.Length);
 
         return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
+    }
+
+    public bool NeedsRehash(string passwordHash)
+    {
+        return !TryParseHash(passwordHash, out var iterations, out _, out _) || iterations < Iterations;
+    }
+
+    private static bool TryParseHash(
+        string passwordHash,
+        out int iterations,
+        out byte[] salt,
+        out byte[] expectedHash)
+    {
+        iterations = 0;
+        salt = [];
+        expectedHash = [];
+
+        var parts = passwordHash.Split(Separator);
+
+        if (parts.Length != 4 || parts[0] != "PBKDF2-SHA256")
+        {
+            return false;
+        }
+
+        if (!int.TryParse(parts[1], out iterations) ||
+            iterations <= 0 ||
+            iterations > MaximumAcceptedIterations)
+        {
+            return false;
+        }
+
+        try
+        {
+            salt = DecodeBase64Url(parts[2]);
+            expectedHash = DecodeBase64Url(parts[3]);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+
+        return salt.Length == SaltSize && expectedHash.Length == KeySize;
     }
 
     private static byte[] DecodeBase64Url(string value)

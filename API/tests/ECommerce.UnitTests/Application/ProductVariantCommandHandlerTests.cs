@@ -1,11 +1,14 @@
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.Common.Identifiers;
 using ECommerce.Application.Products.Variants.Commands.CreateProductVariant;
+using ECommerce.Application.Products.Variants.Commands.DeleteProductVariant;
 using ECommerce.Application.Products.Variants.Commands.SetProductVariantActivation;
 using ECommerce.Application.Products.Variants.Commands.UpdateProductVariant;
 using ECommerce.Application.Products.Variants.Commands.UpdateProductVariantPrice;
 using ECommerce.Application.Products.Variants.Commands.UpdateProductVariantStock;
 using ECommerce.Domain.Entities;
+using ECommerce.UnitTests.Testing;
 using FluentAssertions;
 using Moq;
 
@@ -14,12 +17,39 @@ namespace ECommerce.UnitTests.Application;
 public sealed class ProductVariantCommandHandlerTests
 {
     [Fact]
+    public async Task DeleteProductVariant_Should_Reject_Deleting_Last_Variant()
+    {
+        var variantRepository = new Mock<IProductVariantRepository>();
+        var productRepository = new Mock<IProductRepository>();
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var variant = new ProductVariant(1, "Standard", "SKU-1", 100, 8);
+
+        variantRepository
+            .Setup(repository => repository.GetByIdForUpdateAsync(variant.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(variant);
+        variantRepository
+            .Setup(repository => repository.CountByProductIdAsync(variant.ProductId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        var handler = new DeleteProductVariantCommandHandler(
+            variantRepository.Object,
+            productRepository.Object,
+            unitOfWork.Object);
+
+        Func<Task> act = () => handler.Handle(new DeleteProductVariantCommand(variant.Id), CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("A product must have at least one variant.");
+        variantRepository.Verify(repository => repository.Remove(It.IsAny<ProductVariant>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CreateProductVariant_Should_Create_Variant_When_Product_Exists()
     {
         var productRepository = new Mock<IProductRepository>();
         var variantRepository = new Mock<IProductVariantRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var product = new Product("Product", "product", Guid.NewGuid());
+        var product = new Product("Product", "product", Guid.NewGuid()).WithId(1);
         ProductVariant? createdVariant = null;
 
         productRepository
@@ -45,16 +75,20 @@ public sealed class ProductVariantCommandHandlerTests
             unitOfWork.Object);
 
         var result = await handler.Handle(
-            new CreateProductVariantCommand(product.Id, "SKU-1", 100, 8, CompareAtPrice: 120, Color: "Black"),
+            new CreateProductVariantCommand(product.Id, "Black / Medium", "SKU-1", 100, 8, CompareAtPrice: 120),
             CancellationToken.None);
 
-        result.ProductId.Should().Be(product.Id);
+        result.ProductId.Should().Be(PublicIdCodec.EncodeProductId(product.Id));
+        result.Name.Should().Be("Black / Medium");
         result.Sku.Should().Be("SKU-1");
         result.Price.Should().Be(100);
         result.Stock.Should().Be(8);
         result.CompareAtPrice.Should().Be(120);
-        result.Color.Should().Be("Black");
         createdVariant.Should().NotBeNull();
+        createdVariant!.InventoryTransactions.Should().ContainSingle(transaction =>
+            transaction.Type == ECommerce.Domain.Enums.InventoryTransactionType.StockIn &&
+            transaction.Quantity == 8 &&
+            transaction.StockAfterTransaction == 8);
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -64,7 +98,7 @@ public sealed class ProductVariantCommandHandlerTests
         var productRepository = new Mock<IProductRepository>();
         var variantRepository = new Mock<IProductVariantRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var product = new Product("Product", "product", Guid.NewGuid());
+        var product = new Product("Product", "product", Guid.NewGuid()).WithId(1);
 
         productRepository
             .Setup(repository => repository.GetByIdAsync(product.Id, It.IsAny<CancellationToken>()))
@@ -80,7 +114,7 @@ public sealed class ProductVariantCommandHandlerTests
             unitOfWork.Object);
 
         Func<Task> act = () => handler.Handle(
-            new CreateProductVariantCommand(product.Id, "SKU-1", 100, 8),
+            new CreateProductVariantCommand(product.Id, "Standard", "SKU-1", 100, 8),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<ConflictException>();
@@ -93,7 +127,7 @@ public sealed class ProductVariantCommandHandlerTests
     {
         var variantRepository = new Mock<IProductVariantRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var variant = new ProductVariant(Guid.NewGuid(), "SKU-1", 100, 8);
+        var variant = new ProductVariant(1, "Standard", "SKU-1", 100, 8);
 
         variantRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(variant.Id, It.IsAny<CancellationToken>()))
@@ -120,7 +154,7 @@ public sealed class ProductVariantCommandHandlerTests
     {
         var variantRepository = new Mock<IProductVariantRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var variant = new ProductVariant(Guid.NewGuid(), "SKU-1", 100, 8, isActive: true);
+        var variant = new ProductVariant(1, "Standard", "SKU-1", 100, 8, isActive: true);
 
         variantRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(variant.Id, It.IsAny<CancellationToken>()))
@@ -139,28 +173,31 @@ public sealed class ProductVariantCommandHandlerTests
         var result = await handler.Handle(
             new UpdateProductVariantCommand(
                 variant.Id,
+                "Premium",
                 "SKU-2",
                 90,
                 12,
                 CompareAtPrice: 120,
                 Barcode: "BAR-2",
-                Color: "Black",
-                Size: "M",
                 Material: "Cotton",
-                IsActive: false),
+                IsActive: false,
+                StockAdjustmentReason: "Warehouse count"),
             CancellationToken.None);
 
+        result.Name.Should().Be("Premium");
         result.Sku.Should().Be("SKU-2");
         result.Price.Should().Be(90);
         result.Stock.Should().Be(12);
         result.CompareAtPrice.Should().Be(120);
         result.Barcode.Should().Be("BAR-2");
-        result.Color.Should().Be("Black");
-        result.Size.Should().Be("M");
         result.Material.Should().Be("Cotton");
         result.IsActive.Should().BeFalse();
         variant.Sku.Should().Be("SKU-2");
         variant.IsActive.Should().BeFalse();
+        variant.InventoryTransactions.Should().ContainSingle(transaction =>
+            transaction.Quantity == 4 &&
+            transaction.StockAfterTransaction == 12 &&
+            transaction.Reason == "Warehouse count");
     }
 
     [Fact]
@@ -168,7 +205,7 @@ public sealed class ProductVariantCommandHandlerTests
     {
         var variantRepository = new Mock<IProductVariantRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var variant = new ProductVariant(Guid.NewGuid(), "SKU-1", 100, 8);
+        var variant = new ProductVariant(1, "Standard", "SKU-1", 100, 8);
 
         variantRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(variant.Id, It.IsAny<CancellationToken>()))
@@ -181,7 +218,7 @@ public sealed class ProductVariantCommandHandlerTests
         var handler = new UpdateProductVariantCommandHandler(variantRepository.Object, unitOfWork.Object);
 
         Func<Task> act = () => handler.Handle(
-            new UpdateProductVariantCommand(variant.Id, "SKU-2", 90, 12),
+            new UpdateProductVariantCommand(variant.Id, "Premium", "SKU-2", 90, 12),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<ConflictException>();
@@ -193,7 +230,7 @@ public sealed class ProductVariantCommandHandlerTests
     {
         var variantRepository = new Mock<IProductVariantRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var variant = new ProductVariant(Guid.NewGuid(), "SKU-1", 100, 8);
+        var variant = new ProductVariant(1, "Standard", "SKU-1", 100, 8);
 
         variantRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(variant.Id, It.IsAny<CancellationToken>()))
@@ -206,11 +243,39 @@ public sealed class ProductVariantCommandHandlerTests
         var handler = new UpdateProductVariantStockCommandHandler(variantRepository.Object, unitOfWork.Object);
 
         var result = await handler.Handle(
-            new UpdateProductVariantStockCommand(variant.Id, 15),
+            new UpdateProductVariantStockCommand(variant.Id, 7, "Manual correction"),
             CancellationToken.None);
 
         result.Stock.Should().Be(15);
         variant.Stock.Should().Be(15);
+        variant.InventoryTransactions.Should().ContainSingle(transaction =>
+            transaction.Quantity == 7 &&
+            transaction.StockAfterTransaction == 15 &&
+            transaction.Type == ECommerce.Domain.Enums.InventoryTransactionType.StockIn &&
+            transaction.Reason == "Manual correction");
+    }
+
+    [Fact]
+    public async Task UpdateProductVariantStock_Should_Decrease_Stock_When_Quantity_Is_Negative()
+    {
+        var variantRepository = new Mock<IProductVariantRepository>();
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var variant = new ProductVariant(1, "Standard", "SKU-1", 100, 8);
+        variantRepository.Setup(repository => repository.GetByIdForUpdateAsync(
+                variant.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(variant);
+        unitOfWork.Setup(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        var handler = new UpdateProductVariantStockCommandHandler(variantRepository.Object, unitOfWork.Object);
+
+        var result = await handler.Handle(
+            new UpdateProductVariantStockCommand(variant.Id, -2, "Damaged item"),
+            CancellationToken.None);
+
+        result.Stock.Should().Be(6);
+        variant.InventoryTransactions.Should().ContainSingle(transaction =>
+            transaction.Type == ECommerce.Domain.Enums.InventoryTransactionType.StockOut &&
+            transaction.Quantity == 2 &&
+            transaction.StockAfterTransaction == 6);
     }
 
     [Fact]
@@ -218,7 +283,7 @@ public sealed class ProductVariantCommandHandlerTests
     {
         var variantRepository = new Mock<IProductVariantRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var variant = new ProductVariant(Guid.NewGuid(), "SKU-1", 100, 8, isActive: true);
+        var variant = new ProductVariant(1, "Standard", "SKU-1", 100, 8, isActive: true);
 
         variantRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(variant.Id, It.IsAny<CancellationToken>()))

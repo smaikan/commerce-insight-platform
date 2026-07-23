@@ -5,6 +5,7 @@ namespace ECommerce.Persistence.Context;
 
 public sealed class AppDbContext : DbContext
 {
+    // Burada EF Core bağlamını dışarıdan verilen veritabanı seçenekleriyle oluşturuyorum.
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {
@@ -22,6 +23,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<EmailOutboxMessage> EmailOutbox => Set<EmailOutboxMessage>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductBundleItem> ProductBundleItems => Set<ProductBundleItem>();
     public DbSet<ProductCollection> ProductCollections => Set<ProductCollection>();
@@ -38,6 +40,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
     public DbSet<UserSecurityToken> UserSecurityTokens => Set<UserSecurityToken>();
 
+    // Burada entity configuration sınıflarını otomatik olarak modele uyguluyorum.
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

@@ -11,5 +11,8 @@ public sealed class RefreshTokenCommandValidator : AbstractValidator<RefreshToke
 
         RuleFor(command => command.IpAddress)
             .MaximumLength(80);
+
+        RuleFor(command => command.DeviceName)
+            .MaximumLength(200);
     }
 }

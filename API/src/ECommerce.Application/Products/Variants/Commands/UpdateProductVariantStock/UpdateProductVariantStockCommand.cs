@@ -3,4 +3,7 @@ using MediatR;
 
 namespace ECommerce.Application.Products.Variants.Commands.UpdateProductVariantStock;
 
-public sealed record UpdateProductVariantStockCommand(Guid Id, int Stock) : IRequest<ProductVariantDto>;
+public sealed record UpdateProductVariantStockCommand(
+    Guid Id,
+    int Quantity,
+    string? Reason = null) : IRequest<ProductVariantDto>;

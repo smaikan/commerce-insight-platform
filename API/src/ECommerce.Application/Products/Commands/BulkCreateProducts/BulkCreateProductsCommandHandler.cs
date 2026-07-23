@@ -3,6 +3,7 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Services;
 using ECommerce.Application.Products.Dtos;
 using ECommerce.Domain.Entities;
+using ECommerce.Domain.Enums;
 using MediatR;
 
 namespace ECommerce.Application.Products.Commands.BulkCreateProducts;
@@ -84,8 +85,15 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
     {
         var typeIds = preparedItems
             .Select(item => item.Item.TypeId)
+            .Where(typeId => typeId.HasValue)
+            .Select(typeId => typeId!.Value)
             .Distinct()
             .ToList();
+
+        if (typeIds.Count == 0)
+        {
+            return;
+        }
 
         var existingTypeIds = await _productTypeRepository.GetExistingIdsAsync(typeIds, cancellationToken);
         var missingTypeIds = typeIds
@@ -211,23 +219,34 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
 
         foreach (var variant in item.Variants ?? Array.Empty<BulkCreateProductVariantItem>())
         {
-            product.Variants.Add(new ProductVariant(
-                product.Id,
+            var productVariant = new ProductVariant(
+                product,
+                variant.Name,
                 variant.Sku,
                 variant.Price,
                 variant.Stock,
                 variant.CompareAtPrice,
                 variant.Barcode,
-                variant.Color,
-                variant.Size,
                 variant.Material,
-                variant.IsActive));
+                variant.IsActive);
+
+            if (variant.Stock > 0)
+            {
+                productVariant.InventoryTransactions.Add(new InventoryTransaction(
+                    productVariant.Id,
+                    InventoryTransactionType.StockIn,
+                    variant.Stock,
+                    variant.Stock,
+                    "Initial stock"));
+            }
+
+            product.Variants.Add(productVariant);
         }
 
         foreach (var image in item.Images ?? Array.Empty<BulkCreateProductImageItem>())
         {
             product.Images.Add(new ProductImage(
-                product.Id,
+                product,
                 image.ImageUrl,
                 image.DisplayOrder,
                 image.IsMain,
@@ -236,13 +255,15 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
 
         foreach (var collectionId in item.CollectionIds?.Distinct() ?? Array.Empty<Guid>())
         {
-            product.ProductCollections.Add(new ProductCollection(product.Id, collectionId));
+            product.ProductCollections.Add(new ProductCollection(product, collectionId));
         }
 
         foreach (var tagId in item.TagIds?.Distinct() ?? Array.Empty<Guid>())
         {
-            product.ProductTags.Add(new ProductTag(product.Id, tagId));
+            product.ProductTags.Add(new ProductTag(product, tagId));
         }
+
+        product.EnsureHasAtLeastOneVariant();
 
         return product;
     }

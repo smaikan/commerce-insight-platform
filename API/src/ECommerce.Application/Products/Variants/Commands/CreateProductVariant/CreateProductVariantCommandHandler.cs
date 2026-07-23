@@ -2,6 +2,7 @@ using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Products.Dtos;
 using ECommerce.Domain.Entities;
+using ECommerce.Domain.Enums;
 using MediatR;
 
 namespace ECommerce.Application.Products.Variants.Commands.CreateProductVariant;
@@ -39,15 +40,24 @@ public sealed class CreateProductVariantCommandHandler : IRequestHandler<CreateP
 
         var variant = new ProductVariant(
             request.ProductId,
+            request.Name,
             request.Sku,
             request.Price,
             request.Stock,
             request.CompareAtPrice,
             request.Barcode,
-            request.Color,
-            request.Size,
             request.Material,
             request.IsActive);
+
+        if (request.Stock > 0)
+        {
+            variant.InventoryTransactions.Add(new InventoryTransaction(
+                variant.Id,
+                InventoryTransactionType.StockIn,
+                request.Stock,
+                request.Stock,
+                "Initial stock"));
+        }
 
         await _variantRepository.AddAsync(variant, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

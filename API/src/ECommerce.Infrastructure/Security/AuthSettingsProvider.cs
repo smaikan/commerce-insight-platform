@@ -18,10 +18,7 @@ public sealed class AuthSettingsProvider : IAuthSettingsProvider
         {
             AccessTokenMinutes = GetInt("Auth:AccessTokenMinutes", 15),
             RefreshTokenDays = GetInt("Auth:RefreshTokenDays", 14),
-            EmailConfirmationTokenHours = GetInt("Auth:EmailConfirmationTokenHours", 24),
-            PasswordResetTokenMinutes = GetInt("Auth:PasswordResetTokenMinutes", 30),
-            MaxFailedAccessAttempts = GetInt("Auth:MaxFailedAccessAttempts", 5),
-            LockoutMinutes = GetInt("Auth:LockoutMinutes", 15)
+            PasswordResetTokenMinutes = GetInt("Auth:PasswordResetTokenMinutes", 30)
         };
     }
 

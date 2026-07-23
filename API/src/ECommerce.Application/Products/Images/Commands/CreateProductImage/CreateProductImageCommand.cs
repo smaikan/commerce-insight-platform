@@ -4,7 +4,7 @@ using MediatR;
 namespace ECommerce.Application.Products.Images.Commands.CreateProductImage;
 
 public sealed record CreateProductImageCommand(
-    Guid ProductId,
+    long ProductId,
     string ImageUrl,
     string? AltText = null,
     int DisplayOrder = 0,

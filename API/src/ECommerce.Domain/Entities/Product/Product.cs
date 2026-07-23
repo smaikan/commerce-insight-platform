@@ -3,13 +3,18 @@ using ECommerce.Domain.Enums;
 
 namespace ECommerce.Domain.Entities;
 
-public sealed class Product : AuditableEntity
+public sealed class Product : AuditableEntity<long>
 {
+    public const int ClickScoreWeight = 1;
+    public const int FavoriteScoreWeight = 4;
+    public const int AddToCartScoreWeight = 8;
+    public const int PurchaseScoreWeight = 20;
+
     public string Title { get; private set; } = null!;
     public string? Description { get; private set; }
     public string Url { get; private set; } = null!;
-    public Guid TypeId { get; private set; }
-    public ProductType Type { get; private set; } = null!;
+    public Guid? TypeId { get; private set; }
+    public ProductType? Type { get; private set; }
     public Guid? BrandId { get; private set; }
     public Brand? Brand { get; private set; }
     public ProductStatus Status { get; private set; }
@@ -18,13 +23,15 @@ public sealed class Product : AuditableEntity
     public int DisplayOrder { get; private set; }
     public string? SeoTitle { get; private set; }
     public string? SeoDescription { get; private set; }
-    public int ClickCount { get; private set; }
-    public int TotalAddToCartCount { get; private set; }
-    public int TotalPurchaseCount { get; private set; }
-    public int FavoriteCount { get; private set; }
+    public long ClickCount { get; private set; }
+    public long TotalAddToCartCount { get; private set; }
+    public long TotalPurchaseCount { get; private set; }
+    public long FavoriteCount { get; private set; }
+    public long PopularityScore { get; private set; }
     public decimal AverageRating { get; private set; }
-    public int RatingCount { get; private set; }
-    public int ReviewCount { get; private set; }
+    public long RatingCount { get; private set; }
+    public long ReviewCount { get; private set; }
+    public Guid ConcurrencyToken { get; private set; }
 
     public ICollection<ProductVariant> Variants { get; private set; } = new List<ProductVariant>();
     public ICollection<ProductImage> Images { get; private set; } = new List<ProductImage>();
@@ -36,14 +43,16 @@ public sealed class Product : AuditableEntity
     public ICollection<FavoriteProduct> Favorites { get; private set; } = new List<FavoriteProduct>();
     public ICollection<ProductBundleItem> BundleItems { get; private set; } = new List<ProductBundleItem>();
 
+    // Burada EF Core'un ürünü veritabanından oluşturabilmesi için boş kurucuyu tutuyorum.
     private Product()
     {
     }
 
+    // Burada yeni ürünü temel katalog bilgileri ve başlangıç değerleriyle oluşturuyorum.
     public Product(
         string title,
         string url,
-        Guid typeId,
+        Guid? typeId = null,
         Guid? brandId = null,
         string? description = null,
         ProductStatus status = ProductStatus.Draft,
@@ -65,14 +74,18 @@ public sealed class Product : AuditableEntity
         IsFeatured = isFeatured;
         SeoTitle = seoTitle?.Trim();
         SeoDescription = seoDescription?.Trim();
+        ConcurrencyToken = Guid.NewGuid();
     }
 
+    // Burada ürün tıklamasını ve karşılık gelen popülerlik puanını artırıyorum.
     public void IncreaseClickCount()
     {
         ClickCount++;
-        MarkAsUpdated();
+        PopularityScore += ClickScoreWeight;
+        MarkAsChanged();
     }
 
+    // Burada sepete eklenen adetleri ve her adet için kazanılan puanı artırıyorum.
     public void IncreaseTotalAddToCartCount(int quantity)
     {
         if (quantity <= 0)
@@ -81,9 +94,11 @@ public sealed class Product : AuditableEntity
         }
 
         TotalAddToCartCount += quantity;
-        MarkAsUpdated();
+        PopularityScore += (long)quantity * AddToCartScoreWeight;
+        MarkAsChanged();
     }
 
+    // Burada satın alınan adetleri ve her adet için kazanılan puanı artırıyorum.
     public void IncreaseTotalPurchaseCount(int quantity)
     {
         if (quantity <= 0)
@@ -92,15 +107,19 @@ public sealed class Product : AuditableEntity
         }
 
         TotalPurchaseCount += quantity;
-        MarkAsUpdated();
+        PopularityScore += (long)quantity * PurchaseScoreWeight;
+        MarkAsChanged();
     }
 
+    // Burada favori sayısını ve favori puanını artırıyorum.
     public void IncreaseFavoriteCount()
     {
         FavoriteCount++;
-        MarkAsUpdated();
+        PopularityScore += FavoriteScoreWeight;
+        MarkAsChanged();
     }
 
+    // Burada favoriden çıkarılan ürünün sayısını ve puanını güvenli biçimde azaltıyorum.
     public void DecreaseFavoriteCount()
     {
         if (FavoriteCount <= 0)
@@ -109,10 +128,12 @@ public sealed class Product : AuditableEntity
         }
 
         FavoriteCount--;
-        MarkAsUpdated();
+        PopularityScore -= FavoriteScoreWeight;
+        MarkAsChanged();
     }
 
-    public void UpdateRatingSummary(decimal averageRating, int ratingCount)
+    // Burada ürünün ortalama puan ve değerlendirme özetini güncelliyorum.
+    public void UpdateRatingSummary(decimal averageRating, long ratingCount)
     {
         if (averageRating < 0m || averageRating > 5m)
         {
@@ -126,15 +147,17 @@ public sealed class Product : AuditableEntity
 
         AverageRating = averageRating;
         RatingCount = ratingCount;
-        MarkAsUpdated();
+        MarkAsChanged();
     }
 
+    // Burada onaylı yorum sayısını artırıyorum.
     public void IncreaseReviewCount()
     {
         ReviewCount++;
-        MarkAsUpdated();
+        MarkAsChanged();
     }
 
+    // Burada onaylı yorum sayısını negatif olmayacak şekilde azaltıyorum.
     public void DecreaseReviewCount()
     {
         if (ReviewCount <= 0)
@@ -143,51 +166,59 @@ public sealed class Product : AuditableEntity
         }
 
         ReviewCount--;
-        MarkAsUpdated();
+        MarkAsChanged();
     }
 
+    // Burada ürünü satışta kullanılabilir duruma getiriyorum.
     public void Activate()
     {
         IsActive = true;
-        MarkAsUpdated();
+        MarkAsChanged();
     }
 
+    // Burada ürünü satışa kapatıyorum.
     public void Deactivate()
     {
         IsActive = false;
-        MarkAsUpdated();
+        MarkAsChanged();
     }
 
+    // Burada ürünü öne çıkan ürün olarak işaretliyorum.
     public void MarkAsFeatured()
     {
         IsFeatured = true;
-        MarkAsUpdated();
+        MarkAsChanged();
     }
 
+    // Burada ürünün öne çıkarılmış işaretini kaldırıyorum.
     public void UnmarkAsFeatured()
     {
         IsFeatured = false;
-        MarkAsUpdated();
+        MarkAsChanged();
     }
 
+    // Burada ürünün yayın durumunu değiştiriyorum.
     public void ChangeStatus(ProductStatus status)
     {
         Status = status;
-        MarkAsUpdated();
+        MarkAsChanged();
     }
 
-    public void ChangeType(Guid typeId)
+    // Burada ürünün bağlı olduğu türü değiştiriyorum.
+    public void ChangeType(Guid? typeId)
     {
         SetType(typeId);
-        MarkAsUpdated();
+        MarkAsChanged();
     }
 
+    // Burada ürünün bağlı olduğu markayı değiştiriyorum.
     public void ChangeBrand(Guid? brandId)
     {
         SetBrand(brandId);
-        MarkAsUpdated();
+        MarkAsChanged();
     }
 
+    // Burada ürünün temel metin ve gösterim bilgilerini birlikte güncelliyorum.
     public void UpdateBasics(
         string title,
         string url,
@@ -202,9 +233,25 @@ public sealed class Product : AuditableEntity
         Description = description?.Trim();
         SeoTitle = seoTitle?.Trim();
         SeoDescription = seoDescription?.Trim();
-        MarkAsUpdated();
+        MarkAsChanged();
     }
 
+    // Burada ürün ilişkileri değiştiğinde concurrency değerini yeniliyorum.
+    public void MarkRelationsChanged()
+    {
+        MarkAsChanged();
+    }
+
+    // Burada ürünün en az bir satılabilir varyanta sahip olduğunu doğruluyorum.
+    public void EnsureHasAtLeastOneVariant()
+    {
+        if (Variants.Count == 0)
+        {
+            throw new DomainException("A product must have at least one variant.");
+        }
+    }
+
+    // Burada ürün başlığını doğrulayıp temizlenmiş biçimde saklıyorum.
     private void SetTitle(string title)
     {
         if (string.IsNullOrWhiteSpace(title))
@@ -215,6 +262,7 @@ public sealed class Product : AuditableEntity
         Title = title.Trim();
     }
 
+    // Burada ürün URL bilgisini doğrulayıp temizlenmiş biçimde saklıyorum.
     private void SetUrl(string url)
     {
         if (string.IsNullOrWhiteSpace(url))
@@ -225,16 +273,18 @@ public sealed class Product : AuditableEntity
         Url = url.Trim();
     }
 
-    private void SetType(Guid typeId)
+    // Burada isteğe bağlı ürün türü kimliğinin boş GUID olmadığını kontrol ediyorum.
+    private void SetType(Guid? typeId)
     {
         if (typeId == Guid.Empty)
         {
-            throw new DomainException("Product type is required.");
+            throw new DomainException("Product type id cannot be empty.");
         }
 
         TypeId = typeId;
     }
 
+    // Burada isteğe bağlı marka kimliğinin boş GUID olmadığını kontrol ediyorum.
     private void SetBrand(Guid? brandId)
     {
         if (brandId == Guid.Empty)
@@ -245,6 +295,7 @@ public sealed class Product : AuditableEntity
         BrandId = brandId;
     }
 
+    // Burada manuel gösterim sırasının negatif olmadığını kontrol ediyorum.
     private void SetDisplayOrder(int displayOrder)
     {
         if (displayOrder < 0)
@@ -253,5 +304,12 @@ public sealed class Product : AuditableEntity
         }
 
         DisplayOrder = displayOrder;
+    }
+
+    // Burada ürün değişikliğini concurrency ve audit alanlarına yansıtıyorum.
+    private void MarkAsChanged()
+    {
+        ConcurrencyToken = Guid.NewGuid();
+        MarkAsUpdated();
     }
 }

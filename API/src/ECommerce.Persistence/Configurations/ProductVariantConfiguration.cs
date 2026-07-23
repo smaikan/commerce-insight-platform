@@ -12,18 +12,16 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
 
         builder.HasKey(variant => variant.Id);
 
+        builder.Property(variant => variant.Name)
+            .HasMaxLength(150)
+            .IsRequired();
+
         builder.Property(variant => variant.Sku)
             .HasMaxLength(100)
             .IsRequired();
 
         builder.Property(variant => variant.Barcode)
             .HasMaxLength(100);
-
-        builder.Property(variant => variant.Color)
-            .HasMaxLength(80);
-
-        builder.Property(variant => variant.Size)
-            .HasMaxLength(80);
 
         builder.Property(variant => variant.Material)
             .HasMaxLength(120);
@@ -34,6 +32,9 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
 
         builder.Property(variant => variant.CompareAtPrice)
             .HasPrecision(18, 2);
+
+        builder.Property(variant => variant.ConcurrencyToken)
+            .IsConcurrencyToken();
 
         builder.HasOne(variant => variant.Product)
             .WithMany(product => product.Variants)

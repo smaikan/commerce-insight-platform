@@ -19,7 +19,8 @@ public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkC
                     .MaximumLength(250);
 
                 product.RuleFor(item => item.TypeId)
-                    .NotEmpty();
+                    .Must(typeId => !typeId.HasValue || typeId.Value != Guid.Empty)
+                    .WithMessage("Product type id cannot be empty.");
 
                 product.RuleFor(item => item.BrandId)
                     .Must(brandId => !brandId.HasValue || brandId.Value != Guid.Empty)
@@ -43,6 +44,10 @@ public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkC
                 product.RuleForEach(item => item.Variants)
                     .ChildRules(variant =>
                     {
+                        variant.RuleFor(item => item.Name)
+                            .NotEmpty()
+                            .MaximumLength(150);
+
                         variant.RuleFor(item => item.Sku)
                             .NotEmpty()
                             .MaximumLength(100);
@@ -60,15 +65,13 @@ public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkC
                         variant.RuleFor(item => item.Barcode)
                             .MaximumLength(100);
 
-                        variant.RuleFor(item => item.Color)
-                            .MaximumLength(80);
-
-                        variant.RuleFor(item => item.Size)
-                            .MaximumLength(80);
-
                         variant.RuleFor(item => item.Material)
                             .MaximumLength(120);
                     });
+
+                product.RuleFor(item => item.Variants)
+                    .NotEmpty()
+                    .WithMessage("A product must have at least one variant.");
 
                 product.RuleForEach(item => item.Images)
                     .ChildRules(image =>
@@ -83,6 +86,17 @@ public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkC
                         image.RuleFor(item => item.AltText)
                             .MaximumLength(250);
                     });
+
+                product.RuleFor(item => item.Images)
+                    .Must(images => images is null || images.Count(image => image.IsMain) <= 1)
+                    .WithMessage("A product can contain at most one main image.");
+
+                product.RuleForEach(item => item.CollectionIds)
+                    .NotEmpty();
+
+                product.RuleFor(item => item.CollectionIds)
+                    .Must(ids => ids is null || ids.Distinct().Count() == ids.Count)
+                    .WithMessage("Collection ids cannot contain duplicates.");
             });
     }
 }

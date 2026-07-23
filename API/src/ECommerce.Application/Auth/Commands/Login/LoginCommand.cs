@@ -6,4 +6,5 @@ namespace ECommerce.Application.Auth.Commands.Login;
 public sealed record LoginCommand(
     string Email,
     string Password,
-    string? IpAddress = null) : IRequest<AuthResultDto>;
+    string? IpAddress = null,
+    string? DeviceName = null) : IRequest<AuthResultDto>;

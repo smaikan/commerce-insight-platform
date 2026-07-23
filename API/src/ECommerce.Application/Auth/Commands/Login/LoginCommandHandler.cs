@@ -10,6 +10,7 @@ namespace ECommerce.Application.Auth.Commands.Login;
 
 public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResultDto>
 {
+    private const string DummyPasswordHash = "PBKDF2-SHA256.210000.AAAAAAAAAAAAAAAAAAAAAA.EhL9m-kU-EX8qIcIO_fuNwLe_soCpvv3j9Fbc3tuY0s";
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
@@ -39,59 +40,67 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResu
         _unitOfWork = unitOfWork;
     }
 
-    // Burada giriş isteğinde şifreyi doğrulayıp başarılıysa access ve refresh token üretiyorum.
+    // Burada email onayı aramadan parolayı doğrulayıp güvenli oturum tokenlarını üretiyorum.
     public async Task<AuthResultDto> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByEmailForUpdateAsync(request.Email, cancellationToken);
 
         if (user is null)
         {
+            _passwordHasher.Verify(request.Password, DummyPasswordHash);
+            throw new UnauthorizedException("Email or password is invalid.");
+        }
+
+        var utcNow = _dateTimeProvider.UtcNow;
+        var passwordIsValid = _passwordHasher.Verify(request.Password, user.PasswordHash);
+
+        if (!passwordIsValid || !user.CanLogin())
+        {
             throw new UnauthorizedException("Email or password is invalid.");
         }
 
         var settings = _authSettingsProvider.GetSettings();
-        var utcNow = _dateTimeProvider.UtcNow;
 
-        if (!user.CanLogin(utcNow))
+        if (_passwordHasher.NeedsRehash(user.PasswordHash))
         {
-            throw new UnauthorizedException("User cannot login.");
-        }
-
-        if (!_passwordHasher.Verify(request.Password, user.PasswordHash))
-        {
-            user.RecordFailedLogin(
-                settings.MaxFailedAccessAttempts,
-                TimeSpan.FromMinutes(settings.LockoutMinutes),
-                utcNow);
-
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            throw new UnauthorizedException("Email or password is invalid.");
+            user.UpgradePasswordHash(_passwordHasher.Hash(request.Password));
         }
 
         user.RecordSuccessfulLogin(utcNow);
-        var tokens = CreateTokens(user, settings, request.IpAddress);
+        var tokens = CreateTokens(user, settings, request.IpAddress, request.DeviceName);
+        await _userRepository.AddRefreshTokenAsync(tokens.RefreshTokenEntity, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new AuthResultDto(user.ToDto(), tokens);
+        return new AuthResultDto(user.ToDto(), tokens.Tokens);
     }
 
-    private AuthTokensDto CreateTokens(User user, AuthSettings settings, string? ipAddress)
+    private CreatedTokens CreateTokens(
+        User user,
+        AuthSettings settings,
+        string? ipAddress,
+        string? deviceName)
     {
-        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
         var refreshToken = _randomTokenGenerator.GenerateToken();
         var refreshTokenExpiresAt = _dateTimeProvider.UtcNow.AddDays(settings.RefreshTokenDays);
-
-        user.RefreshTokens.Add(new UserRefreshToken(
+        var refreshTokenEntity = new UserRefreshToken(
             user.Id,
             _tokenHasher.Hash(refreshToken),
             refreshTokenExpiresAt,
-            ipAddress));
+            _dateTimeProvider.UtcNow,
+            ipAddress,
+            deviceName);
+        user.RefreshTokens.Add(refreshTokenEntity);
+        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user, refreshTokenEntity.Id);
 
-        return new AuthTokensDto(
-            accessToken.Token,
-            accessToken.ExpiresAt,
-            refreshToken,
-            refreshTokenExpiresAt);
+        return new CreatedTokens(
+            new AuthTokensDto(
+                accessToken.Token,
+                accessToken.ExpiresAt,
+                refreshToken,
+                refreshTokenExpiresAt),
+            refreshTokenEntity);
     }
+
+    private sealed record CreatedTokens(AuthTokensDto Tokens, UserRefreshToken RefreshTokenEntity);
 }

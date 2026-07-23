@@ -2,6 +2,7 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Services;
 using ECommerce.Application.Products.Commands.BulkCreateProducts;
 using ECommerce.Domain.Entities;
+using ECommerce.UnitTests.Testing;
 using FluentAssertions;
 using Moq;
 
@@ -34,11 +35,20 @@ public sealed class BulkCreateProductsCommandHandlerTests
 
         productRepository
             .Setup(repository => repository.AddRangeAsync(It.IsAny<IReadOnlyCollection<Product>>(), It.IsAny<CancellationToken>()))
-            .Callback<IReadOnlyCollection<Product>, CancellationToken>((products, _) => createdProducts = products)
+            .Callback<IReadOnlyCollection<Product>, CancellationToken>((products, _) =>
+            {
+                var id = 1L;
+                foreach (var product in products)
+                {
+                    product.WithId(id++);
+                }
+
+                createdProducts = products;
+            })
             .Returns(Task.CompletedTask);
 
         productRepository
-            .Setup(repository => repository.GetByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .Setup(repository => repository.GetByIdsAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => createdProducts!.ToList());
 
         productTypeRepository
@@ -79,7 +89,7 @@ public sealed class BulkCreateProductsCommandHandlerTests
                     BrandId: brandId,
                     Variants:
                     [
-                        new BulkCreateProductVariantItem("HOODIE-BLK-M", 1299.90m, 25)
+                        new BulkCreateProductVariantItem("Black / Medium", "HOODIE-BLK-M", 1299.90m, 25)
                     ],
                     Images:
                     [

@@ -1,20 +1,26 @@
 using ECommerce.Domain.Entities;
 using ECommerce.Persistence.Context;
 using FluentAssertions;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.IntegrationTests.Persistence;
 
 public sealed class AppDbContextModelTests
 {
+    // Burada EF Core modelinin tüm e-ticaret entity'lerini içerdiğini doğruluyorum.
     [Fact]
     public void Model_Should_Include_All_ECommerce_Entities()
     {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .UseSqlite(connection)
             .Options;
 
         using var context = new AppDbContext(options);
+        context.Database.EnsureCreated();
 
         var entityTypes = context.Model.GetEntityTypes()
             .Select(entityType => entityType.ClrType)
@@ -34,6 +40,7 @@ public sealed class AppDbContextModelTests
             typeof(Order),
             typeof(OrderItem),
             typeof(Payment),
+            typeof(EmailOutboxMessage),
             typeof(Product),
             typeof(ProductBundleItem),
             typeof(ProductCollection),

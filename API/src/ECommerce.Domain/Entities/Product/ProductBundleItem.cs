@@ -4,9 +4,9 @@ namespace ECommerce.Domain.Entities;
 
 public sealed class ProductBundleItem : BaseEntity
 {
-    public Guid BundleProductId { get; private set; }
+    public long BundleProductId { get; private set; }
     public Product BundleProduct { get; private set; } = null!;
-    public Guid IncludedProductId { get; private set; }
+    public long IncludedProductId { get; private set; }
     public Product IncludedProduct { get; private set; } = null!;
     public int Quantity { get; private set; }
     public DateTime CreatedAt { get; private set; }
@@ -15,9 +15,9 @@ public sealed class ProductBundleItem : BaseEntity
     {
     }
 
-    public ProductBundleItem(Guid bundleProductId, Guid includedProductId, int quantity)
+    public ProductBundleItem(long bundleProductId, long includedProductId, int quantity)
     {
-        if (bundleProductId == Guid.Empty || includedProductId == Guid.Empty)
+        if (bundleProductId <= 0 || includedProductId <= 0)
         {
             throw new DomainException("Bundle and included product ids are required.");
         }

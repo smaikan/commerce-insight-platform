@@ -1,8 +1,10 @@
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.Common.Identifiers;
 using ECommerce.Application.Products.Images.Commands.CreateProductImage;
 using ECommerce.Application.Products.Images.Commands.UpdateProductImage;
 using ECommerce.Domain.Entities;
+using ECommerce.UnitTests.Testing;
 using FluentAssertions;
 using Moq;
 
@@ -16,12 +18,17 @@ public sealed class ProductImageCommandHandlerTests
         var productRepository = new Mock<IProductRepository>();
         var imageRepository = new Mock<IProductImageRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var product = new Product("Product", "product", Guid.NewGuid());
+        var product = new Product("Product", "product", Guid.NewGuid()).WithId(1);
+        var currentMainImage = new ProductImage(product.Id, "https://cdn.test/old-main.jpg", 0, true);
         ProductImage? createdImage = null;
 
         productRepository
             .Setup(repository => repository.GetByIdAsync(product.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
+
+        imageRepository
+            .Setup(repository => repository.GetMainByProductIdForUpdateAsync(product.Id, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(currentMainImage);
 
         imageRepository
             .Setup(repository => repository.AddAsync(It.IsAny<ProductImage>(), It.IsAny<CancellationToken>()))
@@ -41,12 +48,13 @@ public sealed class ProductImageCommandHandlerTests
             new CreateProductImageCommand(product.Id, "https://cdn.test/product.jpg", "Front", 1, true),
             CancellationToken.None);
 
-        result.ProductId.Should().Be(product.Id);
+        result.ProductId.Should().Be(PublicIdCodec.EncodeProductId(product.Id));
         result.ImageUrl.Should().Be("https://cdn.test/product.jpg");
         result.AltText.Should().Be("Front");
         result.DisplayOrder.Should().Be(1);
         result.IsMain.Should().BeTrue();
         createdImage.Should().NotBeNull();
+        currentMainImage.IsMain.Should().BeFalse();
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -56,7 +64,7 @@ public sealed class ProductImageCommandHandlerTests
         var productRepository = new Mock<IProductRepository>();
         var imageRepository = new Mock<IProductImageRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var productId = Guid.NewGuid();
+        const long productId = 1;
 
         productRepository
             .Setup(repository => repository.GetByIdAsync(productId, It.IsAny<CancellationToken>()))
@@ -81,11 +89,16 @@ public sealed class ProductImageCommandHandlerTests
     {
         var imageRepository = new Mock<IProductImageRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var image = new ProductImage(Guid.NewGuid(), "https://cdn.test/old.jpg", 1, false, "Old");
+        var image = new ProductImage(1, "https://cdn.test/old.jpg", 1, false, "Old");
+        var currentMainImage = new ProductImage(image.ProductId, "https://cdn.test/main.jpg", 0, true);
 
         imageRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(image.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(image);
+
+        imageRepository
+            .Setup(repository => repository.GetMainByProductIdForUpdateAsync(image.ProductId, image.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(currentMainImage);
 
         unitOfWork
             .Setup(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -102,5 +115,6 @@ public sealed class ProductImageCommandHandlerTests
         result.DisplayOrder.Should().Be(2);
         result.IsMain.Should().BeTrue();
         image.ImageUrl.Should().Be("https://cdn.test/new.jpg");
+        currentMainImage.IsMain.Should().BeFalse();
     }
 }

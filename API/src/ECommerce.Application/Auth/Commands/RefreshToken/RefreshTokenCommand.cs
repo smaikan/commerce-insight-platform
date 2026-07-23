@@ -5,4 +5,5 @@ namespace ECommerce.Application.Auth.Commands.RefreshToken;
 
 public sealed record RefreshTokenCommand(
     string RefreshToken,
-    string? IpAddress = null) : IRequest<AuthResultDto>;
+    string? IpAddress = null,
+    string? DeviceName = null) : IRequest<AuthResultDto>;
