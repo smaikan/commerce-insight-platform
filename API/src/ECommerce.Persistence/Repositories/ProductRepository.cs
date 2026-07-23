@@ -1,4 +1,5 @@
 using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.Common.Models;
 using ECommerce.Domain.Entities;
 using ECommerce.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,7 @@ public sealed class ProductRepository : IProductRepository
 {
     private readonly AppDbContext _context;
 
+    // Burada ürün repository'sini aynı istek kapsamındaki DbContext ile hazırlıyorum.
     public ProductRepository(AppDbContext context)
     {
         _context = context;
@@ -27,20 +29,22 @@ public sealed class ProductRepository : IProductRepository
     }
 
     // Burada ürünü detay okumak için takip etmeden getiriyorum.
-    public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public Task<Product?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
         return _context.Products
             .AsNoTracking()
             .Include(product => product.Type)
             .Include(product => product.Brand)
+            .Include(product => product.Variants)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
     }
 
     // Burada verilen ürün id listesindeki ürünleri topluca getiriyorum.
-    public async Task<IReadOnlyList<Product>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Product>> GetByIdsAsync(IEnumerable<long> ids, CancellationToken cancellationToken = default)
     {
         var productIds = ids
-            .Where(id => id != Guid.Empty)
+            .Where(id => id > 0)
             .Distinct()
             .ToList();
 
@@ -48,31 +52,100 @@ public sealed class ProductRepository : IProductRepository
             .AsNoTracking()
             .Include(product => product.Type)
             .Include(product => product.Brand)
+            .Include(product => product.Variants)
+            .AsSplitQuery()
             .Where(product => productIds.Contains(product.Id))
             .ToListAsync(cancellationToken);
     }
 
     // Burada ürünü güncelleme için takipli şekilde getiriyorum.
-    public Task<Product?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken = default)
+    public Task<Product?> GetByIdForUpdateAsync(long id, CancellationToken cancellationToken = default)
     {
         return _context.Products
             .FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
     }
 
-    // Burada ürün listesini okuma amaçlı takip etmeden getiriyorum.
-    public async Task<IReadOnlyList<Product>> GetListAsync(CancellationToken cancellationToken = default)
+    // Burada ürünü ilişki değişiklikleri için takipli şekilde getiriyorum.
+    public Task<Product?> GetWithRelationsForUpdateAsync(long id, CancellationToken cancellationToken = default)
     {
-        return await _context.Products
+        return _context.Products
+            .Include(product => product.ProductCollections)
+            .Include(product => product.ProductTags)
+            .Include(product => product.BundleItems)
+            .FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
+    }
+
+    // Burada ürün listesini okuma amaçlı takip etmeden getiriyorum.
+    public async Task<PagedResult<Product>> GetListAsync(
+        ProductListFilter filter,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<Product> query = _context.Products
             .AsNoTracking()
             .Include(product => product.Type)
             .Include(product => product.Brand)
-            .OrderBy(product => product.DisplayOrder)
-            .ThenBy(product => product.Title)
+            .Include(product => product.Variants)
+            .AsSplitQuery();
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            query = query.Where(product => product.Title.Contains(search) || product.Url.Contains(search));
+        }
+
+        if (filter.TypeId.HasValue)
+        {
+            query = query.Where(product => product.TypeId == filter.TypeId.Value);
+        }
+
+        if (filter.BrandId.HasValue)
+        {
+            query = query.Where(product => product.BrandId == filter.BrandId.Value);
+        }
+
+        if (filter.Status.HasValue)
+        {
+            query = query.Where(product => product.Status == filter.Status.Value);
+        }
+
+        if (filter.IsActive.HasValue)
+        {
+            query = query.Where(product => product.IsActive == filter.IsActive.Value);
+        }
+
+        if (filter.IsFeatured.HasValue)
+        {
+            query = query.Where(product => product.IsFeatured == filter.IsFeatured.Value);
+        }
+
+        var orderedQuery = filter.SortBy switch
+        {
+            ProductSortBy.Title => filter.Descending
+                ? query.OrderByDescending(product => product.Title)
+                : query.OrderBy(product => product.Title),
+            ProductSortBy.CreatedAt => filter.Descending
+                ? query.OrderByDescending(product => product.CreatedAt)
+                : query.OrderBy(product => product.CreatedAt),
+            ProductSortBy.PopularityScore => filter.Descending
+                ? query.OrderByDescending(product => product.PopularityScore)
+                : query.OrderBy(product => product.PopularityScore),
+            _ => filter.Descending
+                ? query.OrderByDescending(product => product.DisplayOrder).ThenBy(product => product.Title)
+                : query.OrderBy(product => product.DisplayOrder).ThenBy(product => product.Title)
+        };
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await orderedQuery
+            .ThenBy(product => product.Id)
+            .Skip((filter.PageNumber - 1) * filter.PageSize)
+            .Take(filter.PageSize)
             .ToListAsync(cancellationToken);
+
+        return new PagedResult<Product>(items, filter.PageNumber, filter.PageSize, totalCount);
     }
 
     // Burada ürün URL bilgisinin başka bir üründe kullanılıp kullanılmadığını kontrol ediyorum.
-    public Task<bool> UrlExistsAsync(string url, Guid? excludedProductId = null, CancellationToken cancellationToken = default)
+    public Task<bool> UrlExistsAsync(string url, long? excludedProductId = null, CancellationToken cancellationToken = default)
     {
         return _context.Products.AnyAsync(
             product => product.Url == url && (!excludedProductId.HasValue || product.Id != excludedProductId.Value),

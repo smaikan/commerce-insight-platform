@@ -1,4 +1,5 @@
 using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.Common.Models;
 using ECommerce.Domain.Entities;
 using ECommerce.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,8 @@ public sealed class ProductVariantRepository : IProductVariantRepository
         await _context.ProductVariants.AddAsync(variant, cancellationToken);
     }
 
+    public void Remove(ProductVariant variant) => _context.ProductVariants.Remove(variant);
+
     // Burada ürün varyantını okuma amaçlı takip etmeden getiriyorum.
     public Task<ProductVariant?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -36,14 +39,28 @@ public sealed class ProductVariantRepository : IProductVariantRepository
     }
 
     // Burada bir ürüne ait varyantları SKU değerine göre sıralı getiriyorum.
-    public async Task<IReadOnlyList<ProductVariant>> GetByProductIdAsync(Guid productId, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ProductVariant>> GetByProductIdAsync(
+        long productId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default)
     {
-        return await _context.ProductVariants
+        var query = _context.ProductVariants
             .AsNoTracking()
-            .Where(variant => variant.ProductId == productId)
+            .Where(variant => variant.ProductId == productId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var variants = await query
             .OrderBy(variant => variant.Sku)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
+
+        return new PagedResult<ProductVariant>(variants, pageNumber, pageSize, totalCount);
     }
+
+    public Task<int> CountByProductIdAsync(long productId, CancellationToken cancellationToken = default) =>
+        _context.ProductVariants.CountAsync(variant => variant.ProductId == productId, cancellationToken);
 
     // Burada SKU bilgisinin başka bir varyantta kullanılıp kullanılmadığını kontrol ediyorum.
     public Task<bool> SkuExistsAsync(string sku, Guid? excludedVariantId = null, CancellationToken cancellationToken = default)

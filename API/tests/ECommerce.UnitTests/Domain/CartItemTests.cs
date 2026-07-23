@@ -11,7 +11,7 @@ public sealed class CartItemTests
     {
         var cartItem = new CartItem(
             Guid.NewGuid(),
-            Guid.NewGuid(),
+            1,
             Guid.NewGuid(),
             quantity: 3,
             unitPrice: 125.50m);
@@ -24,7 +24,7 @@ public sealed class CartItemTests
     {
         var cartItem = new CartItem(
             Guid.NewGuid(),
-            Guid.NewGuid(),
+            1,
             Guid.NewGuid(),
             quantity: 2,
             unitPrice: 100m);
@@ -39,7 +39,7 @@ public sealed class CartItemTests
     {
         var cartItem = new CartItem(
             Guid.NewGuid(),
-            Guid.NewGuid(),
+            1,
             Guid.NewGuid(),
             quantity: 2,
             unitPrice: 100m);
@@ -56,7 +56,7 @@ public sealed class CartItemTests
     {
         var cartItem = new CartItem(
             Guid.NewGuid(),
-            Guid.NewGuid(),
+            1,
             Guid.NewGuid(),
             quantity: 1,
             unitPrice: 100m);

@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using ECommerce.Application.Common.Security;
+using ECommerce.Application.Common.Identifiers;
 using ECommerce.Domain.Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -24,8 +25,13 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
         _dateTimeProvider = dateTimeProvider;
     }
 
-    public AccessTokenResult GenerateAccessToken(User user)
+    public AccessTokenResult GenerateAccessToken(User user, Guid sessionId)
     {
+        if (sessionId == Guid.Empty)
+        {
+            throw new InvalidOperationException("Session id is required for access token generation.");
+        }
+
         var secretKey = _configuration["Jwt:SecretKey"];
         var issuer = _configuration["Jwt:Issuer"];
         var audience = _configuration["Jwt:Audience"];
@@ -45,14 +51,17 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
+        var publicUserId = PublicIdCodec.EncodeUserId(user.Id);
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Sub, publicUserId),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, publicUserId),
             new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role.ToString())
+            new Claim(ClaimTypes.Role, user.Role.ToString()),
+            new Claim(AuthClaimTypes.SecurityVersion, user.SecurityVersion.ToString()),
+            new Claim(AuthClaimTypes.SessionId, sessionId.ToString())
         };
 
         var token = new JwtSecurityToken(

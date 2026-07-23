@@ -9,6 +9,10 @@ public sealed class UpdateProductVariantCommandValidator : AbstractValidator<Upd
         RuleFor(command => command.Id)
             .NotEmpty();
 
+        RuleFor(command => command.Name)
+            .NotEmpty()
+            .MaximumLength(150);
+
         RuleFor(command => command.Sku)
             .NotEmpty()
             .MaximumLength(100);
@@ -26,13 +30,10 @@ public sealed class UpdateProductVariantCommandValidator : AbstractValidator<Upd
         RuleFor(command => command.Barcode)
             .MaximumLength(100);
 
-        RuleFor(command => command.Color)
-            .MaximumLength(80);
-
-        RuleFor(command => command.Size)
-            .MaximumLength(80);
-
         RuleFor(command => command.Material)
             .MaximumLength(120);
+
+        RuleFor(command => command.StockAdjustmentReason)
+            .MaximumLength(500);
     }
 }

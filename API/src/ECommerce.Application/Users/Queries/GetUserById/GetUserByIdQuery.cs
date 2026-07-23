@@ -3,4 +3,4 @@ using MediatR;
 
 namespace ECommerce.Application.Users.Queries.GetUserById;
 
-public sealed record GetUserByIdQuery(Guid Id) : IRequest<UserDto>;
+public sealed record GetUserByIdQuery(long Id) : IRequest<UserDto>;

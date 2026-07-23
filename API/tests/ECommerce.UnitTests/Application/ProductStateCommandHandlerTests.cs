@@ -3,6 +3,7 @@ using ECommerce.Application.Products.Commands.ChangeProductStatus;
 using ECommerce.Application.Products.Commands.SetProductActivation;
 using ECommerce.Application.Products.Commands.SetProductFeatured;
 using ECommerce.Domain.Entities;
+using ECommerce.UnitTests.Testing;
 using ECommerce.Domain.Enums;
 using FluentAssertions;
 using Moq;
@@ -16,7 +17,7 @@ public sealed class ProductStateCommandHandlerTests
     {
         var productRepository = new Mock<IProductRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var product = new Product("Product", "product", Guid.NewGuid());
+        var product = new Product("Product", "product", Guid.NewGuid()).WithId(1);
 
         productRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(product.Id, It.IsAny<CancellationToken>()))
@@ -45,7 +46,7 @@ public sealed class ProductStateCommandHandlerTests
     {
         var productRepository = new Mock<IProductRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var product = new Product("Product", "product", Guid.NewGuid(), isActive: true);
+        var product = new Product("Product", "product", Guid.NewGuid(), isActive: true).WithId(1);
 
         productRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(product.Id, It.IsAny<CancellationToken>()))
@@ -72,7 +73,7 @@ public sealed class ProductStateCommandHandlerTests
     {
         var productRepository = new Mock<IProductRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var product = new Product("Product", "product", Guid.NewGuid(), isFeatured: false);
+        var product = new Product("Product", "product", Guid.NewGuid(), isFeatured: false).WithId(1);
 
         productRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(product.Id, It.IsAny<CancellationToken>()))

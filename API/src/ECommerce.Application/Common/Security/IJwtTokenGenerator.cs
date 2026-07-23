@@ -4,5 +4,5 @@ namespace ECommerce.Application.Common.Security;
 
 public interface IJwtTokenGenerator
 {
-    AccessTokenResult GenerateAccessToken(User user);
+    AccessTokenResult GenerateAccessToken(User user, Guid sessionId);
 }

@@ -4,7 +4,7 @@ namespace ECommerce.Domain.Entities;
 
 public sealed class ProductCollection : BaseEntity
 {
-    public Guid ProductId { get; private set; }
+    public long ProductId { get; private set; }
     public Product Product { get; private set; } = null!;
     public Guid CollectionId { get; private set; }
     public Collection Collection { get; private set; } = null!;
@@ -14,9 +14,9 @@ public sealed class ProductCollection : BaseEntity
     {
     }
 
-    public ProductCollection(Guid productId, Guid collectionId)
+    public ProductCollection(long productId, Guid collectionId)
     {
-        if (productId == Guid.Empty)
+        if (productId <= 0)
         {
             throw new DomainException("Product id cannot be empty.");
         }
@@ -29,5 +29,12 @@ public sealed class ProductCollection : BaseEntity
         ProductId = productId;
         CollectionId = collectionId;
         CreatedAt = DateTime.UtcNow;
+    }
+
+    public ProductCollection(Product product, Guid collectionId)
+        : this(1, collectionId)
+    {
+        Product = product ?? throw new DomainException("Product cannot be empty.");
+        ProductId = product.Id;
     }
 }

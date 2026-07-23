@@ -1,4 +1,5 @@
 using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.Common.Models;
 using ECommerce.Domain.Entities;
 using ECommerce.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -42,13 +43,21 @@ public sealed class CollectionRepository : ICollectionRepository
     }
 
     // Burada koleksiyonları gösterim sırasına göre getiriyorum.
-    public async Task<IReadOnlyList<Collection>> GetListAsync(CancellationToken cancellationToken = default)
+    public async Task<PagedResult<Collection>> GetListAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default)
     {
-        return await _context.Collections
-            .AsNoTracking()
+        var query = _context.Collections.AsNoTracking();
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
             .OrderBy(collection => collection.DisplayOrder)
             .ThenBy(collection => collection.Name)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
+
+        return new PagedResult<Collection>(items, pageNumber, pageSize, totalCount);
     }
 
     // Burada verilen id listesindeki mevcut koleksiyon idlerini buluyorum.

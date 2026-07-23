@@ -9,7 +9,7 @@ public sealed record BulkCreateProductsCommand(
 
 public sealed record BulkCreateProductItem(
     string Title,
-    Guid TypeId,
+    Guid? TypeId = null,
     string? Url = null,
     Guid? BrandId = null,
     string? Description = null,
@@ -25,13 +25,12 @@ public sealed record BulkCreateProductItem(
     IReadOnlyList<Guid>? TagIds = null);
 
 public sealed record BulkCreateProductVariantItem(
+    string Name,
     string Sku,
     decimal Price,
     int Stock,
     decimal? CompareAtPrice = null,
     string? Barcode = null,
-    string? Color = null,
-    string? Size = null,
     string? Material = null,
     bool IsActive = true);
 

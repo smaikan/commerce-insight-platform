@@ -1,6 +1,6 @@
 namespace ECommerce.Domain.Common;
 
-public abstract class AuditableEntity : BaseEntity
+public abstract class AuditableEntity<TId> : BaseEntity<TId>
 {
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -13,5 +13,13 @@ public abstract class AuditableEntity : BaseEntity
     protected void MarkAsUpdated()
     {
         UpdatedAt = DateTime.UtcNow;
+    }
+}
+
+public abstract class AuditableEntity : AuditableEntity<Guid>
+{
+    protected AuditableEntity()
+    {
+        Id = Guid.NewGuid();
     }
 }

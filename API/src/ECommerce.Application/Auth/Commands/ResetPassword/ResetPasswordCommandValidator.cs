@@ -11,7 +11,7 @@ public sealed class ResetPasswordCommandValidator : AbstractValidator<ResetPassw
 
         RuleFor(command => command.NewPassword)
             .NotEmpty()
-            .MinimumLength(8)
+            .MinimumLength(6)
             .MaximumLength(128);
     }
 }

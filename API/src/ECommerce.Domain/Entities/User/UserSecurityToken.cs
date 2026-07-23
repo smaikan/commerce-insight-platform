@@ -5,26 +5,33 @@ namespace ECommerce.Domain.Entities;
 
 public sealed class UserSecurityToken : BaseEntity
 {
-    public Guid UserId { get; private set; }
+    public long UserId { get; private set; }
     public User User { get; private set; } = null!;
     public UserSecurityTokenType Type { get; private set; }
     public string TokenHash { get; private set; } = null!;
     public DateTime ExpiresAt { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UsedAt { get; private set; }
+    public DateTime? InvalidatedAt { get; private set; }
+    public Guid ConcurrencyToken { get; private set; }
 
     private UserSecurityToken()
     {
     }
 
-    public UserSecurityToken(Guid userId, UserSecurityTokenType type, string tokenHash, DateTime expiresAt)
+    public UserSecurityToken(
+        long userId,
+        UserSecurityTokenType type,
+        string tokenHash,
+        DateTime expiresAt,
+        DateTime createdAt)
     {
-        if (userId == Guid.Empty)
+        if (userId <= 0)
         {
             throw new DomainException("User id is required.");
         }
 
-        if (expiresAt <= DateTime.UtcNow)
+        if (expiresAt <= createdAt)
         {
             throw new DomainException("Security token expiry date must be in the future.");
         }
@@ -33,7 +40,20 @@ public sealed class UserSecurityToken : BaseEntity
         Type = type;
         SetTokenHash(tokenHash);
         ExpiresAt = expiresAt;
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = createdAt;
+        ConcurrencyToken = Guid.NewGuid();
+    }
+
+    public UserSecurityToken(
+        User user,
+        UserSecurityTokenType type,
+        string tokenHash,
+        DateTime expiresAt,
+        DateTime utcNow)
+        : this(1, type, tokenHash, expiresAt, utcNow)
+    {
+        User = user ?? throw new DomainException("User cannot be empty.");
+        UserId = user.Id;
     }
 
     public bool IsExpired(DateTime utcNow)
@@ -48,7 +68,7 @@ public sealed class UserSecurityToken : BaseEntity
 
     public bool CanBeUsed(DateTime utcNow)
     {
-        return !IsUsed() && !IsExpired(utcNow);
+        return !IsUsed() && !InvalidatedAt.HasValue && !IsExpired(utcNow);
     }
 
     public void MarkAsUsed(DateTime usedAt)
@@ -69,6 +89,23 @@ public sealed class UserSecurityToken : BaseEntity
         }
 
         UsedAt = usedAt;
+        ConcurrencyToken = Guid.NewGuid();
+    }
+
+    public void Invalidate(DateTime invalidatedAt)
+    {
+        if (!CanBeUsed(invalidatedAt))
+        {
+            return;
+        }
+
+        if (invalidatedAt < CreatedAt)
+        {
+            throw new DomainException("Token invalidation date cannot be earlier than creation date.");
+        }
+
+        InvalidatedAt = invalidatedAt;
+        ConcurrencyToken = Guid.NewGuid();
     }
 
     private void SetTokenHash(string tokenHash)

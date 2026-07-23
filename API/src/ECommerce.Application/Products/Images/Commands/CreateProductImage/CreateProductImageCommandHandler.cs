@@ -32,6 +32,14 @@ public sealed class CreateProductImageCommandHandler : IRequestHandler<CreatePro
             throw new NotFoundException("Product was not found.");
         }
 
+        if (request.IsMain)
+        {
+            var currentMainImage = await _imageRepository.GetMainByProductIdForUpdateAsync(
+                request.ProductId,
+                cancellationToken: cancellationToken);
+            currentMainImage?.UnsetAsMain();
+        }
+
         var image = new ProductImage(
             request.ProductId,
             request.ImageUrl,

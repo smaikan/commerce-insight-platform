@@ -6,11 +6,15 @@ namespace ECommerce.Persistence.Configurations;
 
 public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
 {
+    // Burada ürün tablosunun kolon, ilişki ve indeks kurallarını tanımlıyorum.
     public void Configure(EntityTypeBuilder<Product> builder)
     {
         builder.ToTable("Products");
 
         builder.HasKey(product => product.Id);
+
+        builder.Property(product => product.Id)
+            .ValueGeneratedOnAdd();
 
         builder.Property(product => product.Title)
             .HasMaxLength(250)
@@ -36,6 +40,12 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.Property(product => product.AverageRating)
             .HasPrecision(3, 2);
+
+        builder.Property(product => product.PopularityScore)
+            .IsRequired();
+
+        builder.Property(product => product.ConcurrencyToken)
+            .IsConcurrencyToken();
 
         builder.HasOne(product => product.Type)
             .WithMany(type => type.Products)
@@ -99,5 +109,6 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasIndex(product => product.BrandId);
         builder.HasIndex(product => product.Status);
         builder.HasIndex(product => product.DisplayOrder);
+        builder.HasIndex(product => product.PopularityScore);
     }
 }

@@ -6,7 +6,7 @@ public sealed class OrderItem : BaseEntity
 {
     public Guid OrderId { get; private set; }
     public Order Order { get; private set; } = null!;
-    public Guid ProductId { get; private set; }
+    public long ProductId { get; private set; }
     public Guid ProductVariantId { get; private set; }
     public string ProductTitleSnapshot { get; private set; } = null!;
     public string VariantSkuSnapshot { get; private set; } = null!;
@@ -20,14 +20,14 @@ public sealed class OrderItem : BaseEntity
 
     public OrderItem(
         Guid orderId,
-        Guid productId,
+        long productId,
         Guid productVariantId,
         string productTitleSnapshot,
         string variantSkuSnapshot,
         decimal unitPrice,
         int quantity)
     {
-        if (orderId == Guid.Empty || productId == Guid.Empty || productVariantId == Guid.Empty)
+        if (orderId == Guid.Empty || productId <= 0 || productVariantId == Guid.Empty)
         {
             throw new DomainException("Order, product and variant ids are required.");
         }

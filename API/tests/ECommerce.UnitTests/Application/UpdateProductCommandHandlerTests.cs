@@ -3,6 +3,7 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Services;
 using ECommerce.Application.Products.Commands.UpdateProduct;
 using ECommerce.Domain.Entities;
+using ECommerce.UnitTests.Testing;
 using FluentAssertions;
 using Moq;
 
@@ -20,7 +21,7 @@ public sealed class UpdateProductCommandHandlerTests
         var currentTypeId = Guid.NewGuid();
         var newTypeId = Guid.NewGuid();
         var brandId = Guid.NewGuid();
-        var product = new Product("Old Product", "old-product", currentTypeId);
+        var product = new Product("Old Product", "old-product", currentTypeId).WithId(1);
 
         productRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(product.Id, It.IsAny<CancellationToken>()))
@@ -80,7 +81,7 @@ public sealed class UpdateProductCommandHandlerTests
         var brandRepository = new Mock<IBrandRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
         var typeId = Guid.NewGuid();
-        var product = new Product("Old Product", "old-product", typeId);
+        var product = new Product("Old Product", "old-product", typeId).WithId(1);
 
         productRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(product.Id, It.IsAny<CancellationToken>()))

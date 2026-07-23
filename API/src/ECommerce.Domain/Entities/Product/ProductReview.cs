@@ -4,9 +4,9 @@ namespace ECommerce.Domain.Entities;
 
 public sealed class ProductReview : BaseEntity
 {
-    public Guid ProductId { get; private set; }
+    public long ProductId { get; private set; }
     public Product Product { get; private set; } = null!;
-    public Guid UserId { get; private set; }
+    public long UserId { get; private set; }
     public string? Title { get; private set; }
     public string Comment { get; private set; } = null!;
     public int? RatingValue { get; private set; }
@@ -17,14 +17,14 @@ public sealed class ProductReview : BaseEntity
     {
     }
 
-    public ProductReview(Guid productId, Guid userId, string comment, string? title = null, int? ratingValue = null, bool isApproved = false)
+    public ProductReview(long productId, long userId, string comment, string? title = null, int? ratingValue = null, bool isApproved = false)
     {
-        if (productId == Guid.Empty)
+        if (productId <= 0)
         {
             throw new DomainException("Product id is required.");
         }
 
-        if (userId == Guid.Empty)
+        if (userId <= 0)
         {
             throw new DomainException("User id is required.");
         }

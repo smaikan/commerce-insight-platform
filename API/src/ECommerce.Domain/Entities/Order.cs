@@ -5,7 +5,7 @@ namespace ECommerce.Domain.Entities;
 
 public sealed class Order : AuditableEntity
 {
-    public Guid UserId { get; private set; }
+    public long UserId { get; private set; }
     public string OrderNumber { get; private set; } = null!;
     public OrderStatus Status { get; private set; }
     public decimal SubTotal { get; private set; }
@@ -25,7 +25,7 @@ public sealed class Order : AuditableEntity
     }
 
     public Order(
-        Guid userId,
+        long userId,
         string orderNumber,
         decimal subTotal,
         decimal discountTotal,
@@ -34,7 +34,7 @@ public sealed class Order : AuditableEntity
         decimal grandTotal,
         Guid? addressId = null)
     {
-        if (userId == Guid.Empty)
+        if (userId <= 0)
         {
             throw new DomainException("User id is required.");
         }
@@ -57,21 +57,40 @@ public sealed class Order : AuditableEntity
         AddressId = addressId == Guid.Empty ? throw new DomainException("Address id cannot be empty.") : addressId;
     }
 
-    public void ChangeStatus(OrderStatus status)
+    public void ChangeStatus(OrderStatus status, DateTime utcNow)
     {
+        if (!CanTransitionTo(status))
+        {
+            throw new DomainException($"Order status cannot change from {Status} to {status}.");
+        }
+
         Status = status;
         if (status == OrderStatus.Paid)
         {
-            PaidAt = DateTime.UtcNow;
-            CancelledAt = null;
+            PaidAt = utcNow;
         }
 
         if (status == OrderStatus.Cancelled)
         {
-            CancelledAt = DateTime.UtcNow;
+            CancelledAt = utcNow;
         }
 
         MarkAsUpdated();
+    }
+
+    private bool CanTransitionTo(OrderStatus targetStatus)
+    {
+        return Status switch
+        {
+            OrderStatus.Pending => targetStatus is OrderStatus.Confirmed or OrderStatus.Cancelled,
+            OrderStatus.Confirmed => targetStatus is OrderStatus.Paid or OrderStatus.Cancelled,
+            OrderStatus.Paid => targetStatus is OrderStatus.Preparing or OrderStatus.Refunded,
+            OrderStatus.Preparing => targetStatus is OrderStatus.Shipped or OrderStatus.Refunded,
+            OrderStatus.Shipped => targetStatus is OrderStatus.Delivered or OrderStatus.Refunded,
+            OrderStatus.Delivered => targetStatus == OrderStatus.Refunded,
+            OrderStatus.Cancelled or OrderStatus.Refunded => false,
+            _ => false
+        };
     }
 
     private static void ValidateTotals(
@@ -84,6 +103,18 @@ public sealed class Order : AuditableEntity
         if (subTotal < 0 || discountTotal < 0 || shippingTotal < 0 || taxTotal < 0 || grandTotal < 0)
         {
             throw new DomainException("Order totals cannot be negative.");
+        }
+
+        if (discountTotal > subTotal)
+        {
+            throw new DomainException("Order discount total cannot exceed subtotal.");
+        }
+
+        var expectedGrandTotal = subTotal - discountTotal + shippingTotal + taxTotal;
+
+        if (grandTotal != expectedGrandTotal)
+        {
+            throw new DomainException("Order grand total is not consistent with order totals.");
         }
     }
 }

@@ -4,28 +4,36 @@ namespace ECommerce.Domain.Entities;
 
 public sealed class UserRefreshToken : BaseEntity
 {
-    public Guid UserId { get; private set; }
+    public long UserId { get; private set; }
     public User User { get; private set; } = null!;
     public string TokenHash { get; private set; } = null!;
     public DateTime ExpiresAt { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public string? CreatedByIp { get; private set; }
+    public string? DeviceName { get; private set; }
     public DateTime? RevokedAt { get; private set; }
     public string? RevokedByIp { get; private set; }
     public string? ReplacedByTokenHash { get; private set; }
+    public Guid ConcurrencyToken { get; private set; }
 
     private UserRefreshToken()
     {
     }
 
-    public UserRefreshToken(Guid userId, string tokenHash, DateTime expiresAt, string? createdByIp = null)
+    public UserRefreshToken(
+        long userId,
+        string tokenHash,
+        DateTime expiresAt,
+        DateTime createdAt,
+        string? createdByIp = null,
+        string? deviceName = null)
     {
-        if (userId == Guid.Empty)
+        if (userId <= 0)
         {
             throw new DomainException("User id is required.");
         }
 
-        if (expiresAt <= DateTime.UtcNow)
+        if (expiresAt <= createdAt)
         {
             throw new DomainException("Refresh token expiry date must be in the future.");
         }
@@ -33,8 +41,23 @@ public sealed class UserRefreshToken : BaseEntity
         UserId = userId;
         SetTokenHash(tokenHash);
         ExpiresAt = expiresAt;
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = createdAt;
         CreatedByIp = createdByIp?.Trim();
+        DeviceName = deviceName?.Trim();
+        ConcurrencyToken = Guid.NewGuid();
+    }
+
+    public UserRefreshToken(
+        User user,
+        string tokenHash,
+        DateTime expiresAt,
+        DateTime utcNow,
+        string? createdByIp = null,
+        string? deviceName = null)
+        : this(1, tokenHash, expiresAt, utcNow, createdByIp, deviceName)
+    {
+        User = user ?? throw new DomainException("User cannot be empty.");
+        UserId = user.Id;
     }
 
     public bool IsExpired(DateTime utcNow)
@@ -69,6 +92,7 @@ public sealed class UserRefreshToken : BaseEntity
         ReplacedByTokenHash = string.IsNullOrWhiteSpace(replacedByTokenHash)
             ? null
             : replacedByTokenHash.Trim();
+        ConcurrencyToken = Guid.NewGuid();
     }
 
     private void SetTokenHash(string tokenHash)

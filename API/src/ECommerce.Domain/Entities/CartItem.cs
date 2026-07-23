@@ -6,7 +6,7 @@ public sealed class CartItem : BaseEntity
 {
     public Guid CartId { get; private set; }
     public Cart Cart { get; private set; } = null!;
-    public Guid ProductId { get; private set; }
+    public long ProductId { get; private set; }
     public Product Product { get; private set; } = null!;
     public Guid ProductVariantId { get; private set; }
     public ProductVariant ProductVariant { get; private set; } = null!;
@@ -19,9 +19,9 @@ public sealed class CartItem : BaseEntity
     {
     }
 
-    public CartItem(Guid cartId, Guid productId, Guid productVariantId, int quantity, decimal unitPrice)
+    public CartItem(Guid cartId, long productId, Guid productVariantId, int quantity, decimal unitPrice)
     {
-        if (cartId == Guid.Empty || productId == Guid.Empty || productVariantId == Guid.Empty)
+        if (cartId == Guid.Empty || productId <= 0 || productVariantId == Guid.Empty)
         {
             throw new DomainException("Cart, product and variant ids are required.");
         }

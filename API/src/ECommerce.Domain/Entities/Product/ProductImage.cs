@@ -4,20 +4,21 @@ namespace ECommerce.Domain.Entities;
 
 public sealed class ProductImage : AuditableEntity
 {
-    public Guid ProductId { get; private set; }
+    public long ProductId { get; private set; }
     public Product Product { get; private set; } = null!;
     public string ImageUrl { get; private set; } = null!;
     public string? AltText { get; private set; }
     public int DisplayOrder { get; private set; }
     public bool IsMain { get; private set; }
+    public Guid ConcurrencyToken { get; private set; }
 
     private ProductImage()
     {
     }
 
-    public ProductImage(Guid productId, string imageUrl, int displayOrder = 0, bool isMain = false, string? altText = null)
+    public ProductImage(long productId, string imageUrl, int displayOrder = 0, bool isMain = false, string? altText = null)
     {
-        if (productId == Guid.Empty)
+        if (productId <= 0)
         {
             throw new DomainException("Product id is required.");
         }
@@ -27,6 +28,14 @@ public sealed class ProductImage : AuditableEntity
         SetDisplayOrder(displayOrder);
         AltText = altText?.Trim();
         IsMain = isMain;
+        ConcurrencyToken = Guid.NewGuid();
+    }
+
+    public ProductImage(Product product, string imageUrl, int displayOrder = 0, bool isMain = false, string? altText = null)
+        : this(1, imageUrl, displayOrder, isMain, altText)
+    {
+        Product = product ?? throw new DomainException("Product cannot be empty.");
+        ProductId = product.Id;
     }
 
     public void Update(string imageUrl, string? altText, int displayOrder, bool isMain)
@@ -35,6 +44,19 @@ public sealed class ProductImage : AuditableEntity
         SetDisplayOrder(displayOrder);
         AltText = altText?.Trim();
         IsMain = isMain;
+        ConcurrencyToken = Guid.NewGuid();
+        MarkAsUpdated();
+    }
+
+    public void UnsetAsMain()
+    {
+        if (!IsMain)
+        {
+            return;
+        }
+
+        IsMain = false;
+        ConcurrencyToken = Guid.NewGuid();
         MarkAsUpdated();
     }
 

@@ -1,6 +1,8 @@
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Products.Dtos;
+using ECommerce.Domain.Entities;
+using ECommerce.Domain.Enums;
 using MediatR;
 
 namespace ECommerce.Application.Products.Variants.Commands.UpdateProductVariant;
@@ -32,14 +34,28 @@ public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateP
         }
 
         variant.UpdateDetails(
+            request.Name,
             request.Sku,
             request.Barcode,
-            request.Color,
-            request.Size,
             request.Material);
 
         variant.UpdatePrice(request.Price, request.CompareAtPrice);
-        variant.UpdateStock(request.Stock);
+
+        var previousStock = variant.Stock;
+        var stockDifference = Math.Abs(request.Stock - previousStock);
+
+        if (stockDifference > 0)
+        {
+            variant.UpdateStock(request.Stock);
+            variant.InventoryTransactions.Add(new InventoryTransaction(
+                variant.Id,
+                request.Stock > previousStock
+                    ? InventoryTransactionType.StockIn
+                    : InventoryTransactionType.StockOut,
+                stockDifference,
+                request.Stock,
+                request.StockAdjustmentReason));
+        }
 
         if (request.IsActive)
         {

@@ -38,7 +38,8 @@ public sealed class UpdateProductCommandHandler : IRequestHandler<UpdateProductC
             throw new NotFoundException("Product was not found.");
         }
 
-        if (!await _productTypeRepository.ExistsAsync(request.TypeId, cancellationToken))
+        if (request.TypeId.HasValue &&
+            !await _productTypeRepository.ExistsAsync(request.TypeId.Value, cancellationToken))
         {
             throw new NotFoundException("Product type was not found.");
         }

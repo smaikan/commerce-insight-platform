@@ -5,7 +5,7 @@ namespace ECommerce.Domain.Entities;
 
 public sealed class Address : AuditableEntity
 {
-    public Guid UserId { get; private set; }
+    public long UserId { get; private set; }
     public AddressType Type { get; private set; }
     public string Title { get; private set; } = null!;
     public string FirstName { get; private set; } = null!;
@@ -22,7 +22,7 @@ public sealed class Address : AuditableEntity
     }
 
     public Address(
-        Guid userId,
+        long userId,
         AddressType type,
         string title,
         string firstName,
@@ -34,7 +34,7 @@ public sealed class Address : AuditableEntity
         string? postalCode = null,
         bool isDefault = false)
     {
-        if (userId == Guid.Empty)
+        if (userId <= 0)
         {
             throw new DomainException("User id is required.");
         }

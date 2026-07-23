@@ -4,9 +4,9 @@ using MediatR;
 namespace ECommerce.Application.Products.Commands.UpdateProduct;
 
 public sealed record UpdateProductCommand(
-    Guid Id,
+    long Id,
     string Title,
-    Guid TypeId,
+    Guid? TypeId,
     string? Url = null,
     Guid? BrandId = null,
     string? Description = null,

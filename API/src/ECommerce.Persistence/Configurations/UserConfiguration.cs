@@ -12,6 +12,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasKey(user => user.Id);
 
+        builder.Property(user => user.Id)
+            .ValueGeneratedOnAdd();
+
         builder.Property(user => user.Email)
             .HasMaxLength(320)
             .IsRequired();
@@ -40,6 +43,13 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasConversion<string>()
             .HasMaxLength(30)
             .IsRequired();
+
+        builder.Property(user => user.SecurityVersion)
+            .HasDefaultValue(1)
+            .IsRequired();
+
+        builder.Property(user => user.ConcurrencyToken)
+            .IsConcurrencyToken();
 
         builder.Ignore(user => user.FullName);
 

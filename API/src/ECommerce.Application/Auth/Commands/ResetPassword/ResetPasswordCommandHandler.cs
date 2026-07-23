@@ -37,13 +37,27 @@ public sealed class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordC
             tokenHash,
             cancellationToken);
 
-        if (securityToken is null || !securityToken.CanBeUsed(_dateTimeProvider.UtcNow))
+        var utcNow = _dateTimeProvider.UtcNow;
+
+        if (securityToken is null ||
+            securityToken.User.Status != UserStatus.Active ||
+            !securityToken.CanBeUsed(utcNow))
         {
             throw new UnauthorizedException("Password reset token is invalid.");
         }
 
-        securityToken.User.ChangePassword(_passwordHasher.Hash(request.NewPassword));
-        securityToken.MarkAsUsed(_dateTimeProvider.UtcNow);
+        var activeRefreshTokens = await _userRepository.GetActiveRefreshTokensForUpdateAsync(
+            securityToken.UserId,
+            utcNow,
+            cancellationToken);
+
+        securityToken.User.ChangePassword(_passwordHasher.Hash(request.NewPassword), utcNow);
+        securityToken.MarkAsUsed(utcNow);
+
+        foreach (var refreshToken in activeRefreshTokens)
+        {
+            refreshToken.Revoke(utcNow);
+        }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }

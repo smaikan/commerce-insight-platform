@@ -1,4 +1,5 @@
 using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.Common.Models;
 using ECommerce.Domain.Entities;
 using ECommerce.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -48,12 +49,20 @@ public sealed class ProductTypeRepository : IProductTypeRepository
     }
 
     // Burada ürün tiplerini ada göre sıralı şekilde getiriyorum.
-    public async Task<IReadOnlyList<ProductType>> GetListAsync(CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ProductType>> GetListAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default)
     {
-        return await _context.ProductTypes
-            .AsNoTracking()
+        var query = _context.ProductTypes.AsNoTracking();
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
             .OrderBy(type => type.Name)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
+
+        return new PagedResult<ProductType>(items, pageNumber, pageSize, totalCount);
     }
 
     // Burada verilen id listesindeki mevcut ürün tipi idlerini buluyorum.

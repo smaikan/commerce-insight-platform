@@ -6,7 +6,7 @@ public sealed class CouponUsage : BaseEntity
 {
     public Guid CouponId { get; private set; }
     public Coupon Coupon { get; private set; } = null!;
-    public Guid UserId { get; private set; }
+    public long UserId { get; private set; }
     public Guid? OrderId { get; private set; }
     public DateTime UsedAt { get; private set; }
 
@@ -14,9 +14,9 @@ public sealed class CouponUsage : BaseEntity
     {
     }
 
-    public CouponUsage(Guid couponId, Guid userId, Guid? orderId = null)
+    public CouponUsage(Guid couponId, long userId, Guid? orderId = null)
     {
-        if (couponId == Guid.Empty || userId == Guid.Empty)
+        if (couponId == Guid.Empty || userId <= 0)
         {
             throw new DomainException("Coupon id and user id are required.");
         }

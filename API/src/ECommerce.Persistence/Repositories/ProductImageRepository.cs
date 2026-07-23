@@ -1,4 +1,5 @@
 using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.Common.Models;
 using ECommerce.Domain.Entities;
 using ECommerce.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,8 @@ public sealed class ProductImageRepository : IProductImageRepository
         await _context.ProductImages.AddAsync(image, cancellationToken);
     }
 
+    public void Remove(ProductImage image) => _context.ProductImages.Remove(image);
+
     // Burada ürün görselini okuma amaçlı takip etmeden getiriyorum.
     public Task<ProductImage?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -35,14 +38,39 @@ public sealed class ProductImageRepository : IProductImageRepository
             .FirstOrDefaultAsync(image => image.Id == id, cancellationToken);
     }
 
-    // Burada bir ürüne ait görselleri ekrandaki sıralamasına göre getiriyorum.
-    public async Task<IReadOnlyList<ProductImage>> GetByProductIdAsync(Guid productId, CancellationToken cancellationToken = default)
+    // Burada ürüne ait diğer ana görseli güncelleme için takipli getiriyorum.
+    public Task<ProductImage?> GetMainByProductIdForUpdateAsync(
+        long productId,
+        Guid? excludedImageId = null,
+        CancellationToken cancellationToken = default)
     {
-        return await _context.ProductImages
+        return _context.ProductImages.FirstOrDefaultAsync(
+            image =>
+                image.ProductId == productId &&
+                image.IsMain &&
+                (!excludedImageId.HasValue || image.Id != excludedImageId.Value),
+            cancellationToken);
+    }
+
+    // Burada bir ürüne ait görselleri ekrandaki sıralamasına göre getiriyorum.
+    public async Task<PagedResult<ProductImage>> GetByProductIdAsync(
+        long productId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.ProductImages
             .AsNoTracking()
-            .Where(image => image.ProductId == productId)
+            .Where(image => image.ProductId == productId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var images = await query
             .OrderBy(image => image.DisplayOrder)
             .ThenBy(image => image.Id)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
+
+        return new PagedResult<ProductImage>(images, pageNumber, pageSize, totalCount);
     }
 }

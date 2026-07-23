@@ -1,8 +1,12 @@
 namespace ECommerce.Domain.Common;
 
-public abstract class BaseEntity
+public abstract class BaseEntity<TId>
 {
-    public Guid Id { get; private set; }
+    public TId Id { get; protected set; } = default!;
+}
+
+public abstract class BaseEntity : BaseEntity<Guid>
+{
 
     protected BaseEntity()
     {

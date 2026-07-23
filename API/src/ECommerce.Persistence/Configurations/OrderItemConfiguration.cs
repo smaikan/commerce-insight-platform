@@ -6,6 +6,7 @@ namespace ECommerce.Persistence.Configurations;
 
 public sealed class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
 {
+    // Burada sipariş kalemi tablosunun kolon, ilişki ve sorgu indekslerini tanımlıyorum.
     public void Configure(EntityTypeBuilder<OrderItem> builder)
     {
         builder.ToTable("OrderItems");
@@ -39,5 +40,6 @@ public sealed class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(item => item.OrderId);
+        builder.HasIndex(item => new { item.OrderId, item.ProductId });
     }
 }
