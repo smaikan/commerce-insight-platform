@@ -1,5 +1,8 @@
+# API
+
 API/**/bin/
 API/**/obj/
+
 
 API/**/.vs/
 API/**/.vscode/
@@ -15,6 +18,7 @@ API/**/*.trx
 API/**/*.coverage
 API/**/*.coveragexml
 API/**/coverage/
+API/.artifacts/
 
 API/**/*.nupkg
 API/**/*.snupkg
