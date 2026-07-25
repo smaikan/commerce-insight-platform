@@ -14,4 +14,53 @@ public interface IEmailSender
         string email,
         string recipientName,
         CancellationToken cancellationToken = default);
+
+    // Burada siparişin başarıyla oluşturulduğunu bildiren e-postanın gönderim sözleşmesini tanımlıyorum.
+    Task SendOrderCreatedAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        decimal grandTotal,
+        CancellationToken cancellationToken = default);
+
+    // Burada başarılı ödeme bildirim e-postasının gönderim sözleşmesini tanımlıyorum.
+    Task SendPaymentPaidAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        decimal amount,
+        CancellationToken cancellationToken = default);
+
+    // Burada başarısız ödeme bildirim e-postasının gönderim sözleşmesini tanımlıyorum.
+    Task SendPaymentFailedAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        decimal amount,
+        CancellationToken cancellationToken = default);
+
+    // Burada sipariş durum değişikliği e-postasının gönderim sözleşmesini tanımlıyorum.
+    Task SendOrderStatusChangedAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        string status,
+        CancellationToken cancellationToken = default);
+
+    // Burada iade talebinin açıldığını bildiren e-postanın gönderim sözleşmesini tanımlıyorum.
+    Task SendReturnRequestedAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        string returnNumber,
+        CancellationToken cancellationToken = default);
+
+    // Burada iade durum değişikliği e-postasının gönderim sözleşmesini tanımlıyorum.
+    Task SendReturnStatusChangedAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        string returnNumber,
+        string status,
+        CancellationToken cancellationToken = default);
 }

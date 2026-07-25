@@ -6,9 +6,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ECommerce.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class initial : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
+        // Burada başlangıç veritabanı şemasını tüm temel tablolar ve ilişkilerle oluşturuyorum.
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -1111,6 +1112,7 @@ namespace ECommerce.Persistence.Migrations
         }
 
         /// <inheritdoc />
+        // Burada başlangıç şemasını bağımlılık sırasını koruyarak geri alıyorum.
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

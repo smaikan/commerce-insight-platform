@@ -12,13 +12,14 @@ namespace ECommerce.UnitTests.Application;
 
 public sealed class ProductImageCommandHandlerTests
 {
+    // Burada mevcut ürüne yeni görsel eklendiğini doğruluyorum.
     [Fact]
     public async Task CreateProductImage_Should_Create_Image_When_Product_Exists()
     {
         var productRepository = new Mock<IProductRepository>();
         var imageRepository = new Mock<IProductImageRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var product = new Product("Product", "product", Guid.NewGuid()).WithId(1);
+        var product = new Product("Product", "product", "PRODUCT-MAIN", Guid.NewGuid()).WithId(1);
         var currentMainImage = new ProductImage(product.Id, "https://cdn.test/old-main.jpg", 0, true);
         ProductImage? createdImage = null;
 
@@ -58,6 +59,7 @@ public sealed class ProductImageCommandHandlerTests
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // Burada bulunmayan ürüne görsel eklenmesini engelliyorum.
     [Fact]
     public async Task CreateProductImage_Should_Throw_NotFoundException_When_Product_Does_Not_Exist()
     {
@@ -84,6 +86,7 @@ public sealed class ProductImageCommandHandlerTests
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    // Burada mevcut ürün görselinin temel alanlarının güncellendiğini doğruluyorum.
     [Fact]
     public async Task UpdateProductImage_Should_Update_Image()
     {

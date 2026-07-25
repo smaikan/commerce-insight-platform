@@ -26,9 +26,12 @@ public sealed class RequestedBusinessRuleTests
         var validator = new UpdateProductVariantStockCommandValidator();
 
         var result = validator.TestValidate(new UpdateProductVariantStockCommand(
-            Guid.NewGuid(), int.MinValue, "Invalid adjustment"));
+            Guid.NewGuid(),
+            int.MinValue,
+            StockMovementType.ManualAdjustment,
+            "Invalid adjustment"));
 
-        result.ShouldHaveValidationErrorFor(command => command.Quantity);
+        result.ShouldHaveValidationErrorFor(command => command.QuantityDelta);
     }
 
     // Burada stok toplamının int sınırını aşarak negatife dönmesini engellediğimi doğruluyorum.
@@ -37,33 +40,50 @@ public sealed class RequestedBusinessRuleTests
     {
         var variant = new ProductVariant(1, "Standard", "SKU-MAX", 100m, int.MaxValue);
 
-        var act = () => variant.IncreaseStock(1);
+        var act = () => variant.ApplyStockMovement(
+            1,
+            StockMovementType.ManualAdjustment,
+            "Overflow adjustment");
 
         act.Should().Throw<DomainException>()
             .WithMessage("Stock cannot exceed the maximum supported value.");
     }
 
-    // Burada stok handlerının doğrudan çağrıldığında da en küçük int değeriyle 500 üretmediğini doğruluyorum.
+    // Burada yönetim stok endpointinin sipariş satış hareketini manuel olarak kabul etmediğini doğruluyorum.
     [Fact]
-    public async Task StockHandler_Should_Reject_IntMinValue_Before_MathAbs()
+    public void StockValidator_Should_Reject_Operational_Movement_Types()
     {
-        var handler = new UpdateProductVariantStockCommandHandler(
-            Mock.Of<IProductVariantRepository>(),
-            Mock.Of<IUnitOfWork>());
+        var validator = new UpdateProductVariantStockCommandValidator();
 
-        var act = () => handler.Handle(
-            new UpdateProductVariantStockCommand(Guid.NewGuid(), int.MinValue, "Invalid adjustment"),
-            CancellationToken.None);
+        var result = validator.TestValidate(new UpdateProductVariantStockCommand(
+            Guid.NewGuid(),
+            -1,
+            StockMovementType.Sale,
+            "Order movement cannot be manual."));
 
-        await act.Should().ThrowAsync<ConflictException>()
-            .WithMessage("Quantity is outside the supported range.");
+        result.ShouldHaveValidationErrorFor(command => command.Type);
+    }
+
+    // Burada tekli yönetim stok hareketinde açıklama verilmemesinin geçerli olduğunu doğruluyorum.
+    [Fact]
+    public void StockValidator_Should_Accept_Null_Reason()
+    {
+        var validator = new UpdateProductVariantStockCommandValidator();
+
+        var result = validator.TestValidate(new UpdateProductVariantStockCommand(
+            Guid.NewGuid(),
+            3,
+            StockMovementType.Purchase,
+            Reason: null));
+
+        result.ShouldNotHaveAnyValidationErrors();
     }
 
     // Burada ürün ve varyant sayaçlarının int sınırını aşınca bozulmadan long olarak devam ettiğini doğruluyorum.
     [Fact]
     public void EngagementCounters_Should_Continue_Beyond_IntMaxValue()
     {
-        var product = new Product("Product", "product").WithId(10);
+        var product = new Product("Product", "product", "PRODUCT-MAIN").WithId(10);
         var variant = new ProductVariant(product, "Standard", "SKU-LONG", 100m, 1);
 
         product.IncreaseTotalAddToCartCount(int.MaxValue);
@@ -80,7 +100,7 @@ public sealed class RequestedBusinessRuleTests
     public async Task UpsertRating_Should_Reject_Product_Without_Delivered_Order()
     {
         const long userId = 1;
-        var product = new Product("Product", "product").WithId(10);
+        var product = new Product("Product", "product", "PRODUCT-MAIN").WithId(10);
         var products = new Mock<IProductRepository>();
         var engagement = new Mock<IProductEngagementRepository>();
         products.Setup(repository => repository.GetByIdForUpdateAsync(product.Id, It.IsAny<CancellationToken>()))
@@ -105,7 +125,7 @@ public sealed class RequestedBusinessRuleTests
     public async Task CreateReview_Should_Reject_Product_Without_Delivered_Order()
     {
         const long userId = 1;
-        var product = new Product("Product", "product").WithId(10);
+        var product = new Product("Product", "product", "PRODUCT-MAIN").WithId(10);
         var products = new Mock<IProductRepository>();
         var engagement = new Mock<IProductEngagementRepository>();
         products.Setup(repository => repository.GetByIdAsync(product.Id, It.IsAny<CancellationToken>()))

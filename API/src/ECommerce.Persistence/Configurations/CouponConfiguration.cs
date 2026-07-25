@@ -6,9 +6,15 @@ namespace ECommerce.Persistence.Configurations;
 
 public sealed class CouponConfiguration : IEntityTypeConfiguration<Coupon>
 {
+    // Burada kupon tablosunun alan sınırlarını, kullanım bütünlüğünü ve sorgu indekslerini tanımlıyorum.
     public void Configure(EntityTypeBuilder<Coupon> builder)
     {
-        builder.ToTable("Coupons");
+        builder.ToTable("Coupons", tableBuilder =>
+        {
+            tableBuilder.HasCheckConstraint("CK_Coupons_UsedCount_NonNegative", "[UsedCount] >= 0");
+            tableBuilder.HasCheckConstraint("CK_Coupons_DiscountValue_Positive", "[DiscountValue] > 0");
+            tableBuilder.HasCheckConstraint("CK_Coupons_UsageLimit_Positive", "[UsageLimit] IS NULL OR [UsageLimit] > 0");
+        });
 
         builder.HasKey(coupon => coupon.Id);
 
@@ -33,5 +39,6 @@ public sealed class CouponConfiguration : IEntityTypeConfiguration<Coupon>
 
         builder.HasIndex(coupon => coupon.Code)
             .IsUnique();
+        builder.HasIndex(coupon => new { coupon.IsActive, coupon.StartsAt, coupon.ExpiresAt });
     }
 }

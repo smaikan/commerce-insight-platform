@@ -35,7 +35,10 @@ public sealed class ProductRepository : IProductRepository
             .AsNoTracking()
             .Include(product => product.Type)
             .Include(product => product.Brand)
+            .Include(product => product.TaxRate)
             .Include(product => product.Variants)
+            .Include(product => product.ProductTags)
+                .ThenInclude(productTag => productTag.Tag)
             .AsSplitQuery()
             .FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
     }
@@ -52,7 +55,10 @@ public sealed class ProductRepository : IProductRepository
             .AsNoTracking()
             .Include(product => product.Type)
             .Include(product => product.Brand)
+            .Include(product => product.TaxRate)
             .Include(product => product.Variants)
+            .Include(product => product.ProductTags)
+                .ThenInclude(productTag => productTag.Tag)
             .AsSplitQuery()
             .Where(product => productIds.Contains(product.Id))
             .ToListAsync(cancellationToken);
@@ -62,7 +68,34 @@ public sealed class ProductRepository : IProductRepository
     public Task<Product?> GetByIdForUpdateAsync(long id, CancellationToken cancellationToken = default)
     {
         return _context.Products
+            .Include(product => product.TaxRate)
+            .Include(product => product.Variants)
             .FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
+    }
+
+    // Burada checkout işlemlerinde kilit alma sırasını tutarlı kılmak için ürünleri artan kimlikle takipli getiriyorum.
+    public async Task<IReadOnlyList<Product>> GetByIdsForUpdateAsync(
+        IEnumerable<long> ids,
+        CancellationToken cancellationToken = default)
+    {
+        var productIds = ids.Where(id => id > 0).Distinct().OrderBy(id => id).ToList();
+        return await _context.Products
+            .Include(product => product.TaxRate)
+            .Where(product => productIds.Contains(product.Id))
+            .OrderBy(product => product.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    // Burada vergi oranı güncellemesinden etkilenen ürünleri ve varyantlarını takipli getiriyorum.
+    public async Task<IReadOnlyList<Product>> GetByTaxRateIdForUpdateAsync(
+        Guid taxRateId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Products
+            .Include(product => product.Variants)
+            .Where(product => product.TaxRateId == taxRateId)
+            .OrderBy(product => product.Id)
+            .ToListAsync(cancellationToken);
     }
 
     // Burada ürünü ilişki değişiklikleri için takipli şekilde getiriyorum.
@@ -72,6 +105,8 @@ public sealed class ProductRepository : IProductRepository
             .Include(product => product.ProductCollections)
             .Include(product => product.ProductTags)
             .Include(product => product.BundleItems)
+            .Include(product => product.TaxRate)
+            .Include(product => product.Variants)
             .FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
     }
 
@@ -84,13 +119,20 @@ public sealed class ProductRepository : IProductRepository
             .AsNoTracking()
             .Include(product => product.Type)
             .Include(product => product.Brand)
+            .Include(product => product.TaxRate)
             .Include(product => product.Variants)
+            .Include(product => product.ProductTags)
+                .ThenInclude(productTag => productTag.Tag)
             .AsSplitQuery();
 
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
             var search = filter.Search.Trim();
-            query = query.Where(product => product.Title.Contains(search) || product.Url.Contains(search));
+            var normalizedMainSkuSearch = search.ToUpperInvariant();
+            query = query.Where(product =>
+                product.Title.Contains(search) ||
+                product.Url.Contains(search) ||
+                product.MainSku.Contains(normalizedMainSkuSearch));
         }
 
         if (filter.TypeId.HasValue)
@@ -152,6 +194,20 @@ public sealed class ProductRepository : IProductRepository
             cancellationToken);
     }
 
+    // Burada ana SKU bilgisinin başka bir üründe kullanılıp kullanılmadığını kontrol ediyorum.
+    public Task<bool> MainSkuExistsAsync(
+        string mainSku,
+        long? excludedProductId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedMainSku = mainSku.Trim().ToUpperInvariant();
+        return _context.Products.AnyAsync(
+            product =>
+                product.MainSku == normalizedMainSku &&
+                (!excludedProductId.HasValue || product.Id != excludedProductId.Value),
+            cancellationToken);
+    }
+
     // Burada listedeki URL değerlerinden veritabanında olanları buluyorum.
     public async Task<IReadOnlySet<string>> GetExistingUrlsAsync(IEnumerable<string> urls, CancellationToken cancellationToken = default)
     {
@@ -168,6 +224,26 @@ public sealed class ProductRepository : IProductRepository
             .ToListAsync(cancellationToken);
 
         return existingUrls.ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    // Burada listedeki ana SKU değerlerinden veritabanında bulunanları getiriyorum.
+    public async Task<IReadOnlySet<string>> GetExistingMainSkusAsync(
+        IEnumerable<string> mainSkus,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedMainSkus = mainSkus
+            .Where(mainSku => !string.IsNullOrWhiteSpace(mainSku))
+            .Select(mainSku => mainSku.Trim().ToUpperInvariant())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        var existingMainSkus = await _context.Products
+            .AsNoTracking()
+            .Where(product => normalizedMainSkus.Contains(product.MainSku))
+            .Select(product => product.MainSku)
+            .ToListAsync(cancellationToken);
+
+        return existingMainSkus.ToHashSet(StringComparer.Ordinal);
     }
 
     // Burada listedeki varyant SKU değerlerinden veritabanında olanları buluyorum.

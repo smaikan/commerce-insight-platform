@@ -6,6 +6,7 @@ namespace ECommerce.Persistence.Configurations;
 
 public sealed class CouponUsageConfiguration : IEntityTypeConfiguration<CouponUsage>
 {
+    // Burada kupon kullanım kaydının ilişki ve aynı sipariş için tekrar kullanım önleme kurallarını tanımlıyorum.
     public void Configure(EntityTypeBuilder<CouponUsage> builder)
     {
         builder.ToTable("CouponUsages");
@@ -23,5 +24,9 @@ public sealed class CouponUsageConfiguration : IEntityTypeConfiguration<CouponUs
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(usage => new { usage.CouponId, usage.UserId, usage.OrderId });
+        builder.HasIndex(usage => new { usage.CouponId, usage.OrderId })
+            .HasFilter("[OrderId] IS NOT NULL")
+            .IsUnique();
+        builder.HasIndex(usage => usage.UserId);
     }
 }

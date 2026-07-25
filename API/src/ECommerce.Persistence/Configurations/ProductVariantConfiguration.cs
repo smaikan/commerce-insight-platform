@@ -6,11 +6,17 @@ namespace ECommerce.Persistence.Configurations;
 
 public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVariant>
 {
+    // Burada varyant tablosunun ürün ilişkisi, stok, fiyat ve benzersizlik kurallarını tanımlıyorum.
     public void Configure(EntityTypeBuilder<ProductVariant> builder)
     {
         builder.ToTable("ProductVariants");
 
         builder.HasKey(variant => variant.Id);
+        builder.HasAlternateKey(variant => new
+        {
+            variant.Id,
+            variant.ProductId
+        });
 
         builder.Property(variant => variant.Name)
             .HasMaxLength(150)
@@ -30,6 +36,10 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
             .HasPrecision(18, 2)
             .IsRequired();
 
+        builder.Property(variant => variant.NetPrice)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
         builder.Property(variant => variant.CompareAtPrice)
             .HasPrecision(18, 2);
 
@@ -46,10 +56,13 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
             .HasForeignKey(metric => metric.ProductVariantId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(variant => variant.InventoryTransactions)
-            .WithOne(transaction => transaction.ProductVariant)
-            .HasForeignKey(transaction => transaction.ProductVariantId)
-            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(variant => variant.StockMovements)
+            .WithOne(movement => movement.ProductVariant)
+            .HasForeignKey(movement => movement.ProductVariantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Navigation(variant => variant.StockMovements)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(variant => variant.Sku)
             .IsUnique();

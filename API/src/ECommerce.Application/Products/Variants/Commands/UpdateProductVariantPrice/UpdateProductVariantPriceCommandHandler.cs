@@ -10,6 +10,7 @@ public sealed class UpdateProductVariantPriceCommandHandler : IRequestHandler<Up
     private readonly IProductVariantRepository _variantRepository;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada varyant fiyatı güncellemesinin repository ve transaction bağımlılıklarını hazırlıyorum.
     public UpdateProductVariantPriceCommandHandler(IProductVariantRepository variantRepository, IUnitOfWork unitOfWork)
     {
         _variantRepository = variantRepository;
@@ -26,7 +27,10 @@ public sealed class UpdateProductVariantPriceCommandHandler : IRequestHandler<Up
             throw new NotFoundException("Product variant was not found.");
         }
 
-        variant.UpdatePrice(request.Price, request.CompareAtPrice);
+        variant.UpdatePrice(
+            request.Price,
+            request.CompareAtPrice,
+            variant.Product?.TaxRate?.CalculateNetPrice(request.Price) ?? request.Price);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return variant.ToDto();

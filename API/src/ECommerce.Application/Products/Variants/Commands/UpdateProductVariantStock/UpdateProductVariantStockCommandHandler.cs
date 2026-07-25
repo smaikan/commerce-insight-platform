@@ -19,14 +19,9 @@ public sealed class UpdateProductVariantStockCommandHandler : IRequestHandler<Up
         _unitOfWork = unitOfWork;
     }
 
-    // Burada stok bilgisini Product yerine doğrudan varyant üzerinde güncelliyorum.
+    // Burada imzalı stok hareketini varyantın tek ledger girişinden uygulayıp bakiyeyi güncelliyorum.
     public async Task<ProductVariantDto> Handle(UpdateProductVariantStockCommand request, CancellationToken cancellationToken)
     {
-        if (request.Quantity == int.MinValue)
-        {
-            throw new ConflictException("Quantity is outside the supported range.");
-        }
-
         var variant = await _variantRepository.GetByIdForUpdateAsync(request.Id, cancellationToken);
 
         if (variant is null)
@@ -34,26 +29,7 @@ public sealed class UpdateProductVariantStockCommandHandler : IRequestHandler<Up
             throw new NotFoundException("Product variant was not found.");
         }
 
-        var transactionType = request.Quantity > 0
-            ? InventoryTransactionType.StockIn
-            : InventoryTransactionType.StockOut;
-        var transactionQuantity = Math.Abs(request.Quantity);
-
-        if (request.Quantity > 0)
-        {
-            variant.IncreaseStock(transactionQuantity);
-        }
-        else
-        {
-            variant.ReduceStock(transactionQuantity);
-        }
-
-        variant.InventoryTransactions.Add(new InventoryTransaction(
-            variant.Id,
-            transactionType,
-            transactionQuantity,
-            variant.Stock,
-            request.Reason));
+        variant.ApplyStockMovement(request.QuantityDelta, request.Type, request.Reason);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

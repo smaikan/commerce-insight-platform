@@ -12,12 +12,13 @@ namespace ECommerce.UnitTests.Application;
 
 public sealed class ProductStateCommandHandlerTests
 {
+    // Burada ürün durum değiştirme komutunun Domain durumunu güncellediğini doğruluyorum.
     [Fact]
     public async Task ChangeProductStatus_Should_Update_Status()
     {
         var productRepository = new Mock<IProductRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var product = new Product("Product", "product", Guid.NewGuid()).WithId(1);
+        var product = new Product("Product", "product", "PRODUCT-MAIN", Guid.NewGuid()).WithId(1);
 
         productRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(product.Id, It.IsAny<CancellationToken>()))
@@ -41,12 +42,18 @@ public sealed class ProductStateCommandHandlerTests
         product.Status.Should().Be(ProductStatus.Active);
     }
 
+    // Burada ürün aktivasyon komutunun ürünü satışa kapattığını doğruluyorum.
     [Fact]
     public async Task SetProductActivation_Should_Deactivate_Product()
     {
         var productRepository = new Mock<IProductRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var product = new Product("Product", "product", Guid.NewGuid(), isActive: true).WithId(1);
+        var product = new Product(
+            "Product",
+            "product",
+            "PRODUCT-MAIN",
+            Guid.NewGuid(),
+            isActive: true).WithId(1);
 
         productRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(product.Id, It.IsAny<CancellationToken>()))
@@ -68,12 +75,18 @@ public sealed class ProductStateCommandHandlerTests
         product.IsActive.Should().BeFalse();
     }
 
+    // Burada öne çıkarma komutunun ürünü öne çıkan olarak işaretlediğini doğruluyorum.
     [Fact]
     public async Task SetProductFeatured_Should_Mark_Product_As_Featured()
     {
         var productRepository = new Mock<IProductRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var product = new Product("Product", "product", Guid.NewGuid(), isFeatured: false).WithId(1);
+        var product = new Product(
+            "Product",
+            "product",
+            "PRODUCT-MAIN",
+            Guid.NewGuid(),
+            isFeatured: false).WithId(1);
 
         productRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(product.Id, It.IsAny<CancellationToken>()))

@@ -8,6 +8,7 @@ using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using ECommerce.UnitTests.Testing;
 using FluentAssertions;
+using FluentValidation.TestHelper;
 using Moq;
 
 namespace ECommerce.UnitTests.Application;
@@ -71,6 +72,7 @@ public sealed class AuthCommandHandlerTests
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // Burada geçerli kimlik bilgilerinin cihaz adı gönderilmeden de oturum oluşturduğunu doğruluyorum.
     [Fact]
     public async Task Login_Should_Create_Access_And_Refresh_Tokens_When_Credentials_Are_Valid()
     {
@@ -133,6 +135,8 @@ public sealed class AuthCommandHandlerTests
         result.Tokens.RefreshTokenExpiresAt.Should().Be(dateTimeProvider.UtcNow.AddDays(14));
         user.RefreshTokens.Should().HaveCount(2);
         user.RefreshTokens.Should().Contain(token => token.TokenHash == "hashed-refresh-token");
+        user.RefreshTokens.Single(token => token.TokenHash == "hashed-refresh-token")
+            .DeviceName.Should().BeNull();
         existingRefreshToken.IsRevoked().Should().BeFalse();
         user.LastLoginAt.Should().Be(dateTimeProvider.UtcNow);
         userRepository.Verify(repository => repository.AddRefreshTokenAsync(
@@ -143,6 +147,21 @@ public sealed class AuthCommandHandlerTests
             It.IsAny<DateTime>(),
             It.IsAny<CancellationToken>()), Times.Never);
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // Burada login doğrulamasının gönderilmeyen cihaz adını hata kabul etmediğini doğruluyorum.
+    [Fact]
+    public void LoginValidator_Should_Accept_Null_Device_Name()
+    {
+        var validator = new LoginCommandValidator();
+
+        var result = validator.TestValidate(new LoginCommand(
+            "user@example.com",
+            "Password123!",
+            IpAddress: "127.0.0.1",
+            DeviceName: null));
+
+        result.ShouldNotHaveValidationErrorFor(command => command.DeviceName);
     }
 
     [Fact]

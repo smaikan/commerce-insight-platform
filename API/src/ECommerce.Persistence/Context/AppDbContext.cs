@@ -19,8 +19,9 @@ public sealed class AppDbContext : DbContext
     public DbSet<Coupon> Coupons => Set<Coupon>();
     public DbSet<CouponUsage> CouponUsages => Set<CouponUsage>();
     public DbSet<FavoriteProduct> FavoriteProducts => Set<FavoriteProduct>();
-    public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderAddressSnapshot> OrderAddressSnapshots => Set<OrderAddressSnapshot>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<EmailOutboxMessage> EmailOutbox => Set<EmailOutboxMessage>();
@@ -35,7 +36,11 @@ public sealed class AppDbContext : DbContext
     public DbSet<ProductType> ProductTypes => Set<ProductType>();
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
     public DbSet<ProductVariantDailyMetric> ProductVariantDailyMetrics => Set<ProductVariantDailyMetric>();
+    public DbSet<ReturnItem> ReturnItems => Set<ReturnItem>();
+    public DbSet<ReturnRequest> ReturnRequests => Set<ReturnRequest>();
+    public DbSet<ShippingMethod> ShippingMethods => Set<ShippingMethod>();
     public DbSet<Tag> Tags => Set<Tag>();
+    public DbSet<TaxRate> TaxRates => Set<TaxRate>();
     public DbSet<User> Users => Set<User>();
     public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
     public DbSet<UserSecurityToken> UserSecurityTokens => Set<UserSecurityToken>();

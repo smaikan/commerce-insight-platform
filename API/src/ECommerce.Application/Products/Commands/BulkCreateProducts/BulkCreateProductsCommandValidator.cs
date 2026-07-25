@@ -1,15 +1,29 @@
+using ECommerce.Application.Common.Services;
 using FluentValidation;
 
 namespace ECommerce.Application.Products.Commands.BulkCreateProducts;
 
 public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkCreateProductsCommand>
 {
+    // Burada toplu ürün isteğinin ürün, varyant ve görsel kurallarını tanımlıyorum.
     public BulkCreateProductsCommandValidator()
     {
         RuleFor(command => command.Products)
             .NotEmpty()
             .Must(products => products is not null && products.Count <= 500)
             .WithMessage("A bulk product request can contain at most 500 products.");
+
+        RuleFor(command => command.Products)
+            .Must(products => products is null ||
+                products
+                    .SelectMany(product => product.Tags ?? [])
+                    .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                    .Select(tag => tag.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Count() <= ProductTagRules.MaximumUniqueTagsPerBulkRequest)
+            .WithMessage(
+                $"A bulk product request can contain at most " +
+                $"{ProductTagRules.MaximumUniqueTagsPerBulkRequest} unique tag names.");
 
         RuleForEach(command => command.Products)
             .ChildRules(product =>
@@ -18,6 +32,10 @@ public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkC
                     .NotEmpty()
                     .MaximumLength(250);
 
+                product.RuleFor(item => item.MainSku)
+                    .NotEmpty()
+                    .MaximumLength(100);
+
                 product.RuleFor(item => item.TypeId)
                     .Must(typeId => !typeId.HasValue || typeId.Value != Guid.Empty)
                     .WithMessage("Product type id cannot be empty.");
@@ -25,6 +43,10 @@ public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkC
                 product.RuleFor(item => item.BrandId)
                     .Must(brandId => !brandId.HasValue || brandId.Value != Guid.Empty)
                     .WithMessage("Brand id cannot be empty.");
+
+                product.RuleFor(item => item.TaxRateId)
+                    .Must(taxRateId => !taxRateId.HasValue || taxRateId.Value != Guid.Empty)
+                    .WithMessage("Tax rate id cannot be empty.");
 
                 product.RuleFor(item => item.Url)
                     .MaximumLength(250);
@@ -97,6 +119,18 @@ public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkC
                 product.RuleFor(item => item.CollectionIds)
                     .Must(ids => ids is null || ids.Distinct().Count() == ids.Count)
                     .WithMessage("Collection ids cannot contain duplicates.");
+
+                product.RuleForEach(item => item.TagIds)
+                    .NotEmpty();
+
+                product.RuleForEach(item => item.Tags)
+                    .NotEmpty()
+                    .MaximumLength(ProductTagRules.MaximumTagNameLength);
+
+                product.RuleFor(item => item.Tags)
+                    .Must(tags => tags is null || tags.Count <= ProductTagRules.MaximumTagsPerProduct)
+                    .WithMessage(
+                        $"A product can contain at most {ProductTagRules.MaximumTagsPerProduct} tag names.");
             });
     }
 }

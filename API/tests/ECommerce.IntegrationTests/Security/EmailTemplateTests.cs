@@ -13,5 +13,11 @@ public sealed class EmailTemplateTests
 
         resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.PasswordResetEmailTemplate.html");
         resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.WelcomeEmailTemplate.html");
+        resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.OrderCreatedEmailTemplate.html");
+        resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.PaymentPaidEmailTemplate.html");
+        resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.PaymentFailedEmailTemplate.html");
+        resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.OrderStatusChangedEmailTemplate.html");
+        resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.ReturnRequestedEmailTemplate.html");
+        resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.ReturnStatusChangedEmailTemplate.html");
     }
 }

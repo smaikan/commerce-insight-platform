@@ -12,6 +12,7 @@ namespace ECommerce.IntegrationTests.Api;
 
 public sealed class ApiPipelineTests
 {
+    // Burada Swagger sözleşmesinin gerçek HTTP hattından ve güncel ürün alanlarıyla sunulduğunu doğruluyorum.
     [Fact]
     public async Task Swagger_Document_Should_Be_Served_Through_Real_Http_Pipeline()
     {
@@ -30,38 +31,117 @@ public sealed class ApiPipelineTests
         swagger.Should().Contain("/api/product-variants/{id}");
         swagger.Should().Contain("/api/auth/login");
         swagger.Should().Contain("/api/users/me");
+        swagger.Should().Contain("/api/cart");
+        swagger.Should().Contain("/api/cart/items");
+        swagger.Should().Contain("/api/cart/merge-guest");
+        swagger.Should().Contain("/api/orders");
+        swagger.Should().Contain("/api/orders/mine");
+        swagger.Should().Contain("/api/orders/{id}/payments");
+        swagger.Should().Contain("/api/addresses");
+        swagger.Should().Contain("/api/coupons");
+        swagger.Should().Contain("/api/stock-movements");
+        swagger.Should().Contain("/api/stock-movements/bulk");
+        swagger.Should().Contain("/api/product-variants/{id}/stock-movements");
 
         using var document = JsonDocument.Parse(swagger);
-        var createProductSchema = document.RootElement
+        var schemas = document.RootElement
             .GetProperty("components")
-            .GetProperty("schemas")
-            .GetProperty("CreateProductCommand");
+            .GetProperty("schemas");
+        var loginSchema = schemas.GetProperty("LoginRequest");
+        var loginRequiredProperties = loginSchema
+            .GetProperty("required")
+            .EnumerateArray()
+            .Select(property => property.GetString())
+            .ToList();
+        loginRequiredProperties.Should().Contain("email");
+        loginRequiredProperties.Should().Contain("password");
+        loginRequiredProperties.Should().NotContain("deviceName");
+
+        var createProductSchema = schemas.GetProperty("CreateProductCommand");
+        createProductSchema.GetProperty("properties").TryGetProperty("mainSku", out _).Should().BeTrue();
         createProductSchema.GetProperty("properties").TryGetProperty("collectionIds", out _).Should().BeTrue();
         createProductSchema.GetProperty("properties").TryGetProperty("variants", out _).Should().BeTrue();
+        AssertOptionalStringArrayProperty(createProductSchema, "tags");
         var requiredProperties = createProductSchema.TryGetProperty("required", out var required)
             ? required.EnumerateArray().Select(property => property.GetString()).ToList()
             : [];
+        requiredProperties.Should().Contain("mainSku");
         requiredProperties.Should().NotContain("typeId");
         requiredProperties.Should().NotContain("collectionIds");
+        requiredProperties.Should().NotContain("tags");
 
-        var productDtoProperties = document.RootElement
-            .GetProperty("components")
-            .GetProperty("schemas")
+        var updateProductSchema = schemas.GetProperty("UpdateProductRequest");
+        AssertOptionalStringArrayProperty(updateProductSchema, "tags");
+
+        var updateRelationsSchema = schemas.GetProperty("UpdateProductRelationsRequest");
+        AssertOptionalStringArrayProperty(updateRelationsSchema, "tags");
+
+        var productDtoProperties = schemas
             .GetProperty("ProductDto")
             .GetProperty("properties");
+        productDtoProperties.TryGetProperty("mainSku", out _).Should().BeTrue();
         productDtoProperties.TryGetProperty("variants", out _).Should().BeTrue();
         productDtoProperties.GetProperty("id").GetProperty("type").GetString().Should().Be("string");
+        var productTagsSchema = productDtoProperties.GetProperty("tags");
+        productTagsSchema.GetProperty("type").GetString().Should().Be("array");
+        productTagsSchema.GetProperty("items").GetProperty("$ref").GetString()
+            .Should().Be("#/components/schemas/TagDto");
 
-        var variantDtoProperties = document.RootElement
-            .GetProperty("components")
-            .GetProperty("schemas")
+        var bulkProductSchema = schemas.GetProperty("BulkCreateProductItem");
+        var bulkProductProperties = bulkProductSchema.GetProperty("properties");
+        bulkProductProperties.TryGetProperty("tagIds", out _).Should().BeTrue();
+        AssertOptionalStringArrayProperty(bulkProductSchema, "tags");
+
+        var tagDtoProperties = schemas
+            .GetProperty("TagDto")
+            .GetProperty("properties");
+        tagDtoProperties.GetProperty("id").GetProperty("type").GetString().Should().Be("string");
+        tagDtoProperties.GetProperty("id").GetProperty("format").GetString().Should().Be("uuid");
+        tagDtoProperties.GetProperty("name").GetProperty("type").GetString().Should().Be("string");
+        tagDtoProperties.GetProperty("url").GetProperty("type").GetString().Should().Be("string");
+        tagDtoProperties.GetProperty("isActive").GetProperty("type").GetString().Should().Be("boolean");
+
+        var variantDtoProperties = schemas
             .GetProperty("ProductVariantDto")
             .GetProperty("properties");
         variantDtoProperties.TryGetProperty("name", out _).Should().BeTrue();
         variantDtoProperties.TryGetProperty("color", out _).Should().BeFalse();
         variantDtoProperties.TryGetProperty("size", out _).Should().BeFalse();
+
+        var adjustStockSchema = schemas.GetProperty("AdjustStockRequest");
+        var adjustStockProperties = adjustStockSchema.GetProperty("properties");
+        adjustStockProperties.TryGetProperty("quantityDelta", out _).Should().BeTrue();
+        adjustStockProperties.TryGetProperty("type", out _).Should().BeTrue();
+        adjustStockProperties.TryGetProperty("reason", out _).Should().BeTrue();
+        AssertOptionalProperty(adjustStockSchema, "reason");
+
+        var stockMovementProperties = schemas
+            .GetProperty("StockMovementDto")
+            .GetProperty("properties");
+        stockMovementProperties.TryGetProperty("direction", out _).Should().BeTrue();
+        stockMovementProperties.TryGetProperty("quantityDelta", out _).Should().BeTrue();
+        stockMovementProperties.TryGetProperty("stockBeforeMovement", out _).Should().BeTrue();
+        stockMovementProperties.TryGetProperty("stockAfterMovement", out _).Should().BeTrue();
+
+        var orderStatusValues = schemas
+            .GetProperty("OrderStatus")
+            .GetProperty("enum")
+            .EnumerateArray()
+            .Select(item => item.GetInt32())
+            .ToList();
+        orderStatusValues.Should().Contain((int)ECommerce.Domain.Enums.OrderStatus.ReturnRequested);
+        orderStatusValues.Should().Contain((int)ECommerce.Domain.Enums.OrderStatus.ReturnApproved);
+
+        var bulkStockMovementSchema = schemas.GetProperty("BulkStockMovementRequest");
+        var bulkStockMovementProperties = bulkStockMovementSchema.GetProperty("properties");
+        bulkStockMovementProperties.TryGetProperty("productVariantId", out _).Should().BeTrue();
+        bulkStockMovementProperties.TryGetProperty("quantityDelta", out _).Should().BeTrue();
+        bulkStockMovementProperties.TryGetProperty("type", out _).Should().BeTrue();
+        bulkStockMovementProperties.TryGetProperty("reason", out _).Should().BeTrue();
+        AssertOptionalProperty(bulkStockMovementSchema, "reason");
     }
 
+    // Burada canonical olmayan ürün public kimliklerinin 400 ProblemDetails döndürdüğünü doğruluyorum.
     [Theory]
     [InlineData("/api/products/00000000-0000-0000-0000-000000000001")]
     [InlineData("/api/products/p00001")]
@@ -77,10 +157,17 @@ public sealed class ApiPipelineTests
         response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
     }
 
+    // Burada korunan endpointlerin anonim isteklere izlenebilir 401 cevabı verdiğini doğruluyorum.
     [Theory]
     [InlineData("/api/products", true)]
     [InlineData("/api/product-types", true)]
     [InlineData("/api/users/me", false)]
+    [InlineData("/api/orders", true)]
+    [InlineData("/api/addresses", false)]
+    [InlineData("/api/coupons", false)]
+    [InlineData("/api/stock-movements", false)]
+    [InlineData("/api/stock-movements/bulk", true)]
+    [InlineData("/api/product-variants/11111111-1111-1111-1111-111111111111/stock-movements", true)]
     public async Task Protected_Endpoint_Should_Return_Problem_Details_For_Anonymous_Request(
         string path,
         bool usePost)
@@ -101,6 +188,22 @@ public sealed class ApiPipelineTests
         problem.RootElement.GetProperty("traceId").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
+    // Burada misafir sepeti birleştirme endpointinin anonim isteklerde handler'a ulaşmadan 401 döndürdüğünü doğruluyorum.
+    [Fact]
+    public async Task Guest_Cart_Merge_Should_Require_Authentication()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var response = await client.PostAsync("/api/cart/merge-guest", content: null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        problem.RootElement.GetProperty("code").GetString().Should().Be("authentication_required");
+    }
+
+    // Burada geçersiz JWT değerinin ayrıntılı 401 ProblemDetails cevabına dönüştüğünü doğruluyorum.
     [Fact]
     public async Task Invalid_Jwt_Should_Return_Detailed_Unauthorized_Problem_Details()
     {
@@ -120,6 +223,7 @@ public sealed class ApiPipelineTests
         problem.RootElement.GetProperty("traceId").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
+    // Burada validation hatalarının alan bazlı ProblemDetails cevabına dönüştüğünü doğruluyorum.
     [Fact]
     public async Task Validation_Exception_Should_Return_Field_Errors()
     {
@@ -141,6 +245,7 @@ public sealed class ApiPipelineTests
         problem.RootElement.GetProperty("errors").TryGetProperty("Password", out _).Should().BeTrue();
     }
 
+    // Burada geliştirme ortamında beklenmeyen hatanın izlenebilir ayrıntılarla döndüğünü doğruluyorum.
     [Fact]
     public async Task Unexpected_Exception_Should_Return_Traceable_Problem_Details_In_Development()
     {
@@ -159,6 +264,7 @@ public sealed class ApiPipelineTests
         problem.RootElement.GetProperty("traceId").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
+    // Burada production ortamında beklenmeyen hata ayrıntılarının istemciye sızmadığını doğruluyorum.
     [Fact]
     public async Task Unexpected_Exception_Should_Not_Expose_Internal_Details_In_Production()
     {
@@ -176,6 +282,7 @@ public sealed class ApiPipelineTests
         problem.RootElement.GetProperty("traceId").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
+    // Burada hassas auth endpointinin istek sınırını aştığında 429 döndürdüğünü doğruluyorum.
     [Fact]
     public async Task Sensitive_Auth_Path_Should_Be_Rate_Limited()
     {
@@ -206,15 +313,66 @@ public sealed class ApiPipelineTests
         }
     }
 
+    // Burada ödeme başlatma endpointinin anonim trafikle brute-force veya kaynak tüketimine açık kalmadığını doğruluyorum.
+    [Fact]
+    public async Task Payment_Path_Should_Be_Rate_Limited()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var responses = new List<HttpResponseMessage>();
+
+        try
+        {
+            for (var attempt = 0; attempt < 11; attempt++)
+            {
+                responses.Add(await client.PostAsync($"/api/orders/{Guid.NewGuid()}/payments", new StringContent("{}", Encoding.UTF8, "application/json")));
+            }
+
+            responses[^1].StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        }
+        finally
+        {
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
+        }
+    }
+
+    // Burada istekteki opsiyonel etiket alanının string dizi sözleşmesini doğruluyorum.
+    private static void AssertOptionalStringArrayProperty(JsonElement schema, string propertyName)
+    {
+        var property = schema.GetProperty("properties").GetProperty(propertyName);
+        property.GetProperty("type").GetString().Should().Be("array");
+        property.GetProperty("items").GetProperty("type").GetString().Should().Be("string");
+
+        var requiredProperties = schema.TryGetProperty("required", out var required)
+            ? required.EnumerateArray().Select(item => item.GetString()).ToList()
+            : [];
+        requiredProperties.Should().NotContain(propertyName);
+    }
+
+    // Burada bir API alanının Swagger sözleşmesinde zorunlu listeye girmediğini doğruluyorum.
+    private static void AssertOptionalProperty(JsonElement schema, string propertyName)
+    {
+        var requiredProperties = schema.TryGetProperty("required", out var required)
+            ? required.EnumerateArray().Select(item => item.GetString()).ToList()
+            : [];
+
+        requiredProperties.Should().NotContain(propertyName);
+    }
+
     private sealed class TestApiFactory : WebApplicationFactory<Program>
     {
         private readonly string _environment;
 
+        // Burada API test sunucusunu istenen ortam adıyla hazırlıyorum.
         public TestApiFactory(string environment = "Development")
         {
             _environment = environment;
         }
 
+        // Burada test sunucusunun ortam, bağlantı ve JWT ayarlarını izole biçimde yapılandırıyorum.
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment(_environment);
@@ -224,6 +382,9 @@ public sealed class ApiPipelineTests
             builder.UseSetting("Jwt:Issuer", "ECommerce.IntegrationTests");
             builder.UseSetting("Jwt:Audience", "ECommerce.IntegrationTests.Client");
             builder.UseSetting("Jwt:SecretKey", "integration-test-secret-key-at-least-32-bytes");
+            builder.UseSetting(
+                "DataProtection:KeyRingPath",
+                Path.Combine(Path.GetTempPath(), "ECommerce.IntegrationTests.DataProtection"));
             builder.ConfigureServices(services =>
                 services.AddControllers().AddApplicationPart(typeof(TestExceptionController).Assembly));
         }
@@ -234,6 +395,7 @@ public sealed class ApiPipelineTests
 [Route("api/test-errors")]
 public sealed class TestExceptionController : ControllerBase
 {
+    // Burada exception middleware testinin kullanacağı kontrollü beklenmeyen hatayı üretiyorum.
     [HttpGet("unexpected")]
     public IActionResult ThrowUnexpectedException() =>
         throw new InvalidOperationException("Integration test exception.");

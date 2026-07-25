@@ -10,6 +10,7 @@ public sealed class TagRepository : ITagRepository
 {
     private readonly AppDbContext _context;
 
+    // Burada etiket repository'sini aynı istek kapsamındaki DbContext ile hazırlıyorum.
     public TagRepository(AppDbContext context)
     {
         _context = context;
@@ -74,6 +75,31 @@ public sealed class TagRepository : ITagRepository
             .ToListAsync(cancellationToken);
 
         return existingIds.ToHashSet();
+    }
+
+    // Burada adı veya URL'si istenen değerlerle eşleşen etiketleri topluca getiriyorum.
+    public async Task<IReadOnlyList<Tag>> GetByNamesOrUrlsAsync(
+        IEnumerable<string> names,
+        IEnumerable<string> urls,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedNames = names
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name.Trim().ToUpperInvariant())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        var normalizedUrls = urls
+            .Where(url => !string.IsNullOrWhiteSpace(url))
+            .Select(url => url.Trim().ToUpperInvariant())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        return await _context.Tags
+            .AsNoTracking()
+            .Where(tag =>
+                normalizedNames.Contains(tag.Name.ToUpper()) ||
+                normalizedUrls.Contains(tag.Url.ToUpper()))
+            .ToListAsync(cancellationToken);
     }
 
     // Burada verilen isimlerden veritabanında olan etiket isimlerini buluyorum.

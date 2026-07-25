@@ -34,7 +34,10 @@ public sealed class ProductEngagementRepository : IProductEngagementRepository
             .Where(item => item.UserId == userId)
             .Select(item => item.Product)
             .Include(product => product.Type)
-            .Include(product => product.Brand);
+            .Include(product => product.Brand)
+            .Include(product => product.ProductTags)
+                .ThenInclude(productTag => productTag.Tag)
+            .AsSplitQuery();
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query.OrderBy(product => product.Title)
             .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
@@ -101,6 +104,18 @@ public sealed class ProductEngagementRepository : IProductEngagementRepository
     public Task<ProductDailyMetric?> GetProductDailyMetricForUpdateAsync(long productId, DateOnly date, CancellationToken cancellationToken = default) =>
         _context.ProductDailyMetrics.FirstOrDefaultAsync(item => item.ProductId == productId && item.Date == date, cancellationToken);
 
+    // Burada checkout sırasında gereken günlük ürün metriklerini tek takipli sorguda getiriyorum.
+    public async Task<IReadOnlyList<ProductDailyMetric>> GetProductDailyMetricsForUpdateAsync(
+        IEnumerable<long> productIds,
+        DateOnly date,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = productIds.Where(id => id > 0).Distinct().ToList();
+        return await _context.ProductDailyMetrics
+            .Where(metric => ids.Contains(metric.ProductId) && metric.Date == date)
+            .ToListAsync(cancellationToken);
+    }
+
     // Burada yeni günlük ürün metriğini veritabanı takibine ekliyorum.
     public async Task AddProductDailyMetricAsync(ProductDailyMetric metric, CancellationToken cancellationToken = default) =>
         await _context.ProductDailyMetrics.AddAsync(metric, cancellationToken);
@@ -108,6 +123,18 @@ public sealed class ProductEngagementRepository : IProductEngagementRepository
     // Burada varyantın günlük metriğini güncelleme amacıyla getiriyorum.
     public Task<ProductVariantDailyMetric?> GetVariantDailyMetricForUpdateAsync(Guid variantId, DateOnly date, CancellationToken cancellationToken = default) =>
         _context.ProductVariantDailyMetrics.FirstOrDefaultAsync(item => item.ProductVariantId == variantId && item.Date == date, cancellationToken);
+
+    // Burada checkout sırasında gereken günlük varyant metriklerini tek takipli sorguda getiriyorum.
+    public async Task<IReadOnlyList<ProductVariantDailyMetric>> GetVariantDailyMetricsForUpdateAsync(
+        IEnumerable<Guid> variantIds,
+        DateOnly date,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = variantIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        return await _context.ProductVariantDailyMetrics
+            .Where(metric => ids.Contains(metric.ProductVariantId) && metric.Date == date)
+            .ToListAsync(cancellationToken);
+    }
 
     // Burada yeni günlük varyant metriğini veritabanı takibine ekliyorum.
     public async Task AddVariantDailyMetricAsync(ProductVariantDailyMetric metric, CancellationToken cancellationToken = default) =>

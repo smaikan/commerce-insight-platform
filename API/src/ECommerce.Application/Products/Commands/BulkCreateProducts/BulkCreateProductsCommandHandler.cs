@@ -13,25 +13,32 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
     private readonly IProductRepository _productRepository;
     private readonly IProductTypeRepository _productTypeRepository;
     private readonly IBrandRepository _brandRepository;
+    private readonly ITaxRateRepository _taxRateRepository;
     private readonly ICollectionRepository _collectionRepository;
     private readonly ITagRepository _tagRepository;
+    private readonly IProductTagResolver _productTagResolver;
     private readonly IProductUrlGenerator _productUrlGenerator;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada toplu ürün oluşturma akışının ihtiyaç duyduğu bağımlılıkları hazırlıyorum.
     public BulkCreateProductsCommandHandler(
         IProductRepository productRepository,
         IProductTypeRepository productTypeRepository,
         IBrandRepository brandRepository,
+        ITaxRateRepository taxRateRepository,
         ICollectionRepository collectionRepository,
         ITagRepository tagRepository,
+        IProductTagResolver productTagResolver,
         IProductUrlGenerator productUrlGenerator,
         IUnitOfWork unitOfWork)
     {
         _productRepository = productRepository;
         _productTypeRepository = productTypeRepository;
         _brandRepository = brandRepository;
+        _taxRateRepository = taxRateRepository;
         _collectionRepository = collectionRepository;
         _tagRepository = tagRepository;
+        _productTagResolver = productTagResolver;
         _productUrlGenerator = productUrlGenerator;
         _unitOfWork = unitOfWork;
     }
@@ -43,10 +50,12 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         var preparedItems = items
             .Select(item => new PreparedProductItem(
                 item,
-                string.IsNullOrWhiteSpace(item.Url) ? _productUrlGenerator.Generate(item.Title) : item.Url.Trim()))
+                string.IsNullOrWhiteSpace(item.Url) ? _productUrlGenerator.Generate(item.Title) : item.Url.Trim(),
+                item.MainSku.Trim().ToUpperInvariant()))
             .ToList();
 
         EnsureNoDuplicates(preparedItems.Select(item => item.Url), "Product url is duplicated in the request.");
+        await EnsureMainSkusAreUniqueAsync(preparedItems, cancellationToken);
 
         var existingUrls = await _productRepository.GetExistingUrlsAsync(
             preparedItems.Select(item => item.Url),
@@ -59,12 +68,14 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
 
         await EnsureProductTypesExistAsync(preparedItems, cancellationToken);
         await EnsureBrandsExistAsync(preparedItems, cancellationToken);
+        var taxRatesById = await GetActiveTaxRatesAsync(preparedItems, cancellationToken);
         await EnsureCollectionsExistAsync(preparedItems, cancellationToken);
         await EnsureTagsExistAsync(preparedItems, cancellationToken);
+        var resolvedTags = await ResolveTagsAsync(preparedItems, cancellationToken);
         await EnsureVariantSkusAreUniqueAsync(preparedItems, cancellationToken);
 
         var products = preparedItems
-            .Select(item => CreateProduct(item.Item, item.Url))
+            .Select(item => CreateProduct(item, resolvedTags, taxRatesById))
             .ToList();
 
         await _productRepository.AddRangeAsync(products, cancellationToken);
@@ -79,6 +90,7 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
             .ToList();
     }
 
+    // Burada toplu istekte kullanılan ürün türlerinin veritabanında bulunduğunu doğruluyorum.
     private async Task EnsureProductTypesExistAsync(
         IReadOnlyCollection<PreparedProductItem> preparedItems,
         CancellationToken cancellationToken)
@@ -106,6 +118,7 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         }
     }
 
+    // Burada toplu istekte kullanılan markaların veritabanında bulunduğunu doğruluyorum.
     private async Task EnsureBrandsExistAsync(
         IReadOnlyCollection<PreparedProductItem> preparedItems,
         CancellationToken cancellationToken)
@@ -133,6 +146,37 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         }
     }
 
+    // Burada toplu istekte seçilen vergi oranlarının aktif olarak bulunduğunu doğruluyorum.
+    private async Task<IReadOnlyDictionary<Guid, TaxRate>> GetActiveTaxRatesAsync(
+        IReadOnlyCollection<PreparedProductItem> preparedItems,
+        CancellationToken cancellationToken)
+    {
+        var taxRateIds = preparedItems
+            .Select(item => item.Item.TaxRateId)
+            .Where(taxRateId => taxRateId.HasValue)
+            .Select(taxRateId => taxRateId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (taxRateIds.Count == 0)
+        {
+            return new Dictionary<Guid, TaxRate>();
+        }
+
+        var taxRatesById = await _taxRateRepository.GetActiveByIdsAsync(taxRateIds, cancellationToken);
+        var missingTaxRateIds = taxRateIds
+            .Where(taxRateId => !taxRatesById.ContainsKey(taxRateId))
+            .ToList();
+
+        if (missingTaxRateIds.Count > 0)
+        {
+            throw new NotFoundException($"Tax rate was not found or is inactive: {string.Join(", ", missingTaxRateIds)}.");
+        }
+
+        return taxRatesById;
+    }
+
+    // Burada toplu istekte kullanılan koleksiyonların veritabanında bulunduğunu doğruluyorum.
     private async Task EnsureCollectionsExistAsync(
         IReadOnlyCollection<PreparedProductItem> preparedItems,
         CancellationToken cancellationToken)
@@ -158,6 +202,7 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         }
     }
 
+    // Burada toplu istekte kullanılan etiketlerin veritabanında bulunduğunu doğruluyorum.
     private async Task EnsureTagsExistAsync(
         IReadOnlyCollection<PreparedProductItem> preparedItems,
         CancellationToken cancellationToken)
@@ -183,6 +228,40 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         }
     }
 
+    // Burada toplu istekteki ana SKU değerlerinin istek içinde ve veritabanında benzersiz olduğunu doğruluyorum.
+    private async Task EnsureMainSkusAreUniqueAsync(
+        IReadOnlyCollection<PreparedProductItem> preparedItems,
+        CancellationToken cancellationToken)
+    {
+        var mainSkus = preparedItems
+            .Select(item => item.MainSku)
+            .ToList();
+
+        EnsureNoDuplicates(mainSkus, "Product main SKU is duplicated in the request.");
+
+        var existingMainSkus = await _productRepository.GetExistingMainSkusAsync(mainSkus, cancellationToken);
+        if (existingMainSkus.Count > 0)
+        {
+            throw new ConflictException(
+                $"Product main SKU already exists: {string.Join(", ", existingMainSkus)}.");
+        }
+    }
+
+    // Burada ürünlerin adla gönderilen etiketlerini mevcut veya yeni kayıtlara topluca çözümlüyorum.
+    private async Task<ProductTagResolution> ResolveTagsAsync(
+        IReadOnlyCollection<PreparedProductItem> preparedItems,
+        CancellationToken cancellationToken)
+    {
+        var tagNames = preparedItems
+            .SelectMany(item => item.Item.Tags ?? Array.Empty<string>())
+            .ToList();
+
+        return tagNames.Count == 0
+            ? ProductTagResolution.Empty
+            : await _productTagResolver.ResolveAsync(tagNames, cancellationToken);
+    }
+
+    // Burada toplu istekteki varyant SKU değerlerinin istek içinde ve veritabanında benzersiz olduğunu doğruluyorum.
     private async Task EnsureVariantSkusAreUniqueAsync(
         IReadOnlyCollection<PreparedProductItem> preparedItems,
         CancellationToken cancellationToken)
@@ -202,11 +281,18 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         }
     }
 
-    private static Product CreateProduct(BulkCreateProductItem item, string url)
+    // Burada hazırlanmış toplu istek satırından ilişkileriyle birlikte ürün aggregate'ı oluşturuyorum.
+    private static Product CreateProduct(
+        PreparedProductItem preparedItem,
+        ProductTagResolution resolvedTags,
+        IReadOnlyDictionary<Guid, TaxRate> taxRatesById)
     {
+        var item = preparedItem.Item;
+        var taxRate = item.TaxRateId.HasValue ? taxRatesById[item.TaxRateId.Value] : null;
         var product = new Product(
             item.Title,
-            url,
+            preparedItem.Url,
+            preparedItem.MainSku,
             item.TypeId,
             item.BrandId,
             item.Description,
@@ -215,7 +301,8 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
             item.IsFeatured,
             item.DisplayOrder,
             item.SeoTitle,
-            item.SeoDescription);
+            item.SeoDescription,
+            item.TaxRateId);
 
         foreach (var variant in item.Variants ?? Array.Empty<BulkCreateProductVariantItem>())
         {
@@ -228,17 +315,8 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
                 variant.CompareAtPrice,
                 variant.Barcode,
                 variant.Material,
-                variant.IsActive);
-
-            if (variant.Stock > 0)
-            {
-                productVariant.InventoryTransactions.Add(new InventoryTransaction(
-                    productVariant.Id,
-                    InventoryTransactionType.StockIn,
-                    variant.Stock,
-                    variant.Stock,
-                    "Initial stock"));
-            }
+                variant.IsActive,
+                taxRate?.CalculateNetPrice(variant.Price) ?? variant.Price);
 
             product.Variants.Add(productVariant);
         }
@@ -258,7 +336,10 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
             product.ProductCollections.Add(new ProductCollection(product, collectionId));
         }
 
-        foreach (var tagId in item.TagIds?.Distinct() ?? Array.Empty<Guid>())
+        var tagIds = (item.TagIds ?? Array.Empty<Guid>())
+            .Concat(resolvedTags.GetIds(item.Tags))
+            .Distinct();
+        foreach (var tagId in tagIds)
         {
             product.ProductTags.Add(new ProductTag(product, tagId));
         }
@@ -268,6 +349,7 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         return product;
     }
 
+    // Burada metin listesindeki büyük-küçük harf duyarsız tekrarları yakalıyorum.
     private static void EnsureNoDuplicates(IEnumerable<string> values, string message)
     {
         var duplicates = values
@@ -283,5 +365,6 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         }
     }
 
-    private sealed record PreparedProductItem(BulkCreateProductItem Item, string Url);
+    // Burada toplu ürün satırının doğrulanmış URL ve ana SKU değerlerini birlikte taşıyorum.
+    private sealed record PreparedProductItem(BulkCreateProductItem Item, string Url, string MainSku);
 }

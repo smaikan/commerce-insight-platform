@@ -20,13 +20,14 @@ public sealed class DeliveredPurchaseEligibilityTests
         await context.Database.EnsureCreatedAsync();
 
         var user = new User("buyer@example.com", "hash", "Buyer", "User");
-        var product = new Product("Product", "product");
+        var product = new Product("Product", "product", "PRODUCT-MAIN");
         var variant = new ProductVariant(product, "Standard", "DELIVERED-SKU", 100m, 5);
         context.AddRange(user, product, variant);
         await context.SaveChangesAsync();
 
         var order = new Order(user.Id, "ORDER-DELIVERED", 100m, 0m, 0m, 0m, 100m);
-        order.Items.Add(new OrderItem(order.Id, product.Id, variant.Id, product.Title, variant.Sku, 100m, 1));
+        order.AddItem(product.Id, variant.Id, product.Title, variant.Sku, 100m, 1);
+        order.EnsureItemsMatchSubTotal();
         context.Orders.Add(order);
         await context.SaveChangesAsync();
 
@@ -35,6 +36,10 @@ public sealed class DeliveredPurchaseEligibilityTests
 
         var utcNow = new DateTime(2026, 7, 23, 12, 0, 0, DateTimeKind.Utc);
         order.ChangeStatus(OrderStatus.Confirmed, utcNow);
+        var payment = new Payment(order.Id, PaymentProvider.Fake, order.GrandTotal, "delivered_purchase_payment_001");
+        order.AddPayment(payment);
+        context.Payments.Add(payment);
+        payment.MarkAsPaid("fake_delivered_purchase_transaction_001");
         order.ChangeStatus(OrderStatus.Paid, utcNow.AddMinutes(1));
         order.ChangeStatus(OrderStatus.Preparing, utcNow.AddMinutes(2));
         order.ChangeStatus(OrderStatus.Shipped, utcNow.AddMinutes(3));

@@ -9,7 +9,7 @@ public sealed class ProductPopularityScoreTests
     [Fact]
     public void Product_Activities_Should_Increase_Popularity_Score_With_Defined_Weights()
     {
-        var product = new Product("Product", "product");
+        var product = new Product("Product", "product", "PRODUCT-MAIN");
 
         product.IncreaseClickCount();
         product.IncreaseFavoriteCount();
@@ -27,7 +27,7 @@ public sealed class ProductPopularityScoreTests
     [Fact]
     public void Removing_Favorite_Should_Decrease_Popularity_Score()
     {
-        var product = new Product("Product", "product");
+        var product = new Product("Product", "product", "PRODUCT-MAIN");
         product.IncreaseFavoriteCount();
 
         product.DecreaseFavoriteCount();

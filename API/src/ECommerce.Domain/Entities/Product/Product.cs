@@ -5,18 +5,22 @@ namespace ECommerce.Domain.Entities;
 
 public sealed class Product : AuditableEntity<long>
 {
+    public const int MaximumMainSkuLength = 100;
     public const int ClickScoreWeight = 1;
     public const int FavoriteScoreWeight = 4;
     public const int AddToCartScoreWeight = 8;
     public const int PurchaseScoreWeight = 20;
 
     public string Title { get; private set; } = null!;
+    public string MainSku { get; private set; } = null!;
     public string? Description { get; private set; }
     public string Url { get; private set; } = null!;
     public Guid? TypeId { get; private set; }
     public ProductType? Type { get; private set; }
     public Guid? BrandId { get; private set; }
     public Brand? Brand { get; private set; }
+    public Guid? TaxRateId { get; private set; }
+    public TaxRate? TaxRate { get; private set; }
     public ProductStatus Status { get; private set; }
     public bool IsActive { get; private set; }
     public bool IsFeatured { get; private set; }
@@ -52,6 +56,7 @@ public sealed class Product : AuditableEntity<long>
     public Product(
         string title,
         string url,
+        string mainSku,
         Guid? typeId = null,
         Guid? brandId = null,
         string? description = null,
@@ -60,12 +65,15 @@ public sealed class Product : AuditableEntity<long>
         bool isFeatured = false,
         int displayOrder = 0,
         string? seoTitle = null,
-        string? seoDescription = null)
+        string? seoDescription = null,
+        Guid? taxRateId = null)
     {
         SetTitle(title);
         SetUrl(url);
+        SetMainSku(mainSku);
         SetType(typeId);
         SetBrand(brandId);
+        SetTaxRate(taxRateId);
         SetDisplayOrder(displayOrder);
 
         Description = description?.Trim();
@@ -218,6 +226,13 @@ public sealed class Product : AuditableEntity<long>
         MarkAsChanged();
     }
 
+    // Burada ürünün seçili vergi oranını değiştiriyorum.
+    public void ChangeTaxRate(Guid? taxRateId)
+    {
+        SetTaxRate(taxRateId);
+        MarkAsChanged();
+    }
+
     // Burada ürünün temel metin ve gösterim bilgilerini birlikte güncelliyorum.
     public void UpdateBasics(
         string title,
@@ -225,10 +240,16 @@ public sealed class Product : AuditableEntity<long>
         string? description,
         int displayOrder,
         string? seoTitle,
-        string? seoDescription)
+        string? seoDescription,
+        string? mainSku = null)
     {
         SetTitle(title);
         SetUrl(url);
+        if (mainSku is not null)
+        {
+            SetMainSku(mainSku);
+        }
+
         SetDisplayOrder(displayOrder);
         Description = description?.Trim();
         SeoTitle = seoTitle?.Trim();
@@ -262,6 +283,23 @@ public sealed class Product : AuditableEntity<long>
         Title = title.Trim();
     }
 
+    // Burada ana SKU bilgisini zorunlu, kısa ve karşılaştırılabilir büyük harfli biçimde saklıyorum.
+    private void SetMainSku(string mainSku)
+    {
+        if (string.IsNullOrWhiteSpace(mainSku))
+        {
+            throw new DomainException("Product main SKU cannot be empty.");
+        }
+
+        var normalizedMainSku = mainSku.Trim().ToUpperInvariant();
+        if (normalizedMainSku.Length > MaximumMainSkuLength)
+        {
+            throw new DomainException($"Product main SKU cannot exceed {MaximumMainSkuLength} characters.");
+        }
+
+        MainSku = normalizedMainSku;
+    }
+
     // Burada ürün URL bilgisini doğrulayıp temizlenmiş biçimde saklıyorum.
     private void SetUrl(string url)
     {
@@ -293,6 +331,17 @@ public sealed class Product : AuditableEntity<long>
         }
 
         BrandId = brandId;
+    }
+
+    // Burada isteğe bağlı vergi oranı kimliğinin boş GUID olmadığını kontrol ediyorum.
+    private void SetTaxRate(Guid? taxRateId)
+    {
+        if (taxRateId == Guid.Empty)
+        {
+            throw new DomainException("Tax rate id cannot be empty.");
+        }
+
+        TaxRateId = taxRateId;
     }
 
     // Burada manuel gösterim sırasının negatif olmadığını kontrol ediyorum.

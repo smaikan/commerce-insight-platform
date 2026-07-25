@@ -1,5 +1,6 @@
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Security;
+using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Products.Engagement.Commands.AddFavorite;
 using ECommerce.Application.Products.Engagement.Commands.RecordProductActivity;
 using ECommerce.Application.Products.Engagement.Commands.UpsertRating;
@@ -17,7 +18,7 @@ public sealed class ProductEngagementCommandHandlerTests
     public async Task AddFavorite_Should_Update_Summary_And_Daily_Metric()
     {
         const long userId = 1;
-        var product = new Product("Product", "product", Guid.NewGuid()).WithId(1);
+        var product = new Product("Product", "product", "PRODUCT-MAIN", Guid.NewGuid()).WithId(1);
         var products = new Mock<IProductRepository>();
         var engagement = new Mock<IProductEngagementRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
@@ -46,7 +47,7 @@ public sealed class ProductEngagementCommandHandlerTests
     public async Task UpsertRating_Should_Calculate_Product_Rating_Summary()
     {
         const long userId = 1;
-        var product = new Product("Product", "product", Guid.NewGuid()).WithId(1);
+        var product = new Product("Product", "product", "PRODUCT-MAIN", Guid.NewGuid()).WithId(1);
         var products = new Mock<IProductRepository>();
         var engagement = new Mock<IProductEngagementRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
@@ -69,37 +70,32 @@ public sealed class ProductEngagementCommandHandlerTests
         product.AverageRating.Should().BeApproximately(4.33m, 0.01m);
     }
 
-    // Burada müşterinin sepete ekleme hareketinin ürün, varyant ve günlük sayaçlara birlikte işlendiğini doğruluyorum.
+    // Burada sepete ekleme metriğinin yalnız güvenilir Cart akışından kaydedilebilmesini sağlıyorum.
     [Fact]
-    public async Task RecordActivity_Should_Record_Customer_AddToCart()
+    public async Task RecordActivity_Should_Reject_Direct_AddToCart()
     {
-        var product = new Product("Product", "product").WithId(1);
-        var variant = new ProductVariant(product, "Standard", "SKU-CART", 100m, 10);
-        var productMetric = new ProductDailyMetric(product.Id, new DateOnly(2026, 7, 14));
-        var variantMetric = new ProductVariantDailyMetric(variant.Id, new DateOnly(2026, 7, 14));
         var products = new Mock<IProductRepository>();
-        var variants = new Mock<IProductVariantRepository>();
         var engagement = new Mock<IProductEngagementRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        products.Setup(item => item.GetByIdForUpdateAsync(product.Id, It.IsAny<CancellationToken>())).ReturnsAsync(product);
-        variants.Setup(item => item.GetByIdForUpdateAsync(variant.Id, It.IsAny<CancellationToken>())).ReturnsAsync(variant);
-        engagement.Setup(item => item.GetProductDailyMetricForUpdateAsync(product.Id, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(productMetric);
-        engagement.Setup(item => item.GetVariantDailyMetricForUpdateAsync(variant.Id, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(variantMetric);
-        unitOfWork.Setup(item => item.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         var handler = new RecordProductActivityCommandHandler(
-            products.Object, variants.Object, engagement.Object, new FixedClock(), unitOfWork.Object);
+            products.Object,
+            engagement.Object,
+            new FixedClock(),
+            unitOfWork.Object);
 
-        await handler.Handle(
-            new RecordProductActivityCommand(product.Id, ProductActivityType.AddToCart, variant.Id, 2),
+        Func<Task> act = () => handler.Handle(
+            new RecordProductActivityCommand(1, ProductActivityType.AddToCart, Guid.NewGuid(), 2),
             CancellationToken.None);
 
-        product.TotalAddToCartCount.Should().Be(2);
-        variant.AddToCartCount.Should().Be(2);
-        productMetric.AddToCartCount.Should().Be(2);
-        variantMetric.AddToCartCount.Should().Be(2);
-        product.PopularityScore.Should().Be(16);
+        await act.Should().ThrowAsync<ConflictException>();
+        products.Verify(
+            repository => repository.GetByIdForUpdateAsync(
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        unitOfWork.Verify(
+            unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     private sealed class FixedCurrentUser : ICurrentUserService

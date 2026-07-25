@@ -2,7 +2,6 @@ using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Products.Dtos;
 using ECommerce.Domain.Entities;
-using ECommerce.Domain.Enums;
 using MediatR;
 
 namespace ECommerce.Application.Products.Variants.Commands.CreateProductVariant;
@@ -13,6 +12,7 @@ public sealed class CreateProductVariantCommandHandler : IRequestHandler<CreateP
     private readonly IProductVariantRepository _variantRepository;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada varyant oluşturma akışının ürün, varyant ve transaction bağımlılıklarını hazırlıyorum.
     public CreateProductVariantCommandHandler(
         IProductRepository productRepository,
         IProductVariantRepository variantRepository,
@@ -47,17 +47,8 @@ public sealed class CreateProductVariantCommandHandler : IRequestHandler<CreateP
             request.CompareAtPrice,
             request.Barcode,
             request.Material,
-            request.IsActive);
-
-        if (request.Stock > 0)
-        {
-            variant.InventoryTransactions.Add(new InventoryTransaction(
-                variant.Id,
-                InventoryTransactionType.StockIn,
-                request.Stock,
-                request.Stock,
-                "Initial stock"));
-        }
+            request.IsActive,
+            product.TaxRate?.CalculateNetPrice(request.Price) ?? request.Price);
 
         await _variantRepository.AddAsync(variant, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -36,7 +36,7 @@ public sealed class AppDbContextModelTests
             typeof(Coupon),
             typeof(CouponUsage),
             typeof(FavoriteProduct),
-            typeof(InventoryTransaction),
+            typeof(StockMovement),
             typeof(Order),
             typeof(OrderItem),
             typeof(Payment),

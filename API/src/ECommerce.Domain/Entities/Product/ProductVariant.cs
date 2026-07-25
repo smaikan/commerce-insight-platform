@@ -1,16 +1,22 @@
 using ECommerce.Domain.Common;
+using ECommerce.Domain.Enums;
 
 namespace ECommerce.Domain.Entities;
 
 public sealed class ProductVariant : AuditableEntity
 {
+    private readonly List<StockMovement> _stockMovements = [];
+
     public long ProductId { get; private set; }
     public Product Product { get; private set; } = null!;
     public string Name { get; private set; } = null!;
     public string Sku { get; private set; } = null!;
     public string? Barcode { get; private set; }
     public string? Material { get; private set; }
+    // Burada müşteriye gösterilen vergi dahil satış fiyatını saklıyorum.
     public decimal Price { get; private set; }
+    // Burada muhasebe ve sipariş hesapları için vergi hariç satış fiyatını saklıyorum.
+    public decimal NetPrice { get; private set; }
     public decimal? CompareAtPrice { get; private set; }
     public int Stock { get; private set; }
     public long AddToCartCount { get; private set; }
@@ -19,14 +25,14 @@ public sealed class ProductVariant : AuditableEntity
     public Guid ConcurrencyToken { get; private set; }
 
     public ICollection<ProductVariantDailyMetric> DailyMetrics { get; private set; } = new List<ProductVariantDailyMetric>();
-    public ICollection<InventoryTransaction> InventoryTransactions { get; private set; } = new List<InventoryTransaction>();
+    public IReadOnlyCollection<StockMovement> StockMovements => _stockMovements.AsReadOnly();
 
     // Burada EF Core'un varyantı veritabanından oluşturabilmesi için boş kurucuyu tutuyorum.
     private ProductVariant()
     {
     }
 
-    // Burada ürün kimliğiyle yeni bir satılabilir varyant oluşturuyorum.
+    // Burada ürün kimliğiyle yeni bir satılabilir varyant ve varsa açılış stok hareketini oluşturuyorum.
     public ProductVariant(
         long productId,
         string name,
@@ -36,7 +42,8 @@ public sealed class ProductVariant : AuditableEntity
         decimal? compareAtPrice = null,
         string? barcode = null,
         string? material = null,
-        bool isActive = true)
+        bool isActive = true,
+        decimal? netPrice = null)
     {
         if (productId <= 0)
         {
@@ -46,15 +53,15 @@ public sealed class ProductVariant : AuditableEntity
         ProductId = productId;
         SetName(name);
         SetSku(sku);
-        SetPrice(price, compareAtPrice);
-        SetStock(stock);
+        SetPrice(price, compareAtPrice, netPrice ?? price);
         Barcode = barcode?.Trim();
         Material = material?.Trim();
         IsActive = isActive;
         ConcurrencyToken = Guid.NewGuid();
+        InitializeStock(stock);
     }
 
-    // Burada ürün nesnesine bağlı yeni bir satılabilir varyant oluşturuyorum.
+    // Burada ürün nesnesine bağlı yeni bir satılabilir varyant ve varsa açılış stok hareketini oluşturuyorum.
     public ProductVariant(
         Product product,
         string name,
@@ -64,45 +71,29 @@ public sealed class ProductVariant : AuditableEntity
         decimal? compareAtPrice = null,
         string? barcode = null,
         string? material = null,
-        bool isActive = true)
-        : this(1, name, sku, price, stock, compareAtPrice, barcode, material, isActive)
+        bool isActive = true,
+        decimal? netPrice = null)
+        : this(1, name, sku, price, stock, compareAtPrice, barcode, material, isActive, netPrice)
     {
         Product = product ?? throw new DomainException("Product cannot be empty.");
         ProductId = product.Id;
     }
 
-    // Burada stok miktarını negatif olmayacak şekilde azaltıyorum.
-    public void ReduceStock(int quantity)
+    // Burada stok değişimini hareket kaydıyla birlikte tek aggregate işlemi olarak uyguluyorum.
+    public StockMovement ApplyStockMovement(
+        int quantityDelta,
+        StockMovementType type,
+        string? reason = null,
+        Guid? orderId = null,
+        Guid? returnRequestId = null)
     {
-        if (quantity <= 0)
-        {
-            throw new DomainException("Quantity must be greater than zero.");
-        }
-
-        if (Stock - quantity < 0)
-        {
-            throw new DomainException("Stock cannot be negative.");
-        }
-
-        Stock -= quantity;
-        MarkAsChanged();
-    }
-
-    // Burada stok miktarını sayı taşmasına izin vermeden artırıyorum.
-    public void IncreaseStock(int quantity)
-    {
-        if (quantity <= 0)
-        {
-            throw new DomainException("Quantity must be greater than zero.");
-        }
-
-        if (quantity > int.MaxValue - Stock)
-        {
-            throw new DomainException("Stock cannot exceed the maximum supported value.");
-        }
-
-        Stock += quantity;
-        MarkAsChanged();
+        return ApplyStockMovementCore(
+            quantityDelta,
+            type,
+            reason,
+            orderId,
+            returnRequestId,
+            markAsChanged: true);
     }
 
     // Burada sepete ekleme sayacını güvenli uzunlukta artırıyorum.
@@ -143,10 +134,17 @@ public sealed class ProductVariant : AuditableEntity
         MarkAsChanged();
     }
 
-    // Burada varyant fiyatlarını güncelliyorum.
-    public void UpdatePrice(decimal price, decimal? compareAtPrice)
+    // Burada varyantın vergi dahil ve vergi hariç fiyatlarını birlikte güncelliyorum.
+    public void UpdatePrice(decimal price, decimal? compareAtPrice, decimal? netPrice = null)
     {
-        SetPrice(price, compareAtPrice);
+        SetPrice(price, compareAtPrice, netPrice ?? price);
+        MarkAsChanged();
+    }
+
+    // Burada ürünün seçili vergi oranına göre saklanan vergi hariç fiyatı yeniden hesaplıyorum.
+    public void RecalculateNetPrice(TaxRate? taxRate)
+    {
+        NetPrice = taxRate?.CalculateNetPrice(Price) ?? Price;
         MarkAsChanged();
     }
 
@@ -164,15 +162,58 @@ public sealed class ProductVariant : AuditableEntity
         MarkAsChanged();
     }
 
-    // Burada stok değerini doğrudan ve doğrulanmış şekilde güncelliyorum.
-    public void UpdateStock(int stock)
+    // Burada ilk stok değerini açılış hareketi üzerinden oluşturuyorum.
+    private void InitializeStock(int stock)
     {
-        SetStock(stock);
-        MarkAsChanged();
+        if (stock < 0)
+        {
+            throw new DomainException("Stock cannot be negative.");
+        }
+
+        if (stock == 0)
+        {
+            return;
+        }
+
+        ApplyStockMovementCore(
+            stock,
+            StockMovementType.OpeningBalance,
+            reason: null,
+            orderId: null,
+            returnRequestId: null,
+            markAsChanged: false);
     }
 
-    // Burada fiyat ve karşılaştırma fiyatı tutarlılığını doğruluyorum.
-    private void SetPrice(decimal price, decimal? compareAtPrice)
+    // Burada hareketi aggregate'e ekleyip güncel stok bakiyesini aynı anda değiştiriyorum.
+    private StockMovement ApplyStockMovementCore(
+        int quantityDelta,
+        StockMovementType type,
+        string? reason,
+        Guid? orderId,
+        Guid? returnRequestId,
+        bool markAsChanged)
+    {
+        var movement = new StockMovement(
+            this,
+            quantityDelta,
+            type,
+            reason,
+            orderId,
+            returnRequestId);
+
+        _stockMovements.Add(movement);
+        Stock = movement.StockAfterMovement;
+
+        if (markAsChanged)
+        {
+            MarkAsChanged();
+        }
+
+        return movement;
+    }
+
+    // Burada vergi dahil, vergi hariç ve karşılaştırma fiyatlarının tutarlılığını doğruluyorum.
+    private void SetPrice(decimal price, decimal? compareAtPrice, decimal netPrice)
     {
         if (price <= 0)
         {
@@ -184,19 +225,14 @@ public sealed class ProductVariant : AuditableEntity
             throw new DomainException("Compare-at price cannot be lower than price.");
         }
 
-        Price = price;
-        CompareAtPrice = compareAtPrice;
-    }
-
-    // Burada stok değerinin negatif olmadığını doğruluyorum.
-    private void SetStock(int stock)
-    {
-        if (stock < 0)
+        if (netPrice <= 0m || netPrice > price)
         {
-            throw new DomainException("Stock cannot be negative.");
+            throw new DomainException("Net price must be greater than zero and cannot exceed tax-inclusive price.");
         }
 
-        Stock = stock;
+        Price = price;
+        NetPrice = netPrice;
+        CompareAtPrice = compareAtPrice;
     }
 
     // Burada SKU değerini doğrulayıp temizliyorum.

@@ -36,7 +36,7 @@ public sealed class ProductPopularityScorePersistenceTests
     // Burada sıralama testinde kullanılacak geçerli ürünü tek varyantıyla hazırlıyorum.
     private static Product CreateProduct(string title, string url, string sku)
     {
-        var product = new Product(title, url);
+        var product = new Product(title, url, $"{sku}-MAIN");
         product.Variants.Add(new ProductVariant(product, "Standard", sku, 100m, 1));
         return product;
     }

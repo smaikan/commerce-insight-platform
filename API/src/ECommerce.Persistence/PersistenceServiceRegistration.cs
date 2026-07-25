@@ -27,12 +27,20 @@ public static class PersistenceServiceRegistration
 
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
+        services.AddScoped<IStockMovementRepository, StockMovementRepository>();
         services.AddScoped<IProductImageRepository, ProductImageRepository>();
         services.AddScoped<IProductEngagementRepository, ProductEngagementRepository>();
         services.AddScoped<IProductTypeRepository, ProductTypeRepository>();
         services.AddScoped<IBrandRepository, BrandRepository>();
         services.AddScoped<ICollectionRepository, CollectionRepository>();
         services.AddScoped<ITagRepository, TagRepository>();
+        services.AddScoped<ICartRepository, CartRepository>();
+        services.AddScoped<IAddressRepository, AddressRepository>();
+        services.AddScoped<ICouponRepository, CouponRepository>();
+        services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IReturnRequestRepository, ReturnRequestRepository>();
+        services.AddScoped<IShippingMethodRepository, ShippingMethodRepository>();
+        services.AddScoped<ITaxRateRepository, TaxRateRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserTokenCleanupService, UserTokenCleanupService>();

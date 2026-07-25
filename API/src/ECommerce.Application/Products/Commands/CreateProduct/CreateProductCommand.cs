@@ -4,8 +4,10 @@ using MediatR;
 
 namespace ECommerce.Application.Products.Commands.CreateProduct;
 
+// Burada tek ürün oluşturma isteğinin tüm alanlarını taşıyorum.
 public sealed record CreateProductCommand(
     string Title,
+    string MainSku,
     Guid? TypeId = null,
     string? Url = null,
     Guid? BrandId = null,
@@ -17,8 +19,11 @@ public sealed record CreateProductCommand(
     string? SeoTitle = null,
     string? SeoDescription = null,
     IReadOnlyList<Guid>? CollectionIds = null,
-    IReadOnlyList<CreateProductVariantItem>? Variants = null) : IRequest<ProductDto>;
+    IReadOnlyList<CreateProductVariantItem>? Variants = null,
+    IReadOnlyList<string>? Tags = null,
+    Guid? TaxRateId = null) : IRequest<ProductDto>;
 
+// Burada ürünle birlikte oluşturulacak varyant bilgisini taşıyorum.
 public sealed record CreateProductVariantItem(
     string Name,
     string Sku,

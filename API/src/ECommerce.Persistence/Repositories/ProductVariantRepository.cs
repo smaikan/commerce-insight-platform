@@ -10,6 +10,7 @@ public sealed class ProductVariantRepository : IProductVariantRepository
 {
     private readonly AppDbContext _context;
 
+    // Burada varyant sorgu ve değişiklikleri için aynı istek kapsamındaki DbContext'i hazırlıyorum.
     public ProductVariantRepository(AppDbContext context)
     {
         _context = context;
@@ -21,6 +22,7 @@ public sealed class ProductVariantRepository : IProductVariantRepository
         await _context.ProductVariants.AddAsync(variant, cancellationToken);
     }
 
+    // Burada geçmiş taşımayan varyantı fiziksel silinmek üzere işaretliyorum.
     public void Remove(ProductVariant variant) => _context.ProductVariants.Remove(variant);
 
     // Burada ürün varyantını okuma amaçlı takip etmeden getiriyorum.
@@ -35,7 +37,21 @@ public sealed class ProductVariantRepository : IProductVariantRepository
     public Task<ProductVariant?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return _context.ProductVariants
+            .Include(variant => variant.Product)
+                .ThenInclude(product => product.TaxRate)
             .FirstOrDefaultAsync(variant => variant.Id == id, cancellationToken);
+    }
+
+    // Burada checkout işlemlerinde kilit alma sırasını tutarlı kılmak için varyantları artan kimlikle takipli getiriyorum.
+    public async Task<IReadOnlyList<ProductVariant>> GetByIdsForUpdateAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        var variantIds = ids.Where(id => id != Guid.Empty).Distinct().OrderBy(id => id).ToList();
+        return await _context.ProductVariants
+            .Where(variant => variantIds.Contains(variant.Id))
+            .OrderBy(variant => variant.Id)
+            .ToListAsync(cancellationToken);
     }
 
     // Burada bir ürüne ait varyantları SKU değerine göre sıralı getiriyorum.
@@ -59,8 +75,19 @@ public sealed class ProductVariantRepository : IProductVariantRepository
         return new PagedResult<ProductVariant>(variants, pageNumber, pageSize, totalCount);
     }
 
+    // Burada son varyant koruması için ürüne bağlı varyant sayısını okuyorum.
     public Task<int> CountByProductIdAsync(long productId, CancellationToken cancellationToken = default) =>
         _context.ProductVariants.CountAsync(variant => variant.ProductId == productId, cancellationToken);
+
+    // Burada audit geçmişini korumak için varyanta bağlı stok hareketi olup olmadığını kontrol ediyorum.
+    public Task<bool> HasStockMovementsAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        return _context.StockMovements
+            .AsNoTracking()
+            .AnyAsync(movement => movement.ProductVariantId == id, cancellationToken);
+    }
 
     // Burada SKU bilgisinin başka bir varyantta kullanılıp kullanılmadığını kontrol ediyorum.
     public Task<bool> SkuExistsAsync(string sku, Guid? excludedVariantId = null, CancellationToken cancellationToken = default)

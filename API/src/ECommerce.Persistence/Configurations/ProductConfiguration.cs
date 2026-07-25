@@ -20,6 +20,10 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasMaxLength(250)
             .IsRequired();
 
+        builder.Property(product => product.MainSku)
+            .HasMaxLength(Product.MaximumMainSkuLength)
+            .IsRequired();
+
         builder.Property(product => product.Description)
             .HasMaxLength(4000);
 
@@ -55,6 +59,11 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasOne(product => product.Brand)
             .WithMany(brand => brand.Products)
             .HasForeignKey(product => product.BrandId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(product => product.TaxRate)
+            .WithMany(taxRate => taxRate.Products)
+            .HasForeignKey(product => product.TaxRateId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasMany(product => product.Variants)
@@ -105,8 +114,12 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasIndex(product => product.Url)
             .IsUnique();
 
+        builder.HasIndex(product => product.MainSku)
+            .IsUnique();
+
         builder.HasIndex(product => product.TypeId);
         builder.HasIndex(product => product.BrandId);
+        builder.HasIndex(product => product.TaxRateId);
         builder.HasIndex(product => product.Status);
         builder.HasIndex(product => product.DisplayOrder);
         builder.HasIndex(product => product.PopularityScore);

@@ -1,18 +1,24 @@
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using ECommerce.Application.Common.Identifiers;
+using ECommerce.Application.Tags.Dtos;
 
 namespace ECommerce.Application.Products.Dtos;
 
+// Burada ürünün istemciye dönecek ana katalog sözleşmesini tanımlıyorum.
 public sealed record ProductDto(
     string Id,
     string Title,
+    string MainSku,
     string? Description,
     string Url,
     Guid? TypeId,
     string? TypeName,
     Guid? BrandId,
     string? BrandName,
+    Guid? TaxRateId,
+    string? TaxRateName,
+    decimal? TaxRatePercentage,
     ProductStatus Status,
     bool IsActive,
     bool IsFeatured,
@@ -27,7 +33,8 @@ public sealed record ProductDto(
     decimal AverageRating,
     long RatingCount,
     long ReviewCount,
-    IReadOnlyList<ProductVariantDto> Variants);
+    IReadOnlyList<ProductVariantDto> Variants,
+    IReadOnlyList<TagDto> Tags);
 
 public static class ProductDtoMapping
 {
@@ -37,12 +44,16 @@ public static class ProductDtoMapping
         return new ProductDto(
             PublicIdCodec.EncodeProductId(product.Id),
             product.Title,
+            product.MainSku,
             product.Description,
             product.Url,
             product.TypeId,
             product.Type?.Name,
             product.BrandId,
             product.Brand?.Name,
+            product.TaxRateId,
+            product.TaxRate?.Name,
+            product.TaxRate?.Rate,
             product.Status,
             product.IsActive,
             product.IsFeatured,
@@ -61,6 +72,13 @@ public static class ProductDtoMapping
                 .OrderBy(variant => variant.Name)
                 .ThenBy(variant => variant.Sku)
                 .Select(variant => variant.ToDto())
+                .ToList(),
+            product.ProductTags
+                .Where(productTag => productTag.Tag is not null)
+                .Select(productTag => productTag.Tag)
+                .DistinctBy(tag => tag.Id)
+                .OrderBy(tag => tag.Name)
+                .Select(tag => tag.ToDto())
                 .ToList());
     }
 }
