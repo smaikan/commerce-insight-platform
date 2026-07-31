@@ -27,6 +27,7 @@ public static class PersistenceServiceRegistration
             options.UseSqlServer(connectionString));
 
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IProductListReader, ProductListReader>();
         services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
         services.AddScoped<IStockMovementRepository, StockMovementRepository>();
         services.AddScoped<IProductImageRepository, ProductImageRepository>();

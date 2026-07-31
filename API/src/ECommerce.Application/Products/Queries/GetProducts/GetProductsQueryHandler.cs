@@ -7,17 +7,18 @@ namespace ECommerce.Application.Products.Queries.GetProducts;
 
 public sealed class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, PagedResult<ProductDto>>
 {
-    private readonly IProductRepository _productRepository;
+    private readonly IProductListReader _productListReader;
 
-    public GetProductsQueryHandler(IProductRepository productRepository)
+    // Burada liste sorgusunu entity grafiği oluşturmadan çalıştıracak okuyucuyu hazırlıyorum.
+    public GetProductsQueryHandler(IProductListReader productListReader)
     {
-        _productRepository = productRepository;
+        _productListReader = productListReader;
     }
 
     // Burada ürün listesini okuyup dışarıya DTO olarak hazırlıyorum.
     public async Task<PagedResult<ProductDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
     {
-        var products = await _productRepository.GetListAsync(
+        return await _productListReader.GetListAsync(
             new ProductListFilter(
                 request.PageNumber,
                 request.PageSize,
@@ -30,6 +31,5 @@ public sealed class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, 
                 request.SortBy,
                 request.Descending),
             cancellationToken);
-        return products.Map(product => product.ToDto());
     }
 }

@@ -215,6 +215,51 @@ public sealed class RelationalBehaviorTests
     }
 
     // Burada ilişkisel testler için açık SQLite bağlantısı oluşturuyorum.
+    // Burada katalog read-model sorgusunun mevcut API DTO sözleşmesini ve filtre davranışını koruduğunu doğruluyorum.
+    [Fact]
+    public async Task ProductListReader_Should_Return_Filtered_ProductDto_With_Variants()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        var options = CreateOptions(connection);
+        await using var context = new AppDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+
+        var type = new ProductType("Shoes");
+        var matchingProduct = new Product(
+            "Blue Runner",
+            "blue-runner",
+            "BLUE-RUNNER-DTO",
+            type.Id,
+            status: ProductStatus.Active);
+        matchingProduct.Variants.Add(new ProductVariant(
+            matchingProduct,
+            "Blue / Standard",
+            "BLUE-DTO-STD",
+            100m,
+            5));
+        var excludedProduct = new Product(
+            "Red Runner",
+            "red-runner",
+            "RED-RUNNER-DTO",
+            type.Id,
+            status: ProductStatus.Draft);
+        context.AddRange(type, matchingProduct, excludedProduct);
+        await context.SaveChangesAsync();
+
+        var result = await new ProductListReader(context).GetListAsync(
+            new ProductListFilter(1, 20, Search: "Blue", Status: ProductStatus.Active));
+
+        result.TotalCount.Should().Be(1);
+        result.Items.Should().ContainSingle();
+        result.Items[0].Title.Should().Be("Blue Runner");
+        result.Items[0].Id.Should().Be("P00001");
+        result.Items[0].TypeName.Should().Be("Shoes");
+        result.Items[0].Variants.Should().ContainSingle(variant =>
+            variant.ProductId == "P00001" &&
+            variant.Name == "Blue / Standard" &&
+            variant.Sku == "BLUE-DTO-STD");
+    }
+
     private static async Task<SqliteConnection> CreateOpenConnectionAsync()
     {
         var connection = new SqliteConnection("Data Source=:memory:");
