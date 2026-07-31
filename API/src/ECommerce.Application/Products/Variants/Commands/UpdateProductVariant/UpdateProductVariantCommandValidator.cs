@@ -14,6 +14,10 @@ public sealed class UpdateProductVariantCommandValidator : AbstractValidator<Upd
             .NotEmpty()
             .MaximumLength(150);
 
+        RuleFor(command => command.Value)
+            .NotEmpty()
+            .MaximumLength(150);
+
         RuleFor(command => command.Sku)
             .NotEmpty()
             .MaximumLength(100);

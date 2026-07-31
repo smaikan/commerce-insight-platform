@@ -65,6 +65,9 @@ public sealed class ProductListReader : IProductListReader
                         variant.Id,
                         variant.ProductId,
                         variant.Name,
+                        variant.Value,
+                        variant.VariantOptionNameId,
+                        variant.VariantOptionValueId,
                         variant.Sku,
                         variant.Barcode,
                         variant.Material,
@@ -169,7 +172,8 @@ public sealed class ProductListReader : IProductListReader
             product.TotalAddToCartCount, product.TotalPurchaseCount, product.FavoriteCount,
             product.PopularityScore, product.AverageRating, product.RatingCount, product.ReviewCount,
             product.Variants.Select(variant => new ProductVariantDto(
-                variant.Id, PublicIdCodec.EncodeProductId(variant.ProductId), variant.Name, variant.Sku,
+                variant.Id, PublicIdCodec.EncodeProductId(variant.ProductId), variant.Name, variant.Value,
+                variant.VariantOptionNameId, variant.VariantOptionValueId, variant.Sku,
                 variant.Barcode, variant.Material, variant.Price, variant.NetPrice, variant.CompareAtPrice,
                 variant.Stock, variant.AddToCartCount, variant.PurchaseCount, variant.IsActive)).ToList(),
             product.Tags.Select(tag => new TagDto(tag.Id, tag.Name, tag.Url, tag.IsActive)).ToList());
@@ -183,7 +187,8 @@ public sealed class ProductListReader : IProductListReader
         long PopularityScore, decimal AverageRating, long RatingCount, long ReviewCount,
         IReadOnlyList<ProductVariantProjection> Variants, IReadOnlyList<TagProjection> Tags);
 
-    private sealed record ProductVariantProjection(Guid Id, long ProductId, string Name, string Sku,
+    private sealed record ProductVariantProjection(Guid Id, long ProductId, string Name, string Value,
+        Guid? VariantOptionNameId, Guid? VariantOptionValueId, string Sku,
         string? Barcode, string? Material, decimal Price, decimal NetPrice, decimal? CompareAtPrice,
         int Stock, long AddToCartCount, long PurchaseCount, bool IsActive);
 

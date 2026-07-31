@@ -36,6 +36,9 @@ public sealed class AppDbContext : DbContext
     public DbSet<ProductType> ProductTypes => Set<ProductType>();
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
     public DbSet<ProductVariantDailyMetric> ProductVariantDailyMetrics => Set<ProductVariantDailyMetric>();
+    public DbSet<ProductVariantOptionValue> ProductVariantOptionValues => Set<ProductVariantOptionValue>();
+    public DbSet<VariantOptionName> VariantOptionNames => Set<VariantOptionName>();
+    public DbSet<VariantOptionValue> VariantOptionValues => Set<VariantOptionValue>();
     public DbSet<ReturnItem> ReturnItems => Set<ReturnItem>();
     public DbSet<ReturnRequest> ReturnRequests => Set<ReturnRequest>();
     public DbSet<ShippingMethod> ShippingMethods => Set<ShippingMethod>();

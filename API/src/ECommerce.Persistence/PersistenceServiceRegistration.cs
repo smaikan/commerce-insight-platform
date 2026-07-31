@@ -29,6 +29,7 @@ public static class PersistenceServiceRegistration
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IProductListReader, ProductListReader>();
         services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
+        services.AddScoped<IVariantOptionResolver, VariantOptionResolver>();
         services.AddScoped<IStockMovementRepository, StockMovementRepository>();
         services.AddScoped<IProductImageRepository, ProductImageRepository>();
         services.AddScoped<IProductEngagementRepository, ProductEngagementRepository>();

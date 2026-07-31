@@ -6,10 +6,16 @@ namespace ECommerce.Domain.Entities;
 public sealed class ProductVariant : AuditableEntity
 {
     private readonly List<StockMovement> _stockMovements = [];
+    private readonly List<ProductVariantOptionValue> _optionValues = [];
 
     public long ProductId { get; private set; }
     public Product Product { get; private set; } = null!;
     public string Name { get; private set; } = null!;
+    public string Value { get; private set; } = null!;
+    public Guid? VariantOptionNameId { get; private set; }
+    public VariantOptionName? VariantOptionName { get; private set; }
+    public Guid? VariantOptionValueId { get; private set; }
+    public VariantOptionValue? VariantOptionValue { get; private set; }
     public string Sku { get; private set; } = null!;
     public string? Barcode { get; private set; }
     public string? Material { get; private set; }
@@ -26,6 +32,7 @@ public sealed class ProductVariant : AuditableEntity
 
     public ICollection<ProductVariantDailyMetric> DailyMetrics { get; private set; } = new List<ProductVariantDailyMetric>();
     public IReadOnlyCollection<StockMovement> StockMovements => _stockMovements.AsReadOnly();
+    public IReadOnlyCollection<ProductVariantOptionValue> OptionValues => _optionValues.AsReadOnly();
 
     // Burada EF Core'un varyantı veritabanından oluşturabilmesi için boş kurucuyu tutuyorum.
     private ProductVariant()
@@ -43,7 +50,8 @@ public sealed class ProductVariant : AuditableEntity
         string? barcode = null,
         string? material = null,
         bool isActive = true,
-        decimal? netPrice = null)
+        decimal? netPrice = null,
+        string? value = null)
     {
         if (productId <= 0)
         {
@@ -52,6 +60,7 @@ public sealed class ProductVariant : AuditableEntity
 
         ProductId = productId;
         SetName(name);
+        SetValue(value ?? name);
         SetSku(sku);
         SetPrice(price, compareAtPrice, netPrice ?? price);
         Barcode = barcode?.Trim();
@@ -72,8 +81,9 @@ public sealed class ProductVariant : AuditableEntity
         string? barcode = null,
         string? material = null,
         bool isActive = true,
-        decimal? netPrice = null)
-        : this(1, name, sku, price, stock, compareAtPrice, barcode, material, isActive, netPrice)
+        decimal? netPrice = null,
+        string? value = null)
+        : this(1, name, sku, price, stock, compareAtPrice, barcode, material, isActive, netPrice, value)
     {
         Product = product ?? throw new DomainException("Product cannot be empty.");
         ProductId = product.Id;
@@ -151,15 +161,56 @@ public sealed class ProductVariant : AuditableEntity
     // Burada varyantın tanımlayıcı bilgilerini güncelliyorum.
     public void UpdateDetails(
         string name,
+        string value,
         string sku,
         string? barcode,
         string? material)
     {
         SetName(name);
+        SetValue(value);
         SetSku(sku);
         Barcode = barcode?.Trim();
         Material = material?.Trim();
         MarkAsChanged();
+    }
+
+    // Burada eski çağrıların mevcut değeri koruyarak varyant detayını güncellemesini sağlıyorum.
+    public void UpdateDetails(
+        string name,
+        string sku,
+        string? barcode,
+        string? material)
+    {
+        UpdateDetails(name, Value, sku, barcode, material);
+    }
+
+    // Burada varyantın merkezi ad ve değer kayıtlarıyla metin alanlarının tutarlılığını kuruyorum.
+    public void AssignVariantOption(
+        VariantOptionName variantOptionName,
+        VariantOptionValue variantOptionValue)
+    {
+        if (variantOptionName is null || variantOptionValue is null ||
+            variantOptionValue.VariantOptionNameId != variantOptionName.Id ||
+            variantOptionValue.VariantOptionNameId != variantOptionName.Id)
+        {
+            throw new DomainException("Variant option name and value must match the product variant.");
+        }
+
+        VariantOptionName = variantOptionName;
+        VariantOptionNameId = variantOptionName.Id;
+        VariantOptionValue = variantOptionValue;
+        VariantOptionValueId = variantOptionValue.Id;
+        MarkAsChanged();
+    }
+
+    // Burada ayrıştırılmış en fazla üç ad-değer seçimini varyanta bağlıyorum.
+    public void ReplaceOptionValues(IReadOnlyList<VariantOptionSelection> options)
+    {
+        if (options.Count is < 1 or > 3 || options.Select(item => item.Name.Id).Distinct().Count() != options.Count)
+            throw new DomainException("A variant must contain between one and three unique option names.");
+        _optionValues.Clear();
+        for (var index = 0; index < options.Count; index++) _optionValues.Add(new ProductVariantOptionValue(this, options[index].Name, options[index].Value, index));
+        AssignVariantOption(options[0].Name, options[0].Value);
     }
 
     // Burada ilk stok değerini açılış hareketi üzerinden oluşturuyorum.
@@ -255,6 +306,17 @@ public sealed class ProductVariant : AuditableEntity
         }
 
         Name = name.Trim();
+    }
+
+    // Burada varyant değerini doğrulayıp temizliyorum.
+    private void SetValue(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new DomainException("Variant value cannot be empty.");
+        }
+
+        Value = value.Trim();
     }
 
     // Burada varyant değişikliğini concurrency ve audit alanlarına yansıtıyorum.

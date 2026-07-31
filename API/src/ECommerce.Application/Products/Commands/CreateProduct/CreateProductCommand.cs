@@ -26,6 +26,7 @@ public sealed record CreateProductCommand(
 // Burada ürünle birlikte oluşturulacak varyant bilgisini taşıyorum.
 public sealed record CreateProductVariantItem(
     string Name,
+    string Value,
     string Sku,
     decimal Price,
     int Stock,
@@ -34,4 +35,21 @@ public sealed record CreateProductVariantItem(
     string? Material = null,
     bool IsActive = true,
     decimal? OpeningUnitCostExcludingVat = null,
-    decimal? OpeningUnitCostIncludingVat = null);
+    decimal? OpeningUnitCostIncludingVat = null)
+{
+    // Burada eski tek metinli varyant çağrılarını aynı adı değer olarak kullanarak uyumlu tutuyorum.
+    public CreateProductVariantItem(
+        string Name,
+        string Sku,
+        decimal Price,
+        int Stock,
+        decimal? CompareAtPrice = null,
+        string? Barcode = null,
+        string? Material = null,
+        bool IsActive = true,
+        decimal? OpeningUnitCostExcludingVat = null,
+        decimal? OpeningUnitCostIncludingVat = null)
+        : this(Name, Name, Sku, Price, Stock, CompareAtPrice, Barcode, Material, IsActive, OpeningUnitCostExcludingVat, OpeningUnitCostIncludingVat)
+    {
+    }
+}
