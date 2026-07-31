@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Reflection;
 using System.Text.Encodings.Web;
+using System.Globalization;
 using ECommerce.Application.Common.Interfaces;
 using Microsoft.Extensions.Configuration;
 
@@ -13,6 +14,18 @@ public sealed class SmtpEmailSender : IEmailSender
         "ECommerce.Infrastructure.Email.Templates.PasswordResetEmailTemplate.html";
     private const string WelcomeTemplateResource =
         "ECommerce.Infrastructure.Email.Templates.WelcomeEmailTemplate.html";
+    private const string OrderCreatedTemplateResource =
+        "ECommerce.Infrastructure.Email.Templates.OrderCreatedEmailTemplate.html";
+    private const string PaymentPaidTemplateResource =
+        "ECommerce.Infrastructure.Email.Templates.PaymentPaidEmailTemplate.html";
+    private const string PaymentFailedTemplateResource =
+        "ECommerce.Infrastructure.Email.Templates.PaymentFailedEmailTemplate.html";
+    private const string OrderStatusChangedTemplateResource =
+        "ECommerce.Infrastructure.Email.Templates.OrderStatusChangedEmailTemplate.html";
+    private const string ReturnRequestedTemplateResource =
+        "ECommerce.Infrastructure.Email.Templates.ReturnRequestedEmailTemplate.html";
+    private const string ReturnStatusChangedTemplateResource =
+        "ECommerce.Infrastructure.Email.Templates.ReturnStatusChangedEmailTemplate.html";
 
     private readonly IConfiguration _configuration;
 
@@ -51,6 +64,104 @@ public sealed class SmtpEmailSender : IEmailSender
             .Replace("{{WelcomeUrl}}", HtmlEncoder.Default.Encode(welcomeUrl), StringComparison.Ordinal);
 
         await SendAsync(email, "Aramıza hoş geldiniz", body, cancellationToken);
+    }
+
+    // Burada sipariş oluşturma template'ini güvenilir sipariş snapshot'ıyla doldurup gönderiyorum.
+    public async Task SendOrderCreatedAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        decimal grandTotal,
+        CancellationToken cancellationToken = default)
+    {
+        var body = LoadTemplate(OrderCreatedTemplateResource)
+            .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
+            .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
+            .Replace("{{Amount}}", HtmlEncoder.Default.Encode(FormatAmount(grandTotal)), StringComparison.Ordinal);
+
+        await SendAsync(email, "Siparişiniz alındı", body, cancellationToken);
+    }
+
+    // Burada başarılı ödeme template'ini güvenilir ödeme snapshot'ıyla doldurup gönderiyorum.
+    public async Task SendPaymentPaidAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        decimal amount,
+        CancellationToken cancellationToken = default)
+    {
+        var body = LoadTemplate(PaymentPaidTemplateResource)
+            .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
+            .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
+            .Replace("{{Amount}}", HtmlEncoder.Default.Encode(FormatAmount(amount)), StringComparison.Ordinal);
+
+        await SendAsync(email, "Ödemeniz alındı", body, cancellationToken);
+    }
+
+    // Burada başarısız ödeme template'ini güvenilir ödeme snapshot'ıyla doldurup gönderiyorum.
+    public async Task SendPaymentFailedAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        decimal amount,
+        CancellationToken cancellationToken = default)
+    {
+        var body = LoadTemplate(PaymentFailedTemplateResource)
+            .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
+            .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
+            .Replace("{{Amount}}", HtmlEncoder.Default.Encode(FormatAmount(amount)), StringComparison.Ordinal);
+
+        await SendAsync(email, "Ödeme işlemi tamamlanamadı", body, cancellationToken);
+    }
+
+    // Burada sipariş durum değişikliği template'ini güvenilir durum snapshot'ıyla doldurup gönderiyorum.
+    public async Task SendOrderStatusChangedAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        string status,
+        CancellationToken cancellationToken = default)
+    {
+        var body = LoadTemplate(OrderStatusChangedTemplateResource)
+            .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
+            .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
+            .Replace("{{Status}}", HtmlEncoder.Default.Encode(status), StringComparison.Ordinal);
+
+        await SendAsync(email, "Siparişinizin durumu güncellendi", body, cancellationToken);
+    }
+
+    // Burada iade talebi template'ini güvenilir iade snapshot'ıyla doldurup gönderiyorum.
+    public async Task SendReturnRequestedAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        string returnNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var body = LoadTemplate(ReturnRequestedTemplateResource)
+            .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
+            .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
+            .Replace("{{ReturnNumber}}", HtmlEncoder.Default.Encode(returnNumber), StringComparison.Ordinal);
+
+        await SendAsync(email, "İade talebiniz alındı", body, cancellationToken);
+    }
+
+    // Burada iade durum değişikliği template'ini güvenilir iade snapshot'ıyla doldurup gönderiyorum.
+    public async Task SendReturnStatusChangedAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        string returnNumber,
+        string status,
+        CancellationToken cancellationToken = default)
+    {
+        var body = LoadTemplate(ReturnStatusChangedTemplateResource)
+            .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
+            .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
+            .Replace("{{ReturnNumber}}", HtmlEncoder.Default.Encode(returnNumber), StringComparison.Ordinal)
+            .Replace("{{Status}}", HtmlEncoder.Default.Encode(status), StringComparison.Ordinal);
+
+        await SendAsync(email, "İade talebinizin durumu güncellendi", body, cancellationToken);
     }
 
     // Burada hazırlanmış e-posta içeriğini kısa SMTP retry politikasıyla iletiyorum.
@@ -104,6 +215,12 @@ public sealed class SmtpEmailSender : IEmailSender
                 await Task.Delay(TimeSpan.FromMilliseconds(250 * attempt), cancellationToken);
             }
         }
+    }
+
+    // Burada para tutarını müşteriye gösterilecek Türkçe sayı biçimine dönüştürüyorum.
+    private static string FormatAmount(decimal amount)
+    {
+        return amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"));
     }
 
     // Burada assembly içine gömülen güvenilir HTML template'ini okuyorum.

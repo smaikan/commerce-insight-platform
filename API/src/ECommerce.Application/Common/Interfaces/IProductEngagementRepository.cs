@@ -20,8 +20,18 @@ public interface IProductEngagementRepository
     Task<PagedResult<ProductReview>> GetReviewsAsync(long productId, bool approvedOnly, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
 
     Task<ProductDailyMetric?> GetProductDailyMetricForUpdateAsync(long productId, DateOnly date, CancellationToken cancellationToken = default);
+    // Burada aynı gün için birden çok ürün metriğini tek sorguda takipli getirme sözleşmesini tanımlıyorum.
+    Task<IReadOnlyList<ProductDailyMetric>> GetProductDailyMetricsForUpdateAsync(
+        IEnumerable<long> productIds,
+        DateOnly date,
+        CancellationToken cancellationToken = default);
     Task AddProductDailyMetricAsync(ProductDailyMetric metric, CancellationToken cancellationToken = default);
     Task<ProductVariantDailyMetric?> GetVariantDailyMetricForUpdateAsync(Guid variantId, DateOnly date, CancellationToken cancellationToken = default);
+    // Burada aynı gün için birden çok varyant metriğini tek sorguda takipli getirme sözleşmesini tanımlıyorum.
+    Task<IReadOnlyList<ProductVariantDailyMetric>> GetVariantDailyMetricsForUpdateAsync(
+        IEnumerable<Guid> variantIds,
+        DateOnly date,
+        CancellationToken cancellationToken = default);
     Task AddVariantDailyMetricAsync(ProductVariantDailyMetric metric, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ProductDailyMetric>> GetProductMetricsAsync(long productId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
 }

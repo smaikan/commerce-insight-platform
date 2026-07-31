@@ -4,6 +4,7 @@ namespace ECommerce.Application.Auth.Commands.RefreshToken;
 
 public sealed class RefreshTokenCommandValidator : AbstractValidator<RefreshTokenCommand>
 {
+    // Burada refresh tokenı zorunlu tutarken yeni oturumun cihaz adını isteğe bağlı bırakıyorum.
     public RefreshTokenCommandValidator()
     {
         RuleFor(command => command.RefreshToken)
@@ -13,6 +14,7 @@ public sealed class RefreshTokenCommandValidator : AbstractValidator<RefreshToke
             .MaximumLength(80);
 
         RuleFor(command => command.DeviceName)
-            .MaximumLength(200);
+            .MaximumLength(200)
+            .When(command => command.DeviceName is not null);
     }
 }

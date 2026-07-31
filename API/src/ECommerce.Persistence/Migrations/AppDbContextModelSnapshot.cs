@@ -88,7 +88,14 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Addresses", (string)null);
+                    b.HasIndex("UserId", "Type", "IsDefault")
+                        .IsUnique()
+                        .HasFilter("[IsDefault] = 1");
+
+                    b.ToTable("Addresses", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Addresses_UserId_Positive", "[UserId] > 0");
+                        });
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Brand", b =>
@@ -136,6 +143,10 @@ namespace ECommerce.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -151,11 +162,18 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SessionId");
+                    b.HasIndex("SessionId")
+                        .IsUnique()
+                        .HasFilter("[SessionId] IS NOT NULL");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("[UserId] IS NOT NULL");
 
-                    b.ToTable("Carts", (string)null);
+                    b.ToTable("Carts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Carts_ExactlyOneOwner", "([UserId] IS NOT NULL AND [SessionId] IS NULL)\nOR\n([UserId] IS NULL AND [SessionId] IS NOT NULL AND [SessionId] <> '')");
+                        });
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.CartItem", b =>
@@ -187,12 +205,17 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("ProductVariantId");
-
                     b.HasIndex("CartId", "ProductVariantId")
                         .IsUnique();
 
-                    b.ToTable("CartItems", (string)null);
+                    b.HasIndex("ProductVariantId", "ProductId");
+
+                    b.ToTable("CartItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CartItems_Quantity_Positive", "[Quantity] > 0");
+
+                            t.HasCheckConstraint("CK_CartItems_UnitPrice_Positive", "CAST([UnitPrice] AS DECIMAL(18,2)) > 0");
+                        });
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Collection", b =>
@@ -294,7 +317,16 @@ namespace ECommerce.Persistence.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("Coupons", (string)null);
+                    b.HasIndex("IsActive", "StartsAt", "ExpiresAt");
+
+                    b.ToTable("Coupons", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Coupons_DiscountValue_Positive", "[DiscountValue] > 0");
+
+                            t.HasCheckConstraint("CK_Coupons_UsageLimit_Positive", "[UsageLimit] IS NULL OR [UsageLimit] > 0");
+
+                            t.HasCheckConstraint("CK_Coupons_UsedCount_NonNegative", "[UsedCount] >= 0");
+                        });
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.CouponUsage", b =>
@@ -321,6 +353,10 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("CouponId", "OrderId")
+                        .IsUnique()
+                        .HasFilter("[OrderId] IS NOT NULL");
+
                     b.HasIndex("CouponId", "UserId", "OrderId");
 
                     b.ToTable("CouponUsages", (string)null);
@@ -332,11 +368,30 @@ namespace ECommerce.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal?>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("AttemptCount")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("ClaimToken")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeadLetteredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeduplicationKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -350,11 +405,22 @@ namespace ECommerce.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<DateTime?>("LeaseExpiresAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("NextAttemptAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("OrderNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<DateTime?>("ProcessedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ProcessingWorker")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("ProtectedToken")
                         .HasMaxLength(2000)
@@ -364,12 +430,23 @@ namespace ECommerce.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("ReturnNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedAt", "NextAttemptAt");
+                    b.HasIndex("DeduplicationKey")
+                        .IsUnique();
+
+                    b.HasIndex("ProcessedAt", "DeadLetteredAt", "NextAttemptAt", "LeaseExpiresAt");
 
                     b.ToTable("EmailOutbox", (string)null);
                 });
@@ -399,45 +476,6 @@ namespace ECommerce.Persistence.Migrations
                     b.ToTable("FavoriteProducts", (string)null);
                 });
 
-            modelBuilder.Entity("ECommerce.Domain.Entities.InventoryTransaction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("OrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProductVariantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int>("StockAfterTransaction")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderId");
-
-                    b.HasIndex("ProductVariantId");
-
-                    b.ToTable("InventoryTransactions", (string)null);
-                });
-
             modelBuilder.Entity("ECommerce.Domain.Entities.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -449,6 +487,10 @@ namespace ECommerce.Persistence.Migrations
 
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CouponCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -468,6 +510,16 @@ namespace ECommerce.Persistence.Migrations
 
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ReservationExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ShippingMethodId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ShippingMethodName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<decimal>("ShippingTotal")
                         .HasPrecision(18, 2)
@@ -499,13 +551,90 @@ namespace ECommerce.Persistence.Migrations
                     b.HasIndex("OrderNumber")
                         .IsUnique();
 
+                    b.HasIndex("ShippingMethodId");
+
                     b.HasIndex("Status");
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("Status", "ReservationExpiresAt");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
                     b.HasIndex("UserId", "Status");
 
-                    b.ToTable("Orders", (string)null);
+                    b.ToTable("Orders", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Orders_Discount_Within_SubTotal", "[DiscountTotal] <= [SubTotal]");
+
+                            t.HasCheckConstraint("CK_Orders_Totals_NonNegative", "[SubTotal] >= 0 AND [DiscountTotal] >= 0 AND [ShippingTotal] >= 0 AND [TaxTotal] >= 0 AND [GrandTotal] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.OrderAddressSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("District")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("FullAddress")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("SourceAddressId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
+
+                    b.HasIndex("SourceAddressId");
+
+                    b.ToTable("OrderAddressSnapshots", (string)null);
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.OrderItem", b =>
@@ -513,6 +642,10 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DiscountTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier");
@@ -530,6 +663,14 @@ namespace ECommerce.Persistence.Migrations
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("TaxRatePercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("TaxTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalPrice")
                         .HasPrecision(18, 2)
@@ -550,11 +691,25 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("ProductVariantId");
-
                     b.HasIndex("OrderId", "ProductId");
 
-                    b.ToTable("OrderItems", (string)null);
+                    b.HasIndex("OrderId", "ProductVariantId")
+                        .IsUnique();
+
+                    b.HasIndex("ProductVariantId", "ProductId");
+
+                    b.ToTable("OrderItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderItems_Discount_Within_Total", "[DiscountTotal] >= 0 AND [DiscountTotal] <= [TotalPrice]");
+
+                            t.HasCheckConstraint("CK_OrderItems_Quantity_Positive", "[Quantity] > 0");
+
+                            t.HasCheckConstraint("CK_OrderItems_Tax_NonNegative", "[TaxTotal] >= 0 AND ([TaxRatePercentage] IS NULL OR ([TaxRatePercentage] >= 0 AND [TaxRatePercentage] <= 100))");
+
+                            t.HasCheckConstraint("CK_OrderItems_TotalPrice_Positive", "[TotalPrice] > 0");
+
+                            t.HasCheckConstraint("CK_OrderItems_UnitPrice_Positive", "[UnitPrice] > 0");
+                        });
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Payment", b =>
@@ -573,6 +728,10 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<string>("FailureReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier");
@@ -598,9 +757,18 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.HasIndex("TransactionId");
+                    b.HasIndex("OrderId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("[IdempotencyKey] IS NOT NULL");
 
-                    b.ToTable("Payments", (string)null);
+                    b.HasIndex("Provider", "TransactionId")
+                        .IsUnique()
+                        .HasFilter("[TransactionId] IS NOT NULL");
+
+                    b.ToTable("Payments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Payments_Amount_Positive", "[Amount] > 0");
+                        });
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Product", b =>
@@ -644,6 +812,11 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<bool>("IsFeatured")
                         .HasColumnType("bit");
 
+                    b.Property<string>("MainSku")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<long>("PopularityScore")
                         .HasColumnType("bigint");
 
@@ -665,6 +838,9 @@ namespace ECommerce.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid?>("TaxRateId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -694,9 +870,14 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasIndex("DisplayOrder");
 
+                    b.HasIndex("MainSku")
+                        .IsUnique();
+
                     b.HasIndex("PopularityScore");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("TaxRateId");
 
                     b.HasIndex("TypeId");
 
@@ -1004,6 +1185,10 @@ namespace ECommerce.Persistence.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<decimal>("NetPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -1063,6 +1248,281 @@ namespace ECommerce.Persistence.Migrations
                     b.ToTable("ProductVariantDailyMetrics", (string)null);
                 });
 
+            modelBuilder.Entity("ECommerce.Domain.Entities.ReturnItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("OrderItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("ProductId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ProductTitleSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("RefundTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("ReplacementProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ReturnRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("VariantSkuSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderItemId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ReplacementProductVariantId");
+
+                    b.HasIndex("ReturnRequestId");
+
+                    b.HasIndex("ProductVariantId", "ProductId");
+
+                    b.HasIndex("ReplacementProductVariantId", "ProductId");
+
+                    b.HasIndex("ReturnRequestId", "OrderItemId")
+                        .IsUnique();
+
+                    b.ToTable("ReturnItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ReturnItems_LineTotal_Positive", "[LineTotal] > 0");
+
+                            t.HasCheckConstraint("CK_ReturnItems_Quantity_Positive", "[Quantity] > 0");
+
+                            t.HasCheckConstraint("CK_ReturnItems_RefundTotal_NonNegative", "[RefundTotal] >= 0");
+
+                            t.HasCheckConstraint("CK_ReturnItems_UnitPrice_Positive", "[UnitPrice] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ReturnRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CustomerNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ReceivedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("RefundTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReturnNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReturnNumber")
+                        .IsUnique();
+
+                    b.HasIndex("OrderId", "Status");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("ReturnRequests", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ReturnRequests_RefundTotal_NonNegative", "[RefundTotal] >= 0");
+
+                            t.HasCheckConstraint("CK_ReturnRequests_UserId_Positive", "[UserId] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ShippingMethod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("FixedFee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("IsActive", "DisplayOrder");
+
+                    b.ToTable("ShippingMethods", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ShippingMethods_DisplayOrder_NonNegative", "[DisplayOrder] >= 0");
+
+                            t.HasCheckConstraint("CK_ShippingMethods_FixedFee_NonNegative", "CAST([FixedFee] AS REAL) >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.StockMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("QuantityDelta")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("ReturnRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("StockAfterMovement")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StockBeforeMovement")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("IX_StockMovements_OrderId");
+
+                    b.HasIndex("ReturnRequestId")
+                        .HasDatabaseName("IX_StockMovements_ReturnRequestId");
+
+                    b.HasIndex("CreatedAt", "Id")
+                        .HasDatabaseName("IX_StockMovements_CreatedAt_Id");
+
+                    b.HasIndex("ProductVariantId", "CreatedAt")
+                        .HasDatabaseName("IX_StockMovements_ProductVariantId_CreatedAt");
+
+                    b.HasIndex("OrderId", "ProductVariantId", "Type")
+                        .IsUnique()
+                        .HasDatabaseName("UX_StockMovements_OrderId_ProductVariantId_Type")
+                        .HasFilter("[OrderId] IS NOT NULL AND [ReturnRequestId] IS NULL AND [Type] IN (20, 60)");
+
+                    b.HasIndex("ReturnRequestId", "ProductVariantId", "Type")
+                        .IsUnique()
+                        .HasDatabaseName("UX_StockMovements_ReturnRequestId_ProductVariantId_Type")
+                        .HasFilter("[ReturnRequestId] IS NOT NULL AND [Type] IN (20, 21)");
+
+                    b.ToTable("StockMovements", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_StockMovements_Direction_Matches_Delta", "([Direction] = 1 AND [QuantityDelta] > 0) OR ([Direction] = 2 AND [QuantityDelta] < 0)");
+
+                            t.HasCheckConstraint("CK_StockMovements_QuantityDelta_NonZero", "[QuantityDelta] <> 0");
+
+                            t.HasCheckConstraint("CK_StockMovements_Required_Reference", "([Type] NOT IN (20, 60) OR [OrderId] IS NOT NULL) AND ([Type] <> 21 OR [ReturnRequestId] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_StockMovements_Stock_Equation", "CAST([StockAfterMovement] AS bigint) = CAST([StockBeforeMovement] AS bigint) + CAST([QuantityDelta] AS bigint)");
+
+                            t.HasCheckConstraint("CK_StockMovements_Stock_NonNegative", "[StockBeforeMovement] >= 0 AND [StockAfterMovement] >= 0");
+
+                            t.HasCheckConstraint("CK_StockMovements_Type_Matches_Direction", "([Type] IN (1, 10, 21, 50, 60) AND [Direction] = 1) OR ([Type] IN (11, 20, 40, 41, 42, 51) AND [Direction] = 2) OR [Type] IN (30, 31)");
+
+                            t.HasCheckConstraint("CK_StockMovements_Type_Valid", "[Type] IN (1, 10, 11, 20, 21, 30, 31, 40, 41, 42, 50, 51, 60)");
+                        });
+                });
+
             modelBuilder.Entity("ECommerce.Domain.Entities.Tag", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1097,6 +1557,43 @@ namespace ECommerce.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Tags", (string)null);
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.TaxRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("TaxRates", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TaxRates_Rate_Range", "CAST([Rate] AS REAL) >= 0 AND CAST([Rate] AS REAL) <= 100");
+                        });
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.User", b =>
@@ -1316,7 +1813,8 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasOne("ECommerce.Domain.Entities.ProductVariant", "ProductVariant")
                         .WithMany()
-                        .HasForeignKey("ProductVariantId")
+                        .HasForeignKey("ProductVariantId", "ProductId")
+                        .HasPrincipalKey("Id", "ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1366,27 +1864,16 @@ namespace ECommerce.Persistence.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("ECommerce.Domain.Entities.InventoryTransaction", b =>
-                {
-                    b.HasOne("ECommerce.Domain.Entities.Order", null)
-                        .WithMany()
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("ECommerce.Domain.Entities.ProductVariant", "ProductVariant")
-                        .WithMany("InventoryTransactions")
-                        .HasForeignKey("ProductVariantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ProductVariant");
-                });
-
             modelBuilder.Entity("ECommerce.Domain.Entities.Order", b =>
                 {
                     b.HasOne("ECommerce.Domain.Entities.Address", "Address")
                         .WithMany()
                         .HasForeignKey("AddressId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ECommerce.Domain.Entities.ShippingMethod", "ShippingMethod")
+                        .WithMany()
+                        .HasForeignKey("ShippingMethodId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("ECommerce.Domain.Entities.User", null)
@@ -1396,6 +1883,19 @@ namespace ECommerce.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Address");
+
+                    b.Navigation("ShippingMethod");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.OrderAddressSnapshot", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.Order", "Order")
+                        .WithOne("ShippingAddressSnapshot")
+                        .HasForeignKey("ECommerce.Domain.Entities.OrderAddressSnapshot", "OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.OrderItem", b =>
@@ -1414,7 +1914,8 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasOne("ECommerce.Domain.Entities.ProductVariant", null)
                         .WithMany()
-                        .HasForeignKey("ProductVariantId")
+                        .HasForeignKey("ProductVariantId", "ProductId")
+                        .HasPrincipalKey("Id", "ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1439,12 +1940,19 @@ namespace ECommerce.Persistence.Migrations
                         .HasForeignKey("BrandId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("ECommerce.Domain.Entities.TaxRate", "TaxRate")
+                        .WithMany("Products")
+                        .HasForeignKey("TaxRateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ECommerce.Domain.Entities.ProductType", "Type")
                         .WithMany("Products")
                         .HasForeignKey("TypeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Brand");
+
+                    b.Navigation("TaxRate");
 
                     b.Navigation("Type");
                 });
@@ -1584,6 +2092,82 @@ namespace ECommerce.Persistence.Migrations
                     b.Navigation("ProductVariant");
                 });
 
+            modelBuilder.Entity("ECommerce.Domain.Entities.ReturnItem", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.OrderItem", "OrderItem")
+                        .WithMany()
+                        .HasForeignKey("OrderItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECommerce.Domain.Entities.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECommerce.Domain.Entities.ReturnRequest", "ReturnRequest")
+                        .WithMany("Items")
+                        .HasForeignKey("ReturnRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ECommerce.Domain.Entities.ProductVariant", null)
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId", "ProductId")
+                        .HasPrincipalKey("Id", "ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECommerce.Domain.Entities.ProductVariant", null)
+                        .WithMany()
+                        .HasForeignKey("ReplacementProductVariantId", "ProductId")
+                        .HasPrincipalKey("Id", "ProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("OrderItem");
+
+                    b.Navigation("ReturnRequest");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ReturnRequest", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECommerce.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.StockMovement", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ECommerce.Domain.Entities.ProductVariant", "ProductVariant")
+                        .WithMany("StockMovements")
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECommerce.Domain.Entities.ReturnRequest", null)
+                        .WithMany()
+                        .HasForeignKey("ReturnRequestId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ProductVariant");
+                });
+
             modelBuilder.Entity("ECommerce.Domain.Entities.UserRefreshToken", b =>
                 {
                     b.HasOne("ECommerce.Domain.Entities.User", "User")
@@ -1626,6 +2210,8 @@ namespace ECommerce.Persistence.Migrations
                     b.Navigation("Items");
 
                     b.Navigation("Payments");
+
+                    b.Navigation("ShippingAddressSnapshot");
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Product", b =>
@@ -1658,12 +2244,22 @@ namespace ECommerce.Persistence.Migrations
                 {
                     b.Navigation("DailyMetrics");
 
-                    b.Navigation("InventoryTransactions");
+                    b.Navigation("StockMovements");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ReturnRequest", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Tag", b =>
                 {
                     b.Navigation("ProductTags");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.TaxRate", b =>
+                {
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.User", b =>

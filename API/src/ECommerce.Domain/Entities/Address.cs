@@ -5,6 +5,15 @@ namespace ECommerce.Domain.Entities;
 
 public sealed class Address : AuditableEntity
 {
+    public const int MaximumTitleLength = 100;
+    public const int MaximumFirstNameLength = 100;
+    public const int MaximumLastNameLength = 100;
+    public const int MaximumPhoneNumberLength = 30;
+    public const int MaximumCityLength = 100;
+    public const int MaximumDistrictLength = 100;
+    public const int MaximumFullAddressLength = 500;
+    public const int MaximumPostalCodeLength = 20;
+
     public long UserId { get; private set; }
     public AddressType Type { get; private set; }
     public string Title { get; private set; } = null!;
@@ -17,10 +26,12 @@ public sealed class Address : AuditableEntity
     public string? PostalCode { get; private set; }
     public bool IsDefault { get; private set; }
 
+    // Burada EF Core'un adres kaydını veritabanından oluşturabilmesi için boş kurucuyu tutuyorum.
     private Address()
     {
     }
 
+    // Burada kullanıcının teslimat veya fatura adresini alan sınırlarıyla birlikte oluşturuyorum.
     public Address(
         long userId,
         AddressType type,
@@ -40,67 +51,105 @@ public sealed class Address : AuditableEntity
         }
 
         UserId = userId;
-        Type = type;
-        SetTitle(title);
-        SetName(firstName, lastName);
-        SetPhone(phoneNumber);
-        SetLocation(city, district, fullAddress);
-        PostalCode = postalCode?.Trim();
+        ApplyDetails(type, title, firstName, lastName, phoneNumber, city, district, fullAddress, postalCode);
         IsDefault = isDefault;
     }
 
+    // Burada adres sahibini değiştirmeden düzenlenebilir iletişim ve konum bilgilerini güncelliyorum.
+    public void Update(
+        AddressType type,
+        string title,
+        string firstName,
+        string lastName,
+        string phoneNumber,
+        string city,
+        string district,
+        string fullAddress,
+        string? postalCode = null)
+    {
+        ApplyDetails(type, title, firstName, lastName, phoneNumber, city, district, fullAddress, postalCode);
+        MarkAsUpdated();
+    }
+
+    // Burada adresi kendi türündeki varsayılan seçim için işaretliyorum.
     public void SetAsDefault()
     {
         IsDefault = true;
         MarkAsUpdated();
     }
 
+    // Burada adresin varsayılan olma işaretini güvenle kaldırıyorum.
     public void UnsetDefault()
     {
         IsDefault = false;
         MarkAsUpdated();
     }
 
-    private void SetTitle(string title)
+    // Burada tüm adres alanlarını domain ve veritabanı uzunluk kurallarına göre hazırlıyorum.
+    private void ApplyDetails(
+        AddressType type,
+        string title,
+        string firstName,
+        string lastName,
+        string phoneNumber,
+        string city,
+        string district,
+        string fullAddress,
+        string? postalCode)
     {
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            throw new DomainException("Address title cannot be empty.");
-        }
-
-        Title = title.Trim();
+        Type = ValidateType(type);
+        Title = NormalizeRequired(title, MaximumTitleLength, "Address title");
+        FirstName = NormalizeRequired(firstName, MaximumFirstNameLength, "Address first name");
+        LastName = NormalizeRequired(lastName, MaximumLastNameLength, "Address last name");
+        PhoneNumber = NormalizeRequired(phoneNumber, MaximumPhoneNumberLength, "Address phone number");
+        City = NormalizeRequired(city, MaximumCityLength, "Address city");
+        District = NormalizeRequired(district, MaximumDistrictLength, "Address district");
+        FullAddress = NormalizeRequired(fullAddress, MaximumFullAddressLength, "Full address");
+        PostalCode = NormalizeOptional(postalCode, MaximumPostalCodeLength, "Postal code");
     }
 
-    private void SetName(string firstName, string lastName)
+    // Burada dışarıdan gelen adres türünün tanımlı enum değeri olduğunu doğruluyorum.
+    private static AddressType ValidateType(AddressType type)
     {
-        if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+        if (!Enum.IsDefined(type))
         {
-            throw new DomainException("Address first and last name cannot be empty.");
+            throw new DomainException("Address type is invalid.");
         }
 
-        FirstName = firstName.Trim();
-        LastName = lastName.Trim();
+        return type;
     }
 
-    private void SetPhone(string phoneNumber)
+    // Burada zorunlu metin alanlarını boşluk ve uzunluk kurallarına göre normalize ediyorum.
+    private static string NormalizeRequired(string value, int maximumLength, string fieldName)
     {
-        if (string.IsNullOrWhiteSpace(phoneNumber))
+        if (string.IsNullOrWhiteSpace(value))
         {
-            throw new DomainException("Phone number cannot be empty.");
+            throw new DomainException($"{fieldName} cannot be empty.");
         }
 
-        PhoneNumber = phoneNumber.Trim();
+        var normalizedValue = value.Trim();
+        if (normalizedValue.Length > maximumLength)
+        {
+            throw new DomainException($"{fieldName} cannot exceed {maximumLength} characters.");
+        }
+
+        return normalizedValue;
     }
 
-    private void SetLocation(string city, string district, string fullAddress)
+    // Burada isteğe bağlı posta kodunu boş değerleri null yaparak sınır içinde saklıyorum.
+    private static string? NormalizeOptional(string? value, int maximumLength, string fieldName)
     {
-        if (string.IsNullOrWhiteSpace(city) || string.IsNullOrWhiteSpace(district) || string.IsNullOrWhiteSpace(fullAddress))
+        if (string.IsNullOrWhiteSpace(value))
         {
-            throw new DomainException("City, district and full address cannot be empty.");
+            return null;
         }
 
-        City = city.Trim();
-        District = district.Trim();
-        FullAddress = fullAddress.Trim();
+        var normalizedValue = value.Trim();
+        if (normalizedValue.Length > maximumLength)
+        {
+            throw new DomainException($"{fieldName} cannot exceed {maximumLength} characters.");
+        }
+
+        return normalizedValue;
     }
 }

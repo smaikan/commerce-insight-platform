@@ -13,9 +13,10 @@ namespace ECommerce.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     [Migration("20260714032832_initial")]
-    partial class initial
+    partial class Initial
     {
         /// <inheritdoc />
+        // Burada başlangıç migration'ının EF Core model snapshot'ını oluşturuyorum.
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618

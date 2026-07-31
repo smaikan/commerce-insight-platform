@@ -9,16 +9,12 @@ public sealed class RecordProductActivityCommandValidator : AbstractValidator<Re
     {
         RuleFor(command => command.ProductId).NotEmpty();
         RuleFor(command => command.ActivityType)
-            .Must(activityType => activityType is ProductActivityType.Click or ProductActivityType.AddToCart)
-            .WithMessage("Customers can only record click and add-to-cart activities.");
+            .Equal(ProductActivityType.Click)
+            .WithMessage("Customers can only record click activity directly.");
         RuleFor(command => command.Quantity)
-            .Equal(1)
-            .When(command => command.ActivityType == ProductActivityType.Click);
-        RuleFor(command => command.Quantity)
-            .InclusiveBetween(1, 100)
-            .When(command => command.ActivityType == ProductActivityType.AddToCart);
+            .Equal(1);
         RuleFor(command => command.ProductVariantId)
-            .NotEmpty()
-            .When(command => command.ActivityType == ProductActivityType.AddToCart);
+            .Empty()
+            .WithMessage("Click activity cannot target a product variant.");
     }
 }

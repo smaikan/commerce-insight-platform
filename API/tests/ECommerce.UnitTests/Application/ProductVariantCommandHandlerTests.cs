@@ -8,6 +8,7 @@ using ECommerce.Application.Products.Variants.Commands.UpdateProductVariant;
 using ECommerce.Application.Products.Variants.Commands.UpdateProductVariantPrice;
 using ECommerce.Application.Products.Variants.Commands.UpdateProductVariantStock;
 using ECommerce.Domain.Entities;
+using ECommerce.Domain.Enums;
 using ECommerce.UnitTests.Testing;
 using FluentAssertions;
 using Moq;
@@ -16,6 +17,7 @@ namespace ECommerce.UnitTests.Application;
 
 public sealed class ProductVariantCommandHandlerTests
 {
+    // Burada ürünün son varyantının silinmesini engelliyorum.
     [Fact]
     public async Task DeleteProductVariant_Should_Reject_Deleting_Last_Variant()
     {
@@ -43,13 +45,56 @@ public sealed class ProductVariantCommandHandlerTests
         variantRepository.Verify(repository => repository.Remove(It.IsAny<ProductVariant>()), Times.Never);
     }
 
+    // Burada stok hareketi audit geçmişi bulunan varyantın fiziksel olarak silinmesini engelliyorum.
+    [Fact]
+    public async Task DeleteProductVariant_Should_Reject_Variant_With_Stock_Movement_History()
+    {
+        var variantRepository = new Mock<IProductVariantRepository>();
+        var productRepository = new Mock<IProductRepository>();
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var variant = new ProductVariant(1, "Standard", "SKU-AUDIT", 100m, 1);
+        variantRepository
+            .Setup(repository => repository.GetByIdForUpdateAsync(
+                variant.Id,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(variant);
+        variantRepository
+            .Setup(repository => repository.CountByProductIdAsync(
+                variant.ProductId,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+        variantRepository
+            .Setup(repository => repository.HasStockMovementsAsync(
+                variant.Id,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var handler = new DeleteProductVariantCommandHandler(
+            variantRepository.Object,
+            productRepository.Object,
+            unitOfWork.Object);
+
+        Func<Task> act = () => handler.Handle(
+            new DeleteProductVariantCommand(variant.Id),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("*stock movement history*");
+        variantRepository.Verify(
+            repository => repository.Remove(It.IsAny<ProductVariant>()),
+            Times.Never);
+        unitOfWork.Verify(
+            item => item.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    // Burada mevcut ürüne yeni varyant oluşturulduğunu doğruluyorum.
     [Fact]
     public async Task CreateProductVariant_Should_Create_Variant_When_Product_Exists()
     {
         var productRepository = new Mock<IProductRepository>();
         var variantRepository = new Mock<IProductVariantRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var product = new Product("Product", "product", Guid.NewGuid()).WithId(1);
+        var product = new Product("Product", "product", "PRODUCT-MAIN", Guid.NewGuid()).WithId(1);
         ProductVariant? createdVariant = null;
 
         productRepository
@@ -85,20 +130,23 @@ public sealed class ProductVariantCommandHandlerTests
         result.Stock.Should().Be(8);
         result.CompareAtPrice.Should().Be(120);
         createdVariant.Should().NotBeNull();
-        createdVariant!.InventoryTransactions.Should().ContainSingle(transaction =>
-            transaction.Type == ECommerce.Domain.Enums.InventoryTransactionType.StockIn &&
-            transaction.Quantity == 8 &&
-            transaction.StockAfterTransaction == 8);
+        createdVariant!.StockMovements.Should().ContainSingle(movement =>
+            movement.Type == StockMovementType.OpeningBalance &&
+            movement.Direction == StockMovementDirection.In &&
+            movement.QuantityDelta == 8 &&
+            movement.StockBeforeMovement == 0 &&
+            movement.StockAfterMovement == 8);
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // Burada kullanılan varyant SKU değeriyle yeni varyant oluşturulmasını engelliyorum.
     [Fact]
     public async Task CreateProductVariant_Should_Throw_ConflictException_When_Sku_Already_Exists()
     {
         var productRepository = new Mock<IProductRepository>();
         var variantRepository = new Mock<IProductVariantRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var product = new Product("Product", "product", Guid.NewGuid()).WithId(1);
+        var product = new Product("Product", "product", "PRODUCT-MAIN", Guid.NewGuid()).WithId(1);
 
         productRepository
             .Setup(repository => repository.GetByIdAsync(product.Id, It.IsAny<CancellationToken>()))
@@ -122,6 +170,7 @@ public sealed class ProductVariantCommandHandlerTests
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    // Burada varyant fiyat güncelleme komutunun fiyatı değiştirdiğini doğruluyorum.
     [Fact]
     public async Task UpdateProductVariantPrice_Should_Update_Price()
     {
@@ -144,11 +193,13 @@ public sealed class ProductVariantCommandHandlerTests
             CancellationToken.None);
 
         result.Price.Should().Be(90);
+        result.NetPrice.Should().Be(90);
         result.CompareAtPrice.Should().Be(110);
         variant.Price.Should().Be(90);
         variant.CompareAtPrice.Should().Be(110);
     }
 
+    // Burada varyant detay, fiyat, stok ve aktivasyon bilgilerinin birlikte güncellendiğini doğruluyorum.
     [Fact]
     public async Task UpdateProductVariant_Should_Update_Details_Price_Stock_And_Activation()
     {
@@ -187,6 +238,7 @@ public sealed class ProductVariantCommandHandlerTests
         result.Name.Should().Be("Premium");
         result.Sku.Should().Be("SKU-2");
         result.Price.Should().Be(90);
+        result.NetPrice.Should().Be(90);
         result.Stock.Should().Be(12);
         result.CompareAtPrice.Should().Be(120);
         result.Barcode.Should().Be("BAR-2");
@@ -194,12 +246,16 @@ public sealed class ProductVariantCommandHandlerTests
         result.IsActive.Should().BeFalse();
         variant.Sku.Should().Be("SKU-2");
         variant.IsActive.Should().BeFalse();
-        variant.InventoryTransactions.Should().ContainSingle(transaction =>
-            transaction.Quantity == 4 &&
-            transaction.StockAfterTransaction == 12 &&
-            transaction.Reason == "Warehouse count");
+        variant.StockMovements.Should().ContainSingle(movement =>
+            movement.Type == StockMovementType.StockCountAdjustment &&
+            movement.Direction == StockMovementDirection.In &&
+            movement.QuantityDelta == 4 &&
+            movement.StockBeforeMovement == 8 &&
+            movement.StockAfterMovement == 12 &&
+            movement.Reason == "Warehouse count");
     }
 
+    // Burada başka varyantta kullanılan SKU ile varyant güncellenmesini engelliyorum.
     [Fact]
     public async Task UpdateProductVariant_Should_Throw_ConflictException_When_Sku_Already_Exists()
     {
@@ -225,6 +281,7 @@ public sealed class ProductVariantCommandHandlerTests
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    // Burada varyant stok güncelleme komutunun stoku artırdığını doğruluyorum.
     [Fact]
     public async Task UpdateProductVariantStock_Should_Update_Stock()
     {
@@ -243,18 +300,25 @@ public sealed class ProductVariantCommandHandlerTests
         var handler = new UpdateProductVariantStockCommandHandler(variantRepository.Object, unitOfWork.Object);
 
         var result = await handler.Handle(
-            new UpdateProductVariantStockCommand(variant.Id, 7, "Manual correction"),
+            new UpdateProductVariantStockCommand(
+                variant.Id,
+                7,
+                StockMovementType.ManualAdjustment,
+                "Manual correction"),
             CancellationToken.None);
 
         result.Stock.Should().Be(15);
         variant.Stock.Should().Be(15);
-        variant.InventoryTransactions.Should().ContainSingle(transaction =>
-            transaction.Quantity == 7 &&
-            transaction.StockAfterTransaction == 15 &&
-            transaction.Type == ECommerce.Domain.Enums.InventoryTransactionType.StockIn &&
-            transaction.Reason == "Manual correction");
+        variant.StockMovements.Should().ContainSingle(movement =>
+            movement.Type == StockMovementType.ManualAdjustment &&
+            movement.Direction == StockMovementDirection.In &&
+            movement.QuantityDelta == 7 &&
+            movement.StockBeforeMovement == 8 &&
+            movement.StockAfterMovement == 15 &&
+            movement.Reason == "Manual correction");
     }
 
+    // Burada negatif stok değişiminin mevcut stoku azalttığını doğruluyorum.
     [Fact]
     public async Task UpdateProductVariantStock_Should_Decrease_Stock_When_Quantity_Is_Negative()
     {
@@ -268,16 +332,24 @@ public sealed class ProductVariantCommandHandlerTests
         var handler = new UpdateProductVariantStockCommandHandler(variantRepository.Object, unitOfWork.Object);
 
         var result = await handler.Handle(
-            new UpdateProductVariantStockCommand(variant.Id, -2, "Damaged item"),
+            new UpdateProductVariantStockCommand(
+                variant.Id,
+                -2,
+                StockMovementType.Damage,
+                "Damaged item"),
             CancellationToken.None);
 
         result.Stock.Should().Be(6);
-        variant.InventoryTransactions.Should().ContainSingle(transaction =>
-            transaction.Type == ECommerce.Domain.Enums.InventoryTransactionType.StockOut &&
-            transaction.Quantity == 2 &&
-            transaction.StockAfterTransaction == 6);
+        variant.StockMovements.Should().ContainSingle(movement =>
+            movement.Type == StockMovementType.Damage &&
+            movement.Direction == StockMovementDirection.Out &&
+            movement.QuantityDelta == -2 &&
+            movement.StockBeforeMovement == 8 &&
+            movement.StockAfterMovement == 6 &&
+            movement.Reason == "Damaged item");
     }
 
+    // Burada varyant aktivasyon komutunun varyantı satışa kapattığını doğruluyorum.
     [Fact]
     public async Task SetProductVariantActivation_Should_Deactivate_Variant()
     {

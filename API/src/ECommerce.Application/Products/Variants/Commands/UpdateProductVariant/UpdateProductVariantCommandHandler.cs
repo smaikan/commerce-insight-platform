@@ -12,6 +12,7 @@ public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateP
     private readonly IProductVariantRepository _variantRepository;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada varyant bilgi güncellemesinin repository ve transaction bağımlılıklarını hazırlıyorum.
     public UpdateProductVariantCommandHandler(IProductVariantRepository variantRepository, IUnitOfWork unitOfWork)
     {
         _variantRepository = variantRepository;
@@ -39,22 +40,20 @@ public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateP
             request.Barcode,
             request.Material);
 
-        variant.UpdatePrice(request.Price, request.CompareAtPrice);
+        variant.UpdatePrice(
+            request.Price,
+            request.CompareAtPrice,
+            variant.Product?.TaxRate?.CalculateNetPrice(request.Price) ?? request.Price);
 
         var previousStock = variant.Stock;
-        var stockDifference = Math.Abs(request.Stock - previousStock);
+        var stockDifference = request.Stock - previousStock;
 
-        if (stockDifference > 0)
+        if (stockDifference != 0)
         {
-            variant.UpdateStock(request.Stock);
-            variant.InventoryTransactions.Add(new InventoryTransaction(
-                variant.Id,
-                request.Stock > previousStock
-                    ? InventoryTransactionType.StockIn
-                    : InventoryTransactionType.StockOut,
+            variant.ApplyStockMovement(
                 stockDifference,
-                request.Stock,
-                request.StockAdjustmentReason));
+                StockMovementType.StockCountAdjustment,
+                request.StockAdjustmentReason ?? "Variant stock count updated.");
         }
 
         if (request.IsActive)

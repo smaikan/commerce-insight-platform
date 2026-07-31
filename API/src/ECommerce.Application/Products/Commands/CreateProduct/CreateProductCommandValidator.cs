@@ -1,14 +1,20 @@
+using ECommerce.Application.Common.Services;
 using FluentValidation;
 
 namespace ECommerce.Application.Products.Commands.CreateProduct;
 
 public sealed class CreateProductCommandValidator : AbstractValidator<CreateProductCommand>
 {
+    // Burada ürün oluşturma isteğinin alan ve ilişki kurallarını tanımlıyorum.
     public CreateProductCommandValidator()
     {
         RuleFor(command => command.Title)
             .NotEmpty()
             .MaximumLength(250);
+
+        RuleFor(command => command.MainSku)
+            .NotEmpty()
+            .MaximumLength(100);
 
         RuleFor(command => command.TypeId)
             .Must(typeId => !typeId.HasValue || typeId.Value != Guid.Empty)
@@ -17,6 +23,10 @@ public sealed class CreateProductCommandValidator : AbstractValidator<CreateProd
         RuleFor(command => command.BrandId)
             .Must(brandId => !brandId.HasValue || brandId.Value != Guid.Empty)
             .WithMessage("Brand id cannot be empty.");
+
+        RuleFor(command => command.TaxRateId)
+            .Must(taxRateId => !taxRateId.HasValue || taxRateId.Value != Guid.Empty)
+            .WithMessage("Tax rate id cannot be empty.");
 
         RuleFor(command => command.Url)
             .MaximumLength(250);
@@ -39,6 +49,14 @@ public sealed class CreateProductCommandValidator : AbstractValidator<CreateProd
         RuleFor(command => command.CollectionIds)
             .Must(ids => ids is null || ids.Distinct().Count() == ids.Count)
             .WithMessage("Collection ids cannot contain duplicates.");
+
+        RuleForEach(command => command.Tags)
+            .NotEmpty()
+            .MaximumLength(ProductTagRules.MaximumTagNameLength);
+
+        RuleFor(command => command.Tags)
+            .Must(tags => tags is null || tags.Count <= ProductTagRules.MaximumTagsPerProduct)
+            .WithMessage($"A product can contain at most {ProductTagRules.MaximumTagsPerProduct} tags.");
 
         RuleFor(command => command.Variants)
             .NotEmpty()

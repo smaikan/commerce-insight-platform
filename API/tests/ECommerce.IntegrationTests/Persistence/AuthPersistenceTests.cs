@@ -30,11 +30,17 @@ public sealed class AuthPersistenceTests
 
         await repository.AddAsync(message);
         await context.SaveChangesAsync();
-        var pending = await repository.GetPendingForUpdateAsync(utcNow, 10);
+        var pending = await repository.ClaimPendingAsync(
+            "integration-worker",
+            utcNow,
+            utcNow.AddMinutes(5),
+            10);
 
         pending.Should().ContainSingle();
         pending[0].ProtectedToken.Should().Be("protected-token-value");
         pending[0].ProtectedToken.Should().NotBe("raw-reset-token");
+        pending[0].ClaimToken.Should().NotBeNull();
+        pending[0].ProcessingWorker.Should().Be("integration-worker");
     }
 
     [Fact]

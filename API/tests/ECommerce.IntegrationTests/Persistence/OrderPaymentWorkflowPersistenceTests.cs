@@ -1,0 +1,315 @@
+using ECommerce.Application.Addresses.Commands.SetDefaultAddress;
+using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.Common.Payments;
+using ECommerce.Application.Common.Security;
+using ECommerce.Application.Orders.Commands.CreatePayment;
+using ECommerce.Domain.Entities;
+using ECommerce.Domain.Enums;
+using ECommerce.Persistence.Context;
+using ECommerce.Persistence.Repositories;
+using FluentAssertions;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+
+namespace ECommerce.IntegrationTests.Persistence;
+
+public sealed class OrderPaymentWorkflowPersistenceTests
+{
+    // Burada aynı kullanıcı ve adres türü için veritabanının ikinci varsayılan adresi reddettiğini doğruluyorum.
+    [Fact]
+    public async Task Database_Should_Reject_Multiple_Default_Addresses_For_The_Same_User_And_Type()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        await using var context = new AppDbContext(CreateOptions(connection));
+        await context.Database.EnsureCreatedAsync();
+        var user = await SeedUserAsync(context, "default-address@example.com");
+        context.Addresses.AddRange(CreateAddress(user.Id, true), CreateAddress(user.Id, true));
+
+        var act = () => context.SaveChangesAsync();
+
+        await act.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    // Burada ödeme retry anahtarının aynı sipariş için ikinci ödeme kaydını veritabanı düzeyinde reddettiğini doğruluyorum.
+    [Fact]
+    public async Task Database_Should_Reject_Duplicate_Payment_Idempotency_Key_Per_Order()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        await using var context = new AppDbContext(CreateOptions(connection));
+        await context.Database.EnsureCreatedAsync();
+        var user = await SeedUserAsync(context, "payment-idempotency@example.com");
+        var order = CreateOrder(user.Id);
+        context.Orders.Add(order);
+        await context.SaveChangesAsync();
+        context.Payments.AddRange(
+            new Payment(order.Id, PaymentProvider.Fake, 10m, "payment_idempotency_key_01"),
+            new Payment(order.Id, PaymentProvider.Fake, 10m, "PAYMENT_IDEMPOTENCY_KEY_01"));
+
+        var act = () => context.SaveChangesAsync();
+
+        await act.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    // Burada varsayılan adresin birinden diğerine geçişinin filtered unique indeks altında güvenle tamamlandığını doğruluyorum.
+    [Fact]
+    public async Task SetDefaultAddress_Should_Safely_Replace_The_Previous_Default()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        await using var context = new AppDbContext(CreateOptions(connection));
+        await context.Database.EnsureCreatedAsync();
+        var user = await SeedUserAsync(context, "default-switch@example.com");
+        var previousDefault = CreateAddress(user.Id, true);
+        var selectedAddress = CreateAddress(user.Id, false);
+        context.Addresses.AddRange(previousDefault, selectedAddress);
+        await context.SaveChangesAsync();
+        var handler = new SetDefaultAddressCommandHandler(
+            new AddressRepository(context),
+            new StubCurrentUser(user.Id),
+            new UnitOfWork(context));
+
+        var result = await handler.Handle(
+            new SetDefaultAddressCommand(selectedAddress.Id),
+            CancellationToken.None);
+
+        context.ChangeTracker.Clear();
+        var addresses = await context.Addresses
+            .AsNoTracking()
+            .Where(address => address.UserId == user.Id && address.Type == AddressType.Shipping)
+            .ToListAsync();
+        result.IsDefault.Should().BeTrue();
+        addresses.Should().ContainSingle(address => address.Id == selectedAddress.Id && address.IsDefault);
+        addresses.Should().ContainSingle(address => address.Id == previousDefault.Id && !address.IsDefault);
+    }
+
+    // Burada sipariş repository'sinin başka kullanıcıya ait siparişi owner kapsamı dışında döndürmediğini doğruluyorum.
+    [Fact]
+    public async Task OrderRepository_Should_Not_Return_Another_Users_Order()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        await using var context = new AppDbContext(CreateOptions(connection));
+        await context.Database.EnsureCreatedAsync();
+        var orderOwner = await SeedUserAsync(context, "order-owner@example.com");
+        var otherUser = await SeedUserAsync(context, "order-other@example.com");
+        var order = CreateOrder(orderOwner.Id);
+        context.Orders.Add(order);
+        await context.SaveChangesAsync();
+        var repository = new OrderRepository(context);
+
+        var unauthorizedResult = await repository.GetByIdForUserAsync(order.Id, otherUser.Id);
+        var ownerResult = await repository.GetByIdForUserAsync(order.Id, orderOwner.Id);
+
+        unauthorizedResult.Should().BeNull();
+        ownerResult.Should().NotBeNull();
+    }
+
+    // Burada ödeme handler'ının mevcut siparişe denemeyi Added olarak kaydedip ikinci aşamada paid durumuna taşıdığını doğruluyorum.
+    [Fact]
+    public async Task CreatePaymentHandler_Should_Persist_And_Complete_The_Payment_Attempt()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        await using var context = new AppDbContext(CreateOptions(connection));
+        await context.Database.EnsureCreatedAsync();
+        var user = await SeedUserAsync(context, "payment-handler@example.com");
+        var order = CreateOrder(user.Id);
+        context.Orders.Add(order);
+        await context.SaveChangesAsync();
+        var handler = new CreatePaymentCommandHandler(
+            new OrderRepository(context),
+            [new SuccessfulPaymentGateway()],
+            new StubCurrentUser(user.Id),
+            new FixedClock(),
+            new UnitOfWork(context));
+
+        var result = await handler.Handle(
+            new CreatePaymentCommand(order.Id, PaymentProvider.Fake, "payment_handler_key_0001"),
+            CancellationToken.None);
+
+        context.ChangeTracker.Clear();
+        var savedOrder = await context.Orders
+            .AsNoTracking()
+            .Include(savedOrder => savedOrder.Payments)
+            .SingleAsync(savedOrder => savedOrder.Id == order.Id);
+        result.Status.Should().Be(PaymentStatus.Paid);
+        savedOrder.Status.Should().Be(OrderStatus.Paid);
+        savedOrder.Payments.Should().ContainSingle(payment => payment.Status == PaymentStatus.Paid);
+    }
+
+    // Burada siparişe bağlı adres snapshot'ının kaynak adres sonradan değişse bile ayrı kayıtta tutulduğunu doğruluyorum.
+    [Fact]
+    public async Task Repository_Should_Persist_Order_Shipping_Address_Snapshot()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        var options = CreateOptions(connection);
+        Guid orderId;
+        Guid sourceAddressId;
+        await using (var writeContext = new AppDbContext(options))
+        {
+            await writeContext.Database.EnsureCreatedAsync();
+            var user = await SeedUserAsync(writeContext, "snapshot@example.com");
+            var address = CreateAddress(user.Id, true);
+            writeContext.Addresses.Add(address);
+            await writeContext.SaveChangesAsync();
+            var order = CreateOrder(user.Id, address.Id);
+            order.SetShippingAddressSnapshot(address);
+            writeContext.Orders.Add(order);
+            await writeContext.SaveChangesAsync();
+            orderId = order.Id;
+            sourceAddressId = address.Id;
+        }
+
+        await using var readContext = new AppDbContext(options);
+        var savedOrder = await readContext.Orders
+            .AsNoTracking()
+            .Include(order => order.ShippingAddressSnapshot)
+            .SingleAsync(order => order.Id == orderId);
+
+        savedOrder.ShippingAddressSnapshot.Should().NotBeNull();
+        savedOrder.ShippingAddressSnapshot!.SourceAddressId.Should().Be(sourceAddressId);
+        savedOrder.ShippingAddressSnapshot.FullAddress.Should().Be("Street 1");
+    }
+
+    // Burada kuponun aynı sipariş için iki kullanım kaydı oluşturmasına unique indeksin izin vermediğini doğruluyorum.
+    [Fact]
+    public async Task Database_Should_Reject_Duplicate_Coupon_Usage_For_The_Same_Order()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        await using var context = new AppDbContext(CreateOptions(connection));
+        await context.Database.EnsureCreatedAsync();
+        var user = await SeedUserAsync(context, "coupon-usage@example.com");
+        var coupon = new Coupon("SAVE10", CouponDiscountType.Percentage, 10m);
+        var order = CreateOrder(user.Id);
+        context.AddRange(coupon, order);
+        await context.SaveChangesAsync();
+        context.CouponUsages.AddRange(
+            new CouponUsage(coupon.Id, user.Id, order.Id),
+            new CouponUsage(coupon.Id, user.Id, order.Id));
+
+        var act = () => context.SaveChangesAsync();
+
+        await act.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    // Burada sipariş kaleminin ürün-varyant eşleşmesini bileşik yabancı anahtarın koruduğunu doğruluyorum.
+    [Fact]
+    public async Task Database_Should_Reject_Order_Item_With_A_Mismatched_Product_And_Variant()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        await using var context = new AppDbContext(CreateOptions(connection));
+        await context.Database.EnsureCreatedAsync();
+        var user = await SeedUserAsync(context, "order-item-match@example.com");
+        var firstCatalog = await SeedCatalogAsync(context, "first");
+        var secondCatalog = await SeedCatalogAsync(context, "second");
+        var order = CreateOrder(user.Id);
+        order.AddItem(
+            secondCatalog.Product.Id,
+            firstCatalog.Variant.Id,
+            secondCatalog.Product.Title,
+            firstCatalog.Variant.Sku,
+            10m,
+            1);
+        order.EnsureItemsMatchSubTotal();
+        context.Orders.Add(order);
+
+        var act = () => context.SaveChangesAsync();
+
+        await act.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    // Burada SQLite ilişkisel testleri için açık ve foreign key denetimli in-memory bağlantıyı oluşturuyorum.
+    private static async Task<SqliteConnection> CreateOpenConnectionAsync()
+    {
+        var connection = new SqliteConnection("Data Source=:memory:;Foreign Keys=True");
+        await connection.OpenAsync();
+        return connection;
+    }
+
+    // Burada aynı açık bağlantıyı paylaşacak DbContext seçeneklerini oluşturuyorum.
+    private static DbContextOptions<AppDbContext> CreateOptions(SqliteConnection connection)
+    {
+        return new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(connection)
+            .Options;
+    }
+
+    // Burada ilişkisel testler için geçerli kullanıcı kaydını oluşturuyorum.
+    private static async Task<User> SeedUserAsync(AppDbContext context, string email)
+    {
+        var user = new User(email, "password-hash", "Order", "User");
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        return user;
+    }
+
+    // Burada test adresinin kullanıcıya ait geçerli shipping adresini oluşturuyorum.
+    private static Address CreateAddress(long userId, bool isDefault)
+    {
+        return new Address(
+            userId,
+            AddressType.Shipping,
+            "Home",
+            "Ada",
+            "Yilmaz",
+            "05000000000",
+            "Izmir",
+            "Konak",
+            "Street 1",
+            "35220",
+            isDefault);
+    }
+
+    // Burada ilişkisel testlerde kullanılacak geçerli sipariş aggregate'ını oluşturuyorum.
+    private static Order CreateOrder(long userId, Guid? addressId = null)
+    {
+        return new Order(userId, $"ORD-{Guid.NewGuid():N}"[..24], 10m, 0m, 0m, 0m, 10m, addressId);
+    }
+
+    // Burada sipariş kalemi eşleşme testi için iki farklı ürün ve varyantı kalıcı olarak oluşturuyorum.
+    private static async Task<(Product Product, ProductVariant Variant)> SeedCatalogAsync(
+        AppDbContext context,
+        string suffix)
+    {
+        var product = new Product(
+            $"Product {suffix}",
+            $"product-{suffix}",
+            $"PRODUCT-{suffix}",
+            status: ProductStatus.Active);
+        context.Products.Add(product);
+        await context.SaveChangesAsync();
+        var variant = new ProductVariant(product.Id, $"Variant {suffix}", $"SKU-{suffix}", 10m, 5);
+        context.ProductVariants.Add(variant);
+        await context.SaveChangesAsync();
+        return (product, variant);
+    }
+
+    private sealed class StubCurrentUser : ICurrentUserService
+    {
+        // Burada adres varsayılanı entegrasyon testinin oturum kullanıcısı kimliğini hazırlıyorum.
+        public StubCurrentUser(long userId)
+        {
+            UserId = userId;
+        }
+
+        public long? UserId { get; }
+    }
+
+    private sealed class FixedClock : IDateTimeProvider
+    {
+        public DateTime UtcNow => new(2026, 7, 24, 12, 0, 0, DateTimeKind.Utc);
+    }
+
+    private sealed class SuccessfulPaymentGateway : IPaymentGateway
+    {
+        public PaymentProvider Provider => PaymentProvider.Fake;
+
+        // Burada kalıcı ödeme akışını doğrulamak için başarılı sağlayıcı sonucunu üretiyorum.
+        public Task<PaymentGatewayResult> ChargeAsync(
+            PaymentGatewayRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new PaymentGatewayResult(
+                true,
+                "fake_persistence_payment_transaction_001",
+                null));
+        }
+    }
+}

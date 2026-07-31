@@ -13,22 +13,29 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
     private readonly IProductRepository _productRepository;
     private readonly IProductTypeRepository _productTypeRepository;
     private readonly IBrandRepository _brandRepository;
+    private readonly ITaxRateRepository _taxRateRepository;
     private readonly ICollectionRepository _collectionRepository;
+    private readonly IProductTagResolver _productTagResolver;
     private readonly IProductUrlGenerator _productUrlGenerator;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada ürün oluşturma akışının ihtiyaç duyduğu bağımlılıkları hazırlıyorum.
     public CreateProductCommandHandler(
         IProductRepository productRepository,
         IProductTypeRepository productTypeRepository,
         IBrandRepository brandRepository,
+        ITaxRateRepository taxRateRepository,
         ICollectionRepository collectionRepository,
+        IProductTagResolver productTagResolver,
         IProductUrlGenerator productUrlGenerator,
         IUnitOfWork unitOfWork)
     {
         _productRepository = productRepository;
         _productTypeRepository = productTypeRepository;
         _brandRepository = brandRepository;
+        _taxRateRepository = taxRateRepository;
         _collectionRepository = collectionRepository;
+        _productTagResolver = productTagResolver;
         _productUrlGenerator = productUrlGenerator;
         _unitOfWork = unitOfWork;
     }
@@ -36,6 +43,14 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
     // Burada tek ürün oluşturma isteğini doğrulayıp ürünü kayda hazırlıyorum.
     public async Task<ProductDto> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
+        var normalizedMainSku = request.MainSku.Trim().ToUpperInvariant();
+        if (await _productRepository.MainSkuExistsAsync(
+                normalizedMainSku,
+                cancellationToken: cancellationToken))
+        {
+            throw new ConflictException("Product main SKU already exists.");
+        }
+
         if (request.TypeId.HasValue &&
             !await _productTypeRepository.ExistsAsync(request.TypeId.Value, cancellationToken))
         {
@@ -46,6 +61,8 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
         {
             throw new NotFoundException("Brand was not found.");
         }
+
+        var taxRate = await ResolveActiveTaxRateAsync(request.TaxRateId, cancellationToken);
 
         var collectionIds = request.CollectionIds?.Distinct().ToList() ?? [];
         if (collectionIds.Count > 0)
@@ -58,6 +75,10 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
                 throw new NotFoundException($"Collection was not found: {string.Join(", ", missingCollectionIds)}.");
             }
         }
+
+        var resolvedTags = request.Tags is { Count: > 0 }
+            ? await _productTagResolver.ResolveAsync(request.Tags, cancellationToken)
+            : ProductTagResolution.Empty;
 
         var variants = request.Variants ?? [];
         var normalizedSkus = variants.Select(variant => variant.Sku.Trim()).ToList();
@@ -90,6 +111,7 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
         var product = new Product(
             request.Title,
             url,
+            normalizedMainSku,
             request.TypeId,
             request.BrandId,
             request.Description,
@@ -98,11 +120,17 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
             request.IsFeatured,
             request.DisplayOrder,
             request.SeoTitle,
-            request.SeoDescription);
+            request.SeoDescription,
+            request.TaxRateId);
 
         foreach (var collectionId in collectionIds)
         {
             product.ProductCollections.Add(new ProductCollection(product, collectionId));
+        }
+
+        foreach (var tagId in resolvedTags.GetIds(request.Tags))
+        {
+            product.ProductTags.Add(new ProductTag(product, tagId));
         }
 
         foreach (var item in variants)
@@ -116,17 +144,8 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
                 item.CompareAtPrice,
                 item.Barcode,
                 item.Material,
-                item.IsActive);
-
-            if (item.Stock > 0)
-            {
-                variant.InventoryTransactions.Add(new InventoryTransaction(
-                    variant.Id,
-                    InventoryTransactionType.StockIn,
-                    item.Stock,
-                    item.Stock,
-                    "Initial stock"));
-            }
+                item.IsActive,
+                taxRate?.CalculateNetPrice(item.Price) ?? item.Price);
 
             product.Variants.Add(variant);
         }
@@ -138,5 +157,24 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
 
         var createdProduct = await _productRepository.GetByIdAsync(product.Id, cancellationToken);
         return createdProduct?.ToDto() ?? product.ToDto();
+    }
+
+    // Burada seçilen vergi oranını aktif kayıttan çözerek fiyat hesaplamasına hazırlıyorum.
+    private async Task<TaxRate?> ResolveActiveTaxRateAsync(
+        Guid? taxRateId,
+        CancellationToken cancellationToken)
+    {
+        if (!taxRateId.HasValue)
+        {
+            return null;
+        }
+
+        var taxRate = await _taxRateRepository.GetByIdAsync(taxRateId.Value, cancellationToken);
+        if (taxRate is null || !taxRate.IsActive)
+        {
+            throw new NotFoundException("Tax rate was not found or is inactive.");
+        }
+
+        return taxRate;
     }
 }

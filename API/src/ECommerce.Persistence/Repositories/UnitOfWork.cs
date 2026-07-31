@@ -47,8 +47,14 @@ public sealed class UnitOfWork : IUnitOfWork
         ArgumentNullException.ThrowIfNull(operation);
 
         var executionStrategy = _context.Database.CreateExecutionStrategy();
+        var attempt = 0;
         return await executionStrategy.ExecuteAsync(async () =>
         {
+            if (attempt++ > 0)
+            {
+                _context.ChangeTracker.Clear();
+            }
+
             await using var transaction = await _context.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable,
                 cancellationToken);

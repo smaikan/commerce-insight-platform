@@ -11,12 +11,15 @@ using System.Security.Claims;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Security;
 using ECommerce.Application.Common.Identifiers;
+using ECommerce.Application.Orders.Services;
 using ECommerce.API.Security;
 using System.Threading.RateLimiting;
 using ECommerce.API.BackgroundServices;
+using ECommerce.API.Configuration;
 using ECommerce.Domain.Enums;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.OpenApi;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +33,22 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddHostedService<UserTokenCleanupBackgroundService>();
 builder.Services.AddHostedService<EmailOutboxBackgroundService>();
+builder.Services.AddOptions<OrderReservationOptions>()
+    .Bind(builder.Configuration.GetSection(OrderReservationOptions.SectionName))
+    .Validate(
+        options => options.DurationMinutes is >= 1 and <= 10_080,
+        "Order reservation duration must be between 1 minute and 7 days.")
+    .Validate(
+        options => options.SweepIntervalSeconds is >= 5 and <= 3_600,
+        "Order reservation sweep interval must be between 5 seconds and 1 hour.")
+    .Validate(
+        options => options.BatchSize is >= 1 and <= 500,
+        "Order reservation batch size must be between 1 and 500.")
+    .ValidateOnStart();
+builder.Services.AddSingleton<IOrderReservationPolicy>(provider =>
+    new ConfigurationOrderReservationPolicy(
+        provider.GetRequiredService<IOptions<OrderReservationOptions>>().Value));
+builder.Services.AddHostedService<OrderReservationExpirationBackgroundService>();
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>
@@ -41,6 +60,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     const string bearerScheme = "Bearer";
+
+    // Burada null olamaz C# referans alanlarını Swagger sözleşmesinde de zorunlu gösteriyorum.
+    options.SupportNonNullableReferenceTypes();
+    options.NonNullableReferenceTypesAsRequired();
 
     options.AddSecurityDefinition(bearerScheme, new OpenApiSecurityScheme
     {
@@ -61,7 +84,14 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 builder.Services.AddApplicationServices();
 builder.Services.AddPersistenceServices(builder.Configuration);
-builder.Services.AddInfrastructureServices();
+if (!builder.Environment.IsDevelopment() &&
+    string.IsNullOrWhiteSpace(builder.Configuration["DataProtection:KeyRingPath"]))
+{
+    throw new InvalidOperationException(
+        "DataProtection:KeyRingPath must point to a shared persistent location outside development.");
+}
+
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? string.Empty;
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
@@ -180,6 +210,53 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("cart", httpContext =>
+    {
+        var userKey = httpContext.User.Identity?.IsAuthenticated == true
+            ? httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            : null;
+        var clientKey = userKey ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            clientKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+    options.AddPolicy("orders", httpContext =>
+    {
+        var clientKey = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            clientKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+    options.AddPolicy("payments", httpContext =>
+    {
+        var clientKey = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            clientKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
     {
         var path = httpContext.Request.Path.Value ?? string.Empty;
@@ -235,8 +312,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();

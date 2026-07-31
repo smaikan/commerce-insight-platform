@@ -5,6 +5,15 @@ namespace ECommerce.Domain.Entities;
 
 public sealed class Order : AuditableEntity
 {
+    public const int MaximumOrderNumberLength = 30;
+    public const int MaximumItemCount = 100;
+    public const int MaximumCouponCodeLength = 50;
+    public const decimal MaximumSupportedAmount = OrderItem.MaximumSupportedAmount;
+    public static readonly TimeSpan MaximumStockReservationDuration = TimeSpan.FromDays(7);
+
+    private readonly List<OrderItem> _items = [];
+    private readonly List<Payment> _payments = [];
+
     public long UserId { get; private set; }
     public string OrderNumber { get; private set; } = null!;
     public OrderStatus Status { get; private set; }
@@ -15,15 +24,23 @@ public sealed class Order : AuditableEntity
     public decimal GrandTotal { get; private set; }
     public Guid? AddressId { get; private set; }
     public Address? Address { get; private set; }
-    public ICollection<OrderItem> Items { get; private set; } = new List<OrderItem>();
-    public ICollection<Payment> Payments { get; private set; } = new List<Payment>();
+    public string? CouponCode { get; private set; }
+    public Guid? ShippingMethodId { get; private set; }
+    public ShippingMethod? ShippingMethod { get; private set; }
+    public string? ShippingMethodName { get; private set; }
+    public DateTime? ReservationExpiresAt { get; private set; }
+    public OrderAddressSnapshot? ShippingAddressSnapshot { get; private set; }
+    public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
+    public IReadOnlyCollection<Payment> Payments => _payments.AsReadOnly();
     public DateTime? PaidAt { get; private set; }
     public DateTime? CancelledAt { get; private set; }
 
+    // Burada EF Core'un sipariş aggregate'ını veritabanından oluşturabilmesi için boş kurucuyu tutuyorum.
     private Order()
     {
     }
 
+    // Burada siparişin kullanıcı, numara ve parasal özet kurallarını koruyarak aggregate'ı oluşturuyorum.
     public Order(
         long userId,
         string orderNumber,
@@ -32,52 +49,292 @@ public sealed class Order : AuditableEntity
         decimal shippingTotal,
         decimal taxTotal,
         decimal grandTotal,
-        Guid? addressId = null)
+        Guid? addressId = null,
+        string? couponCode = null,
+        Guid? shippingMethodId = null,
+        string? shippingMethodName = null)
     {
         if (userId <= 0)
         {
             throw new DomainException("User id is required.");
         }
 
-        if (string.IsNullOrWhiteSpace(orderNumber))
-        {
-            throw new DomainException("Order number cannot be empty.");
-        }
-
+        OrderNumber = NormalizeOrderNumber(orderNumber);
         ValidateTotals(subTotal, discountTotal, shippingTotal, taxTotal, grandTotal);
 
         UserId = userId;
-        OrderNumber = orderNumber.Trim();
         Status = OrderStatus.Pending;
         SubTotal = subTotal;
         DiscountTotal = discountTotal;
         ShippingTotal = shippingTotal;
         TaxTotal = taxTotal;
         GrandTotal = grandTotal;
-        AddressId = addressId == Guid.Empty ? throw new DomainException("Address id cannot be empty.") : addressId;
+        AddressId = addressId == Guid.Empty
+            ? throw new DomainException("Address id cannot be empty.")
+            : addressId;
+        CouponCode = NormalizeCouponCode(couponCode);
+        ShippingMethodId = shippingMethodId == Guid.Empty
+            ? throw new DomainException("Shipping method id cannot be empty.")
+            : shippingMethodId;
+        ShippingMethodName = NormalizeShippingMethodName(shippingMethodName);
+        EnsureShippingMethodConsistency();
     }
 
+    // Burada güvenilir katalog snapshot'ıyla yeni sipariş kalemini aggregate'a ekliyorum.
+    public OrderItem AddItem(
+        long productId,
+        Guid productVariantId,
+        string productTitleSnapshot,
+        string variantSkuSnapshot,
+        decimal unitPrice,
+        int quantity,
+        decimal discountTotal = 0m,
+        decimal taxRatePercentage = 0m,
+        decimal taxTotal = 0m)
+    {
+        if (_items.Count >= MaximumItemCount)
+        {
+            throw new DomainException($"Order cannot contain more than {MaximumItemCount} items.");
+        }
+
+        if (_items.Any(item => item.ProductVariantId == productVariantId))
+        {
+            throw new DomainException("Order cannot contain the same product variant more than once.");
+        }
+
+        var item = new OrderItem(
+            this,
+            productId,
+            productVariantId,
+            productTitleSnapshot,
+            variantSkuSnapshot,
+            unitPrice,
+            quantity,
+            discountTotal,
+            taxRatePercentage,
+            taxTotal);
+        decimal updatedItemTotal;
+        try
+        {
+            updatedItemTotal = checked(CalculateItemTotal() + item.TotalPrice);
+        }
+        catch (OverflowException exception)
+        {
+            throw new DomainException("Order item total exceeds the supported limit.", exception);
+        }
+
+        if (updatedItemTotal > SubTotal)
+        {
+            throw new DomainException("Order item total cannot exceed order subtotal.");
+        }
+
+        _items.Add(item);
+        MarkAsUpdated();
+        return item;
+    }
+
+    // Burada güvenilir teslimat adresinin sipariş anındaki değerlerini yalnız bir kez snapshot olarak saklıyorum.
+    public void SetShippingAddressSnapshot(Address address)
+    {
+        if (address is null || !AddressId.HasValue || AddressId.Value != address.Id)
+        {
+            throw new DomainException("The shipping address must match the order address id.");
+        }
+
+        if (ShippingAddressSnapshot is not null)
+        {
+            throw new DomainException("Order shipping address snapshot is already set.");
+        }
+
+        ShippingAddressSnapshot = new OrderAddressSnapshot(this, address);
+        MarkAsUpdated();
+    }
+
+    // Burada ödeme kaydını doğru sipariş ve toplam tutarı koruyarak sipariş aggregate'ına ekliyorum.
+    public void AddPayment(Payment payment)
+    {
+        if (payment is null || payment.OrderId != Id)
+        {
+            throw new DomainException("Payment must belong to this order.");
+        }
+
+        if (payment.Amount != GrandTotal)
+        {
+            throw new DomainException("Payment amount must match the order grand total.");
+        }
+
+        if (_payments.Any(existingPayment => existingPayment.Id == payment.Id))
+        {
+            throw new DomainException("Payment is already attached to this order.");
+        }
+
+        _payments.Add(payment);
+        MarkAsUpdated();
+    }
+
+    // Burada kalem snapshot toplamının siparişin güvenilir subtotal değeriyle tamamen eşleştiğini doğruluyorum.
+    public void EnsureItemsMatchSubTotal()
+    {
+        if (_items.Count == 0)
+        {
+            throw new DomainException("Order must contain at least one item.");
+        }
+
+        if (CalculateItemTotal() != SubTotal)
+        {
+            throw new DomainException("Order items are not consistent with the order subtotal.");
+        }
+
+        if (CalculateItemDiscountTotal() != DiscountTotal)
+        {
+            throw new DomainException("Order items are not consistent with the order discount total.");
+        }
+
+        if (CalculateItemTaxTotal() != TaxTotal)
+        {
+            throw new DomainException("Order items are not consistent with the order tax total.");
+        }
+    }
+
+    // Burada pozitif tutarlı siparişin ayrılmış stoğunu güvenilir UTC süreyle ödeme sonuna kadar bağlıyorum.
+    public void StartStockReservation(DateTime utcNow, TimeSpan reservationDuration)
+    {
+        EnsureUtc(utcNow, "Stock reservation time");
+        if (Status != OrderStatus.Pending)
+        {
+            throw new DomainException("Stock reservation can only start for a pending order.");
+        }
+
+        if (GrandTotal <= 0m)
+        {
+            throw new DomainException("A zero-total order does not require a stock reservation.");
+        }
+
+        EnsureItemsMatchSubTotal();
+        if (reservationDuration <= TimeSpan.Zero || reservationDuration > MaximumStockReservationDuration)
+        {
+            throw new DomainException("Stock reservation duration is outside the supported range.");
+        }
+
+        try
+        {
+            ReservationExpiresAt = utcNow.Add(reservationDuration);
+        }
+        catch (ArgumentOutOfRangeException exception)
+        {
+            throw new DomainException("Stock reservation expiry is outside the supported range.", exception);
+        }
+
+        MarkAsUpdated();
+    }
+
+    // Burada siparişin güvenli olarak otomatik iptal edilebilecek süresi geçmiş stok rezervasyonu olup olmadığını denetliyorum.
+    public bool CanExpireStockReservation(DateTime utcNow)
+    {
+        EnsureUtc(utcNow, "Stock reservation expiration time");
+        return ReservationExpiresAt.HasValue &&
+               ReservationExpiresAt.Value <= utcNow &&
+               Status is OrderStatus.Pending or OrderStatus.Confirmed &&
+               !_payments.Any(payment => payment.Status is PaymentStatus.Paid or PaymentStatus.Pending);
+    }
+
+    // Burada yalnız güvenli olarak sona erdirilebilen rezervasyonu sipariş iptaline çevirip çağrıyı idempotent tutuyorum.
+    public bool ExpireStockReservation(DateTime utcNow)
+    {
+        if (!CanExpireStockReservation(utcNow))
+        {
+            return false;
+        }
+
+        ChangeStatus(OrderStatus.Cancelled, utcNow);
+        return true;
+    }
+
+    // Burada yeni iade talebini sipariş durumuna yansıtıp teslim edilmiş sipariş bağını koruyorum.
+    public void MarkReturnRequested()
+    {
+        if (Status == OrderStatus.ReturnRequested)
+        {
+            return;
+        }
+
+        if (Status is not OrderStatus.Delivered and not OrderStatus.ReturnApproved)
+        {
+            throw new DomainException("A return request can only be opened for a delivered or returned order.");
+        }
+
+        Status = OrderStatus.ReturnRequested;
+        MarkAsUpdated();
+    }
+
+    // Burada yöneticinin onayladığı iade talebini sipariş durumunda görünür hale getiriyorum.
+    public void MarkReturnApproved()
+    {
+        if (Status == OrderStatus.ReturnApproved)
+        {
+            return;
+        }
+
+        if (Status is not OrderStatus.Delivered and not OrderStatus.ReturnRequested)
+        {
+            throw new DomainException("A return can only be approved for a delivered order with a return request.");
+        }
+
+        Status = OrderStatus.ReturnApproved;
+        MarkAsUpdated();
+    }
+
+    // Burada aktif iade kalmadığında siparişi teslim edilmiş durumuna geri getiriyorum.
+    public void RestoreDeliveredAfterReturnResolution()
+    {
+        if (Status == OrderStatus.Delivered)
+        {
+            return;
+        }
+
+        if (Status is not OrderStatus.ReturnRequested and not OrderStatus.ReturnApproved)
+        {
+            throw new DomainException("Only return-related orders can be restored to delivered.");
+        }
+
+        Status = OrderStatus.Delivered;
+        MarkAsUpdated();
+    }
+
+    // Burada siparişin geçerli yaşam döngüsü geçişini uygulayıp ilgili tarih alanlarını güncelliyorum.
     public void ChangeStatus(OrderStatus status, DateTime utcNow)
     {
+        EnsureUtc(utcNow, "Order status change time");
+
         if (!CanTransitionTo(status))
         {
             throw new DomainException($"Order status cannot change from {Status} to {status}.");
+        }
+
+        if (status == OrderStatus.Paid &&
+            GrandTotal > 0m &&
+            !_payments.Any(payment => payment.Status == PaymentStatus.Paid))
+        {
+            throw new DomainException("A successful payment is required before the order can be marked as paid.");
         }
 
         Status = status;
         if (status == OrderStatus.Paid)
         {
             PaidAt = utcNow;
+            ReservationExpiresAt = null;
         }
 
         if (status == OrderStatus.Cancelled)
         {
             CancelledAt = utcNow;
+            ReservationExpiresAt = null;
         }
 
         MarkAsUpdated();
     }
 
+    // Burada hedef sipariş durumunun mevcut durumdan izin verilen bir geçiş olup olmadığını denetliyorum.
     private bool CanTransitionTo(OrderStatus targetStatus)
     {
         return Status switch
@@ -93,6 +350,141 @@ public sealed class Order : AuditableEntity
         };
     }
 
+    // Burada sipariş akışına giren zaman değerinin UTC olmasını merkezi olarak doğruluyorum.
+    private static void EnsureUtc(DateTime utcNow, string fieldName)
+    {
+        if (utcNow.Kind != DateTimeKind.Utc)
+        {
+            throw new DomainException($"{fieldName} must be UTC.");
+        }
+    }
+
+    // Burada sipariş kalemlerinin hesaplanabilir toplamını para taşmasına izin vermeden üretiyorum.
+    private decimal CalculateItemTotal()
+    {
+        decimal total = 0m;
+
+        try
+        {
+            foreach (var item in _items)
+            {
+                total = checked(total + item.TotalPrice);
+            }
+        }
+        catch (OverflowException exception)
+        {
+            throw new DomainException("Order item total exceeds the supported limit.", exception);
+        }
+
+        return total;
+    }
+
+    // Burada kalemlerde snapshot olarak saklanan indirimleri taşma denetimiyle sipariş indirim toplamına bağlıyorum.
+    private decimal CalculateItemDiscountTotal()
+    {
+        decimal total = 0m;
+
+        try
+        {
+            foreach (var item in _items)
+            {
+                total = checked(total + item.DiscountTotal);
+            }
+        }
+        catch (OverflowException exception)
+        {
+            throw new DomainException("Order item discount total exceeds the supported limit.", exception);
+        }
+
+        return total;
+    }
+
+    // Burada kalemlerde snapshot olarak saklanan vergileri taşma denetimiyle sipariş vergi toplamına bağlıyorum.
+    private decimal CalculateItemTaxTotal()
+    {
+        decimal total = 0m;
+
+        try
+        {
+            foreach (var item in _items)
+            {
+                total = checked(total + item.TaxTotal);
+            }
+        }
+        catch (OverflowException exception)
+        {
+            throw new DomainException("Order item tax total exceeds the supported limit.", exception);
+        }
+
+        return total;
+    }
+
+    // Burada sipariş numarasını veritabanı sözleşmesine uygun, boş olmayan sınırlı bir değere dönüştürüyorum.
+    private static string NormalizeOrderNumber(string orderNumber)
+    {
+        if (string.IsNullOrWhiteSpace(orderNumber))
+        {
+            throw new DomainException("Order number cannot be empty.");
+        }
+
+        var normalizedOrderNumber = orderNumber.Trim();
+        if (normalizedOrderNumber.Length > MaximumOrderNumberLength)
+        {
+            throw new DomainException($"Order number cannot exceed {MaximumOrderNumberLength} characters.");
+        }
+
+        return normalizedOrderNumber;
+    }
+
+    // Burada isteğe bağlı kupon kodunu arşiv amaçlı büyük harfli ve sınırlı biçimde saklıyorum.
+    private static string? NormalizeCouponCode(string? couponCode)
+    {
+        if (string.IsNullOrWhiteSpace(couponCode))
+        {
+            return null;
+        }
+
+        var normalizedCouponCode = couponCode.Trim().ToUpperInvariant();
+        if (normalizedCouponCode.Length > MaximumCouponCodeLength)
+        {
+            throw new DomainException($"Coupon code cannot exceed {MaximumCouponCodeLength} characters.");
+        }
+
+        return normalizedCouponCode;
+    }
+
+    // Burada seçili kargo yönteminin sipariş anındaki adını boşluk ve uzunluk kurallarına göre snapshot olarak saklıyorum.
+    private static string? NormalizeShippingMethodName(string? shippingMethodName)
+    {
+        if (string.IsNullOrWhiteSpace(shippingMethodName))
+        {
+            return null;
+        }
+
+        var normalizedShippingMethodName = shippingMethodName.Trim();
+        if (normalizedShippingMethodName.Length > ShippingMethod.MaximumNameLength)
+        {
+            throw new DomainException($"Shipping method name cannot exceed {ShippingMethod.MaximumNameLength} characters.");
+        }
+
+        return normalizedShippingMethodName;
+    }
+
+    // Burada kargo ücretinin yalnız güvenilir yöntem seçimiyle birlikte tutulduğunu doğruluyorum.
+    private void EnsureShippingMethodConsistency()
+    {
+        if (ShippingMethodId.HasValue != (ShippingMethodName is not null))
+        {
+            throw new DomainException("Shipping method id and name must be provided together.");
+        }
+
+        if (ShippingTotal > 0m && !ShippingMethodId.HasValue)
+        {
+            throw new DomainException("A shipping method is required when a shipping fee is charged.");
+        }
+    }
+
+    // Burada sipariş toplamlarının negatif olmamasını ve grand total formülünü doğruluyorum.
     private static void ValidateTotals(
         decimal subTotal,
         decimal discountTotal,
@@ -105,12 +497,29 @@ public sealed class Order : AuditableEntity
             throw new DomainException("Order totals cannot be negative.");
         }
 
+        if (subTotal > MaximumSupportedAmount ||
+            discountTotal > MaximumSupportedAmount ||
+            shippingTotal > MaximumSupportedAmount ||
+            taxTotal > MaximumSupportedAmount ||
+            grandTotal > MaximumSupportedAmount)
+        {
+            throw new DomainException("Order totals exceed the supported monetary limit.");
+        }
+
         if (discountTotal > subTotal)
         {
             throw new DomainException("Order discount total cannot exceed subtotal.");
         }
 
-        var expectedGrandTotal = subTotal - discountTotal + shippingTotal + taxTotal;
+        decimal expectedGrandTotal;
+        try
+        {
+            expectedGrandTotal = checked(subTotal - discountTotal + shippingTotal + taxTotal);
+        }
+        catch (OverflowException exception)
+        {
+            throw new DomainException("Order grand total exceeds the supported limit.", exception);
+        }
 
         if (grandTotal != expectedGrandTotal)
         {

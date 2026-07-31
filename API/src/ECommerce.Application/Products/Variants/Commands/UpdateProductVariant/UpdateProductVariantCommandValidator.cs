@@ -4,6 +4,7 @@ namespace ECommerce.Application.Products.Variants.Commands.UpdateProductVariant;
 
 public sealed class UpdateProductVariantCommandValidator : AbstractValidator<UpdateProductVariantCommand>
 {
+    // Burada varyant bilgi ve olası stok sayım düzeltmesi alanlarını birlikte doğruluyorum.
     public UpdateProductVariantCommandValidator()
     {
         RuleFor(command => command.Id)

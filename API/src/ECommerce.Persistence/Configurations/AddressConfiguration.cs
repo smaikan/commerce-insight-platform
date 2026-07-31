@@ -6,9 +6,13 @@ namespace ECommerce.Persistence.Configurations;
 
 public sealed class AddressConfiguration : IEntityTypeConfiguration<Address>
 {
+    // Burada adres tablosunun alan sınırlarını, owner indekslerini ve tek varsayılan adres kuralını tanımlıyorum.
     public void Configure(EntityTypeBuilder<Address> builder)
     {
-        builder.ToTable("Addresses");
+        builder.ToTable("Addresses", tableBuilder =>
+        {
+            tableBuilder.HasCheckConstraint("CK_Addresses_UserId_Positive", "[UserId] > 0");
+        });
 
         builder.HasKey(address => address.Id);
 
@@ -49,5 +53,8 @@ public sealed class AddressConfiguration : IEntityTypeConfiguration<Address>
             .HasMaxLength(20);
 
         builder.HasIndex(address => address.UserId);
+        builder.HasIndex(address => new { address.UserId, address.Type, address.IsDefault })
+            .HasFilter("[IsDefault] = 1")
+            .IsUnique();
     }
 }
