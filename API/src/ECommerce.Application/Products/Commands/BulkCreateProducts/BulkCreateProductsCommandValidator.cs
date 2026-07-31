@@ -70,6 +70,10 @@ public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkC
                             .NotEmpty()
                             .MaximumLength(150);
 
+                        variant.RuleFor(item => item.Value)
+                            .NotEmpty()
+                            .MaximumLength(150);
+
                         variant.RuleFor(item => item.Sku)
                             .NotEmpty()
                             .MaximumLength(100);

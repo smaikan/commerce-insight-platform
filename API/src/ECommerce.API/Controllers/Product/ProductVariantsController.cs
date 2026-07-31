@@ -50,7 +50,7 @@ public sealed class ProductVariantsController : ControllerBase
         CreateProductVariantRequest request,
         CancellationToken cancellationToken) =>
         StatusCode(StatusCodes.Status201Created, await _sender.Send(new CreateProductVariantCommand(
-            ApiPublicIdParser.ParseProductId(productId), request.Name, request.Sku, request.Price, request.Stock, request.CompareAtPrice,
+            ApiPublicIdParser.ParseProductId(productId), request.Name, request.Value, request.Sku, request.Price, request.Stock, request.CompareAtPrice,
             request.Barcode, request.Material, request.IsActive), cancellationToken));
 
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -61,7 +61,7 @@ public sealed class ProductVariantsController : ControllerBase
         UpdateProductVariantRequest request,
         CancellationToken cancellationToken) =>
         Ok(await _sender.Send(new UpdateProductVariantCommand(
-            id, request.Name, request.Sku, request.Price, request.Stock, request.CompareAtPrice,
+            id, request.Name, request.Value, request.Sku, request.Price, request.Stock, request.CompareAtPrice,
             request.Barcode, request.Material, request.IsActive, request.StockAdjustmentReason), cancellationToken));
 
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -107,11 +107,11 @@ public sealed class ProductVariantsController : ControllerBase
 
 // Burada yeni varyantın başlangıç bilgileri ve açılış stok bakiyesini taşıyorum.
 public sealed record CreateProductVariantRequest(
-    string Name, string Sku, decimal Price, int Stock, decimal? CompareAtPrice = null,
+    string Name, string Value, string Sku, decimal Price, int Stock, decimal? CompareAtPrice = null,
     string? Barcode = null, string? Material = null, bool IsActive = true);
 // Burada varyant detaylarıyla olası stok sayım hedefini birlikte taşıyorum.
 public sealed record UpdateProductVariantRequest(
-    string Name, string Sku, decimal Price, int Stock, decimal? CompareAtPrice = null,
+    string Name, string Value, string Sku, decimal Price, int Stock, decimal? CompareAtPrice = null,
     string? Barcode = null, string? Material = null, bool IsActive = true,
     string? StockAdjustmentReason = null);
 // Burada varyant fiyat güncelleme isteğini taşıyorum.

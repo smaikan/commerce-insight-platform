@@ -19,6 +19,7 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
     private readonly IProductTagResolver _productTagResolver;
     private readonly IProductUrlGenerator _productUrlGenerator;
     private readonly IOpeningBalanceCostLayerWriter _openingBalanceCostLayerWriter;
+    private readonly IVariantOptionResolver? _variantOptionResolver;
     private readonly IUnitOfWork _unitOfWork;
 
     // Burada ürün oluşturma akışının ihtiyaç duyduğu bağımlılıkları hazırlıyorum.
@@ -31,7 +32,8 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
         IProductTagResolver productTagResolver,
         IProductUrlGenerator productUrlGenerator,
         IOpeningBalanceCostLayerWriter openingBalanceCostLayerWriter,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IVariantOptionResolver? variantOptionResolver = null)
     {
         _productRepository = productRepository;
         _productTypeRepository = productTypeRepository;
@@ -41,6 +43,7 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
         _productTagResolver = productTagResolver;
         _productUrlGenerator = productUrlGenerator;
         _openingBalanceCostLayerWriter = openingBalanceCostLayerWriter;
+        _variantOptionResolver = variantOptionResolver;
         _unitOfWork = unitOfWork;
     }
 
@@ -141,6 +144,9 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
             new List<OpeningBalanceCostLayerSeed>(variants.Count);
         foreach (var item in variants)
         {
+            var resolvedOption = _variantOptionResolver is null
+                ? null
+                : await _variantOptionResolver.ResolveCompositeAsync(item.Name, item.Value, cancellationToken);
             var variant = new ProductVariant(
                 product,
                 item.Name,
@@ -151,7 +157,12 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
                 item.Barcode,
                 item.Material,
                 item.IsActive,
-                taxRate?.CalculateNetPrice(item.Price) ?? item.Price);
+                taxRate?.CalculateNetPrice(item.Price) ?? item.Price,
+                item.Value);
+            if (resolvedOption is not null)
+            {
+                variant.ReplaceOptionValues(resolvedOption);
+            }
 
             product.Variants.Add(variant);
             openingBalanceSeeds.Add(new OpeningBalanceCostLayerSeed(

@@ -32,6 +32,7 @@ public sealed record BulkCreateProductItem(
 // Burada toplu ürünle birlikte oluşturulacak varyant bilgisini taşıyorum.
 public sealed record BulkCreateProductVariantItem(
     string Name,
+    string Value,
     string Sku,
     decimal Price,
     int Stock,
@@ -40,7 +41,24 @@ public sealed record BulkCreateProductVariantItem(
     string? Material = null,
     bool IsActive = true,
     decimal? OpeningUnitCostExcludingVat = null,
-    decimal? OpeningUnitCostIncludingVat = null);
+    decimal? OpeningUnitCostIncludingVat = null)
+{
+    // Burada eski toplu varyant çağrılarını aynı adı değer olarak kullanarak uyumlu tutuyorum.
+    public BulkCreateProductVariantItem(
+        string Name,
+        string Sku,
+        decimal Price,
+        int Stock,
+        decimal? CompareAtPrice = null,
+        string? Barcode = null,
+        string? Material = null,
+        bool IsActive = true,
+        decimal? OpeningUnitCostExcludingVat = null,
+        decimal? OpeningUnitCostIncludingVat = null)
+        : this(Name, Name, Sku, Price, Stock, CompareAtPrice, Barcode, Material, IsActive, OpeningUnitCostExcludingVat, OpeningUnitCostIncludingVat)
+    {
+    }
+}
 
 // Burada toplu ürünle birlikte oluşturulacak görsel bilgisini taşıyorum.
 public sealed record BulkCreateProductImageItem(

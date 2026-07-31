@@ -20,6 +20,7 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
     private readonly IProductTagResolver _productTagResolver;
     private readonly IProductUrlGenerator _productUrlGenerator;
     private readonly IOpeningBalanceCostLayerWriter _openingBalanceCostLayerWriter;
+    private readonly IVariantOptionResolver? _variantOptionResolver;
     private readonly IUnitOfWork _unitOfWork;
 
     // Burada toplu ürün oluşturma akışının ihtiyaç duyduğu bağımlılıkları hazırlıyorum.
@@ -33,7 +34,8 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         IProductTagResolver productTagResolver,
         IProductUrlGenerator productUrlGenerator,
         IOpeningBalanceCostLayerWriter openingBalanceCostLayerWriter,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IVariantOptionResolver? variantOptionResolver = null)
     {
         _productRepository = productRepository;
         _productTypeRepository = productTypeRepository;
@@ -44,6 +46,7 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         _productTagResolver = productTagResolver;
         _productUrlGenerator = productUrlGenerator;
         _openingBalanceCostLayerWriter = openingBalanceCostLayerWriter;
+        _variantOptionResolver = variantOptionResolver;
         _unitOfWork = unitOfWork;
     }
 
@@ -81,6 +84,10 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         var products = preparedItems
             .Select(item => CreateProduct(item, resolvedTags, taxRatesById))
             .ToList();
+        if (_variantOptionResolver is not null)
+        {
+            await AssignVariantOptionsAsync(products, preparedItems, cancellationToken);
+        }
         var openingBalanceSeeds = products
             .Zip(
                 preparedItems,
@@ -335,7 +342,8 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
                 variant.Barcode,
                 variant.Material,
                 variant.IsActive,
-                taxRate?.CalculateNetPrice(variant.Price) ?? variant.Price);
+                taxRate?.CalculateNetPrice(variant.Price) ?? variant.Price,
+                variant.Value);
 
             product.Variants.Add(productVariant);
         }
@@ -366,6 +374,28 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         product.EnsureHasAtLeastOneVariant();
 
         return product;
+    }
+
+    // Burada toplu ürünlerdeki her varyantı merkezi ad ve değer kayıtlarıyla aynı sırada ilişkilendiriyorum.
+    private async Task AssignVariantOptionsAsync(
+        IReadOnlyList<Product> products,
+        IReadOnlyList<PreparedProductItem> preparedItems,
+        CancellationToken cancellationToken)
+    {
+        for (var productIndex = 0; productIndex < products.Count; productIndex++)
+        {
+            var variants = products[productIndex].Variants.ToList();
+            var requestedVariants = preparedItems[productIndex].Item.Variants ?? [];
+            for (var variantIndex = 0; variantIndex < variants.Count; variantIndex++)
+            {
+                var requestVariant = requestedVariants[variantIndex];
+                var resolvedOption = await _variantOptionResolver!.ResolveCompositeAsync(
+                    requestVariant.Name,
+                    requestVariant.Value,
+                    cancellationToken);
+                variants[variantIndex].ReplaceOptionValues(resolvedOption);
+            }
+        }
     }
 
     // Burada metin listesindeki büyük-küçük harf duyarsız tekrarları yakalıyorum.

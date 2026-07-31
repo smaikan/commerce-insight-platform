@@ -22,6 +22,10 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
             .HasMaxLength(150)
             .IsRequired();
 
+        builder.Property(variant => variant.Value)
+            .HasMaxLength(150)
+            .IsRequired();
+
         builder.Property(variant => variant.Sku)
             .HasMaxLength(100)
             .IsRequired();
@@ -51,6 +55,16 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
             .HasForeignKey(variant => variant.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasOne(variant => variant.VariantOptionName)
+            .WithMany(optionName => optionName.ProductVariants)
+            .HasForeignKey(variant => variant.VariantOptionNameId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(variant => variant.VariantOptionValue)
+            .WithMany(optionValue => optionValue.ProductVariants)
+            .HasForeignKey(variant => variant.VariantOptionValueId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(variant => variant.DailyMetrics)
             .WithOne(metric => metric.ProductVariant)
             .HasForeignKey(metric => metric.ProductVariantId)
@@ -68,6 +82,8 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
             .IsUnique();
 
         builder.HasIndex(variant => variant.ProductId);
+        builder.HasIndex(variant => variant.VariantOptionNameId);
+        builder.HasIndex(variant => variant.VariantOptionValueId);
         builder.HasIndex(variant => variant.Barcode);
     }
 }

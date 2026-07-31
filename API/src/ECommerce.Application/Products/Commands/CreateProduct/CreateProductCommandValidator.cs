@@ -69,6 +69,10 @@ public sealed class CreateProductCommandValidator : AbstractValidator<CreateProd
                     .NotEmpty()
                     .MaximumLength(150);
 
+                variant.RuleFor(item => item.Value)
+                    .NotEmpty()
+                    .MaximumLength(150);
+
                 variant.RuleFor(item => item.Sku)
                     .NotEmpty()
                     .MaximumLength(100);

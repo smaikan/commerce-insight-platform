@@ -10,12 +10,17 @@ namespace ECommerce.Application.Products.Variants.Commands.UpdateProductVariant;
 public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateProductVariantCommand, ProductVariantDto>
 {
     private readonly IProductVariantRepository _variantRepository;
+    private readonly IVariantOptionResolver? _variantOptionResolver;
     private readonly IUnitOfWork _unitOfWork;
 
     // Burada varyant bilgi güncellemesinin repository ve transaction bağımlılıklarını hazırlıyorum.
-    public UpdateProductVariantCommandHandler(IProductVariantRepository variantRepository, IUnitOfWork unitOfWork)
+    public UpdateProductVariantCommandHandler(
+        IProductVariantRepository variantRepository,
+        IUnitOfWork unitOfWork,
+        IVariantOptionResolver? variantOptionResolver = null)
     {
         _variantRepository = variantRepository;
+        _variantOptionResolver = variantOptionResolver;
         _unitOfWork = unitOfWork;
     }
 
@@ -34,11 +39,20 @@ public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateP
             throw new ConflictException("Product variant SKU already exists.");
         }
 
+        var resolvedOption = _variantOptionResolver is null
+            ? null
+            : await _variantOptionResolver.ResolveCompositeAsync(request.Name, request.Value, cancellationToken);
+
         variant.UpdateDetails(
             request.Name,
+            request.Value,
             request.Sku,
             request.Barcode,
             request.Material);
+        if (resolvedOption is not null)
+        {
+            variant.ReplaceOptionValues(resolvedOption);
+        }
 
         variant.UpdatePrice(
             request.Price,

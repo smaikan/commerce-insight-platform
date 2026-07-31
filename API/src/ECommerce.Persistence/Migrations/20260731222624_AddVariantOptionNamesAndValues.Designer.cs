@@ -4,6 +4,7 @@ using ECommerce.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ECommerce.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260731222624_AddVariantOptionNamesAndValues")]
+    partial class AddVariantOptionNamesAndValues
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3324,34 +3327,6 @@ namespace ECommerce.Persistence.Migrations
                     b.ToTable("ProductVariantDailyMetrics", (string)null);
                 });
 
-            modelBuilder.Entity("ECommerce.Domain.Entities.ProductVariantOptionValue", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("ProductVariantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("VariantOptionNameId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("VariantOptionValueId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("VariantOptionValueId");
-
-                    b.HasIndex("ProductVariantId", "VariantOptionNameId")
-                        .IsUnique();
-
-                    b.ToTable("ProductVariantOptionValues", (string)null);
-                });
-
             modelBuilder.Entity("ECommerce.Domain.Entities.ReturnItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3896,7 +3871,8 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("nvarchar(150)")
+                        .UseCollation("Turkish_100_CS_AS");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -3925,7 +3901,8 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<string>("Value")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("nvarchar(150)")
+                        .UseCollation("Turkish_100_CS_AS");
 
                     b.Property<Guid>("VariantOptionNameId")
                         .HasColumnType("uniqueidentifier");
@@ -4687,25 +4664,6 @@ namespace ECommerce.Persistence.Migrations
                     b.Navigation("ProductVariant");
                 });
 
-            modelBuilder.Entity("ECommerce.Domain.Entities.ProductVariantOptionValue", b =>
-                {
-                    b.HasOne("ECommerce.Domain.Entities.ProductVariant", "ProductVariant")
-                        .WithMany("OptionValues")
-                        .HasForeignKey("ProductVariantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ECommerce.Domain.Entities.VariantOptionValue", "VariantOptionValue")
-                        .WithMany()
-                        .HasForeignKey("VariantOptionValueId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ProductVariant");
-
-                    b.Navigation("VariantOptionValue");
-                });
-
             modelBuilder.Entity("ECommerce.Domain.Entities.ReturnItem", b =>
                 {
                     b.HasOne("ECommerce.Domain.Entities.OrderItem", "OrderItem")
@@ -4919,8 +4877,6 @@ namespace ECommerce.Persistence.Migrations
             modelBuilder.Entity("ECommerce.Domain.Entities.ProductVariant", b =>
                 {
                     b.Navigation("DailyMetrics");
-
-                    b.Navigation("OptionValues");
 
                     b.Navigation("StockMovements");
                 });
