@@ -32,4 +32,6 @@ public sealed record CreateProductVariantItem(
     decimal? CompareAtPrice = null,
     string? Barcode = null,
     string? Material = null,
-    bool IsActive = true);
+    bool IsActive = true,
+    decimal? OpeningUnitCostExcludingVat = null,
+    decimal? OpeningUnitCostIncludingVat = null);

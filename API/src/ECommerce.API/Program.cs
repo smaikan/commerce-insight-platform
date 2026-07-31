@@ -64,6 +64,22 @@ builder.Services.AddSwaggerGen(options =>
     // Burada null olamaz C# referans alanlarını Swagger sözleşmesinde de zorunlu gösteriyorum.
     options.SupportNonNullableReferenceTypes();
     options.NonNullableReferenceTypesAsRequired();
+    options.CustomSchemaIds(type =>
+    {
+        if (type.Name is "Payment" or "PaymentStatus" or "PaymentDto")
+        {
+            return type.FullName?.Replace("+", ".") ?? type.Name;
+        }
+
+        if (!type.IsConstructedGenericType)
+        {
+            return type.Name.Replace("[]", "Array");
+        }
+
+        var argumentNames = string.Concat(type.GetGenericArguments()
+            .Select(argument => argument.Name.Replace("[]", "Array")));
+        return argumentNames + type.Name.Split('`')[0];
+    });
 
     options.AddSecurityDefinition(bearerScheme, new OpenApiSecurityScheme
     {

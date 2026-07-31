@@ -1,3 +1,4 @@
+using ECommerce.Application.Accounting.CostLayers;
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Identifiers;
@@ -17,6 +18,29 @@ namespace ECommerce.UnitTests.Application;
 
 public sealed class ProductVariantCommandHandlerTests
 {
+    // Burada yeni varyantın negatif, aşırı hassas veya stoksuz pozitif açılış maliyetini reddediyorum.
+    [Theory]
+    [InlineData(-1, 1, false)]
+    [InlineData(10.12345, 1, false)]
+    [InlineData(10, 0, false)]
+    [InlineData(0, 0, true)]
+    public void CreateProductVariantValidator_Should_Validate_Opening_Cost(
+        decimal openingUnitCost,
+        int stock,
+        bool expectedValidity)
+    {
+        var result = new CreateProductVariantCommandValidator().Validate(
+            new CreateProductVariantCommand(
+                1,
+                "Standard",
+                "SKU-OPENING",
+                100m,
+                stock,
+                OpeningUnitCostExcludingVat: openingUnitCost));
+
+        result.IsValid.Should().Be(expectedValidity);
+    }
+
     // Burada ürünün son varyantının silinmesini engelliyorum.
     [Fact]
     public async Task DeleteProductVariant_Should_Reject_Deleting_Last_Variant()
@@ -93,6 +117,8 @@ public sealed class ProductVariantCommandHandlerTests
     {
         var productRepository = new Mock<IProductRepository>();
         var variantRepository = new Mock<IProductVariantRepository>();
+        var openingBalanceCostLayerWriter =
+            new Mock<IOpeningBalanceCostLayerWriter>();
         var unitOfWork = new Mock<IUnitOfWork>();
         var product = new Product("Product", "product", "PRODUCT-MAIN", Guid.NewGuid()).WithId(1);
         ProductVariant? createdVariant = null;
@@ -117,10 +143,18 @@ public sealed class ProductVariantCommandHandlerTests
         var handler = new CreateProductVariantCommandHandler(
             productRepository.Object,
             variantRepository.Object,
+            openingBalanceCostLayerWriter.Object,
             unitOfWork.Object);
 
         var result = await handler.Handle(
-            new CreateProductVariantCommand(product.Id, "Black / Medium", "SKU-1", 100, 8, CompareAtPrice: 120),
+            new CreateProductVariantCommand(
+                product.Id,
+                "Black / Medium",
+                "SKU-1",
+                100,
+                8,
+                CompareAtPrice: 120,
+                OpeningUnitCostExcludingVat: 45.5m),
             CancellationToken.None);
 
         result.ProductId.Should().Be(PublicIdCodec.EncodeProductId(product.Id));
@@ -136,6 +170,14 @@ public sealed class ProductVariantCommandHandlerTests
             movement.QuantityDelta == 8 &&
             movement.StockBeforeMovement == 0 &&
             movement.StockAfterMovement == 8);
+        openingBalanceCostLayerWriter.Verify(
+            writer => writer.CreateForNewVariantsAsync(
+                It.Is<IEnumerable<OpeningBalanceCostLayerSeed>>(seeds =>
+                    seeds.Single().Variant == createdVariant &&
+                    seeds.Single().OpeningUnitCostExcludingVat == 45.5m &&
+                    seeds.Single().OpeningUnitCostIncludingVat == null),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -159,6 +201,7 @@ public sealed class ProductVariantCommandHandlerTests
         var handler = new CreateProductVariantCommandHandler(
             productRepository.Object,
             variantRepository.Object,
+            Mock.Of<IOpeningBalanceCostLayerWriter>(),
             unitOfWork.Object);
 
         Func<Task> act = () => handler.Handle(

@@ -80,6 +80,34 @@ public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkC
                         variant.RuleFor(item => item.Stock)
                             .GreaterThanOrEqualTo(0);
 
+                        variant.RuleFor(item => item.OpeningUnitCostExcludingVat)
+                            .GreaterThanOrEqualTo(0m)
+                            .PrecisionScale(18, 4, false)
+                            .When(item =>
+                                item.OpeningUnitCostExcludingVat.HasValue);
+
+                        variant.RuleFor(item => item.OpeningUnitCostIncludingVat)
+                            .GreaterThanOrEqualTo(0m)
+                            .PrecisionScale(18, 4, false)
+                            .When(item =>
+                                item.OpeningUnitCostIncludingVat.HasValue);
+
+                        variant.RuleFor(item => item.OpeningUnitCostExcludingVat)
+                            .Must((item, cost) =>
+                                item.Stock > 0 ||
+                                !cost.HasValue ||
+                                cost.Value == 0m)
+                            .WithMessage(
+                                "A positive opening unit cost requires positive opening stock.");
+
+                        variant.RuleFor(item => item.OpeningUnitCostIncludingVat)
+                            .Must((item, cost) =>
+                                item.Stock > 0 ||
+                                !cost.HasValue ||
+                                cost.Value == 0m)
+                            .WithMessage(
+                                "A positive opening unit cost requires positive opening stock.");
+
                         variant.RuleFor(item => item.CompareAtPrice)
                             .Must((item, compareAtPrice) => !compareAtPrice.HasValue || compareAtPrice.Value >= item.Price)
                             .WithMessage("Compare-at price cannot be lower than price.");

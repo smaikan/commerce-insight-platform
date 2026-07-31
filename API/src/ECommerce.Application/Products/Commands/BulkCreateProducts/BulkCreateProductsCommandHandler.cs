@@ -1,3 +1,4 @@
+using ECommerce.Application.Accounting.CostLayers;
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Services;
@@ -18,6 +19,7 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
     private readonly ITagRepository _tagRepository;
     private readonly IProductTagResolver _productTagResolver;
     private readonly IProductUrlGenerator _productUrlGenerator;
+    private readonly IOpeningBalanceCostLayerWriter _openingBalanceCostLayerWriter;
     private readonly IUnitOfWork _unitOfWork;
 
     // Burada toplu ürün oluşturma akışının ihtiyaç duyduğu bağımlılıkları hazırlıyorum.
@@ -30,6 +32,7 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         ITagRepository tagRepository,
         IProductTagResolver productTagResolver,
         IProductUrlGenerator productUrlGenerator,
+        IOpeningBalanceCostLayerWriter openingBalanceCostLayerWriter,
         IUnitOfWork unitOfWork)
     {
         _productRepository = productRepository;
@@ -40,6 +43,7 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         _tagRepository = tagRepository;
         _productTagResolver = productTagResolver;
         _productUrlGenerator = productUrlGenerator;
+        _openingBalanceCostLayerWriter = openingBalanceCostLayerWriter;
         _unitOfWork = unitOfWork;
     }
 
@@ -77,8 +81,23 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         var products = preparedItems
             .Select(item => CreateProduct(item, resolvedTags, taxRatesById))
             .ToList();
+        var openingBalanceSeeds = products
+            .Zip(
+                preparedItems,
+                (product, preparedItem) => product.Variants.Zip(
+                    preparedItem.Item.Variants ??
+                        Array.Empty<BulkCreateProductVariantItem>(),
+                    (variant, item) => new OpeningBalanceCostLayerSeed(
+                        variant,
+                        item.OpeningUnitCostExcludingVat,
+                        item.OpeningUnitCostIncludingVat)))
+            .SelectMany(seeds => seeds)
+            .ToArray();
 
         await _productRepository.AddRangeAsync(products, cancellationToken);
+        await _openingBalanceCostLayerWriter.CreateForNewVariantsAsync(
+            openingBalanceSeeds,
+            cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var productIds = products.Select(product => product.Id).ToList();

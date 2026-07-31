@@ -1,3 +1,4 @@
+using ECommerce.Application.Accounting.CostLayers;
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Services;
@@ -17,6 +18,7 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
     private readonly ICollectionRepository _collectionRepository;
     private readonly IProductTagResolver _productTagResolver;
     private readonly IProductUrlGenerator _productUrlGenerator;
+    private readonly IOpeningBalanceCostLayerWriter _openingBalanceCostLayerWriter;
     private readonly IUnitOfWork _unitOfWork;
 
     // Burada ürün oluşturma akışının ihtiyaç duyduğu bağımlılıkları hazırlıyorum.
@@ -28,6 +30,7 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
         ICollectionRepository collectionRepository,
         IProductTagResolver productTagResolver,
         IProductUrlGenerator productUrlGenerator,
+        IOpeningBalanceCostLayerWriter openingBalanceCostLayerWriter,
         IUnitOfWork unitOfWork)
     {
         _productRepository = productRepository;
@@ -37,6 +40,7 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
         _collectionRepository = collectionRepository;
         _productTagResolver = productTagResolver;
         _productUrlGenerator = productUrlGenerator;
+        _openingBalanceCostLayerWriter = openingBalanceCostLayerWriter;
         _unitOfWork = unitOfWork;
     }
 
@@ -133,6 +137,8 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
             product.ProductTags.Add(new ProductTag(product, tagId));
         }
 
+        var openingBalanceSeeds =
+            new List<OpeningBalanceCostLayerSeed>(variants.Count);
         foreach (var item in variants)
         {
             var variant = new ProductVariant(
@@ -148,11 +154,18 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
                 taxRate?.CalculateNetPrice(item.Price) ?? item.Price);
 
             product.Variants.Add(variant);
+            openingBalanceSeeds.Add(new OpeningBalanceCostLayerSeed(
+                variant,
+                item.OpeningUnitCostExcludingVat,
+                item.OpeningUnitCostIncludingVat));
         }
 
         product.EnsureHasAtLeastOneVariant();
 
         await _productRepository.AddAsync(product, cancellationToken);
+        await _openingBalanceCostLayerWriter.CreateForNewVariantsAsync(
+            openingBalanceSeeds,
+            cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var createdProduct = await _productRepository.GetByIdAsync(product.Id, cancellationToken);

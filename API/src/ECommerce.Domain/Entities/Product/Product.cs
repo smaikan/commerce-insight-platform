@@ -37,6 +37,9 @@ public sealed class Product : AuditableEntity<long>
     public long ReviewCount { get; private set; }
     public Guid ConcurrencyToken { get; private set; }
 
+    // Burada ürünün varyant içerip içermediğini gerçek varyant koleksiyonundan türetiyorum.
+    public bool HasVariants => Variants.Count > 0;
+
     public ICollection<ProductVariant> Variants { get; private set; } = new List<ProductVariant>();
     public ICollection<ProductImage> Images { get; private set; } = new List<ProductImage>();
     public ICollection<ProductCollection> ProductCollections { get; private set; } = new List<ProductCollection>();

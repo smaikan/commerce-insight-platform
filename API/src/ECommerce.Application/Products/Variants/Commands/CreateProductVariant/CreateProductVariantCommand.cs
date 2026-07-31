@@ -3,6 +3,7 @@ using MediatR;
 
 namespace ECommerce.Application.Products.Variants.Commands.CreateProductVariant;
 
+// Burada tek varyant oluşturma isteğini opsiyonel açılış maliyetleriyle taşıyorum.
 public sealed record CreateProductVariantCommand(
     long ProductId,
     string Name,
@@ -12,4 +13,6 @@ public sealed record CreateProductVariantCommand(
     decimal? CompareAtPrice = null,
     string? Barcode = null,
     string? Material = null,
-    bool IsActive = true) : IRequest<ProductVariantDto>;
+    bool IsActive = true,
+    decimal? OpeningUnitCostExcludingVat = null,
+    decimal? OpeningUnitCostIncludingVat = null) : IRequest<ProductVariantDto>;

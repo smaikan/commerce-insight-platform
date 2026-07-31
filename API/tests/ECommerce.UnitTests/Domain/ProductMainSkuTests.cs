@@ -67,4 +67,25 @@ public sealed class ProductMainSkuTests
         product.ConcurrencyToken.Should().NotBe(concurrencyToken);
         product.UpdatedAt.Should().NotBeNull();
     }
+
+    // Burada ürünün varyant durumunun gerçek varyant koleksiyonundan türetildiğini doğruluyorum.
+    [Fact]
+    public void HasVariants_Should_Reflect_Variant_Collection()
+    {
+        var product = new Product(
+            "Product",
+            "product",
+            mainSku: "MAIN-SKU");
+
+        product.HasVariants.Should().BeFalse();
+
+        product.Variants.Add(new ProductVariant(
+            product,
+            "Default",
+            "VARIANT-SKU",
+            price: 10m,
+            stock: 0));
+
+        product.HasVariants.Should().BeTrue();
+    }
 }

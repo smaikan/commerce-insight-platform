@@ -1,4 +1,5 @@
 using ECommerce.Application.Common.Behaviors;
+using ECommerce.Application.Accounting;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Services;
 using ECommerce.Application.Carts.Services;
@@ -19,6 +20,7 @@ public static class ApplicationServiceRegistration
             configuration.RegisterServicesFromAssembly(typeof(ApplicationServiceRegistration).Assembly));
 
         services.AddValidatorsFromAssembly(typeof(ApplicationServiceRegistration).Assembly);
+        services.AddAccountingApplicationServices();
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddScoped<ProductUrlGenerator>();
         services.AddScoped<IProductUrlGenerator>(provider => provider.GetRequiredService<ProductUrlGenerator>());
