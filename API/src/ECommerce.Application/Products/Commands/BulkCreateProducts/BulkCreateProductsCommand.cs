@@ -38,7 +38,9 @@ public sealed record BulkCreateProductVariantItem(
     decimal? CompareAtPrice = null,
     string? Barcode = null,
     string? Material = null,
-    bool IsActive = true);
+    bool IsActive = true,
+    decimal? OpeningUnitCostExcludingVat = null,
+    decimal? OpeningUnitCostIncludingVat = null);
 
 // Burada toplu ürünle birlikte oluşturulacak görsel bilgisini taşıyorum.
 public sealed record BulkCreateProductImageItem(

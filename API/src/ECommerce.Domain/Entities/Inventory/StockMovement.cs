@@ -97,6 +97,8 @@ public sealed class StockMovement : BaseEntity
             StockMovementType.PurchaseReturn => direction == StockMovementDirection.Out,
             StockMovementType.Sale => direction == StockMovementDirection.Out,
             StockMovementType.SaleReturn => direction == StockMovementDirection.In,
+            StockMovementType.AccountingSale => direction == StockMovementDirection.Out,
+            StockMovementType.AccountingSaleCancellation => direction == StockMovementDirection.In,
             StockMovementType.ManualAdjustment => true,
             StockMovementType.StockCountAdjustment => true,
             StockMovementType.Loss => direction == StockMovementDirection.Out,
@@ -129,6 +131,13 @@ public sealed class StockMovement : BaseEntity
         if (type == StockMovementType.SaleReturn && !returnRequestId.HasValue)
         {
             throw new DomainException("Sale return stock movement must reference a return request.");
+        }
+
+        if (type is StockMovementType.AccountingSale or StockMovementType.AccountingSaleCancellation &&
+            (orderId.HasValue || returnRequestId.HasValue))
+        {
+            throw new DomainException(
+                "Accounting sale stock movements use the accounting mapping and cannot reference an e-commerce order or return.");
         }
     }
 

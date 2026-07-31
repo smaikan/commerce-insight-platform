@@ -13,9 +13,9 @@ namespace ECommerce.IntegrationTests.Persistence;
 
 public sealed class StockMovementPersistenceTests
 {
-    // Burada imzalı hareketin yeni satır olarak kaydedilip hızlı stok bakiyesiyle aynı toplamı verdiğini doğruluyorum.
+    // Burada siparişsiz muhasebe satışının negatif hareket olarak kaydedilip stok bakiyesiyle mutabık kaldığını doğruluyorum.
     [Fact]
-    public async Task Repository_Should_List_Signed_Movement_And_Reconcile_Current_Balance()
+    public async Task Repository_Should_Persist_Orderless_Accounting_Sale_And_Reconcile_Current_Balance()
     {
         await using var connection = await CreateOpenConnectionAsync();
         var options = CreateOptions(connection);
@@ -43,8 +43,8 @@ public sealed class StockMovementPersistenceTests
                 .SingleAsync(item => item.Id == variantId);
             variant.ApplyStockMovement(
                 -2,
-                StockMovementType.Damage,
-                "Damaged during warehouse handling.");
+                StockMovementType.AccountingSale,
+                "Accounting sales order posted.");
             await writeContext.SaveChangesAsync();
         }
 
@@ -56,7 +56,7 @@ public sealed class StockMovementPersistenceTests
             PageSize: 20,
             ProductVariantId: variantId,
             Direction: StockMovementDirection.Out,
-            Type: StockMovementType.Damage));
+            Type: StockMovementType.AccountingSale));
         var balance = await repository.GetBalanceAsync(variantId);
 
         movements.Items.Should().ContainSingle();
@@ -64,6 +64,7 @@ public sealed class StockMovementPersistenceTests
         movements.Items.Single().QuantityDelta.Should().Be(-2);
         movements.Items.Single().StockBeforeMovement.Should().Be(5);
         movements.Items.Single().StockAfterMovement.Should().Be(3);
+        movements.Items.Single().OrderId.Should().BeNull();
         balance.Should().NotBeNull();
         balance!.PersistedStock.Should().Be(3);
         balance.MovementBalance.Should().Be(3);
@@ -91,6 +92,12 @@ public sealed class StockMovementPersistenceTests
             "CK_StockMovements_Type_Matches_Direction",
             "CK_StockMovements_Required_Reference"
         });
+        movementEntity.GetCheckConstraints()
+            .Single(constraint => constraint.Name == "CK_StockMovements_Type_Valid")
+            .Sql.Should().Contain("22");
+        movementEntity.GetCheckConstraints()
+            .Single(constraint => constraint.Name == "CK_StockMovements_Type_Matches_Direction")
+            .Sql.Should().Contain("22");
 
         var orderIndex = movementEntity.GetIndexes().Single(index =>
             index.GetDatabaseName() == "UX_StockMovements_OrderId_ProductVariantId_Type");

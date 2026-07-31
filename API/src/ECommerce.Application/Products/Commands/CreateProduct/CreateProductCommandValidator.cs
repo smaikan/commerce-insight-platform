@@ -79,6 +79,28 @@ public sealed class CreateProductCommandValidator : AbstractValidator<CreateProd
                 variant.RuleFor(item => item.Stock)
                     .GreaterThanOrEqualTo(0);
 
+                variant.RuleFor(item => item.OpeningUnitCostExcludingVat)
+                    .GreaterThanOrEqualTo(0m)
+                    .PrecisionScale(18, 4, false)
+                    .When(item => item.OpeningUnitCostExcludingVat.HasValue);
+
+                variant.RuleFor(item => item.OpeningUnitCostIncludingVat)
+                    .GreaterThanOrEqualTo(0m)
+                    .PrecisionScale(18, 4, false)
+                    .When(item => item.OpeningUnitCostIncludingVat.HasValue);
+
+                variant.RuleFor(item => item.OpeningUnitCostExcludingVat)
+                    .Must((item, cost) =>
+                        item.Stock > 0 || !cost.HasValue || cost.Value == 0m)
+                    .WithMessage(
+                        "A positive opening unit cost requires positive opening stock.");
+
+                variant.RuleFor(item => item.OpeningUnitCostIncludingVat)
+                    .Must((item, cost) =>
+                        item.Stock > 0 || !cost.HasValue || cost.Value == 0m)
+                    .WithMessage(
+                        "A positive opening unit cost requires positive opening stock.");
+
                 variant.RuleFor(item => item.CompareAtPrice)
                     .GreaterThanOrEqualTo(item => item.Price)
                     .When(item => item.CompareAtPrice.HasValue);

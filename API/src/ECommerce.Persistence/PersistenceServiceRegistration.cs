@@ -1,5 +1,6 @@
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Persistence.Context;
+using ECommerce.Persistence.Accounting;
 using ECommerce.Persistence.Repositories;
 using ECommerce.Persistence.Services;
 using Microsoft.EntityFrameworkCore;
@@ -45,6 +46,7 @@ public static class PersistenceServiceRegistration
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserTokenCleanupService, UserTokenCleanupService>();
         services.AddScoped<IEmailOutboxRepository, EmailOutboxRepository>();
+        services.AddAccountingPersistenceServices();
 
         return services;
     }

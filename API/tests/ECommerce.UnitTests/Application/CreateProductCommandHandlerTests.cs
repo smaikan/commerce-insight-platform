@@ -1,3 +1,4 @@
+using ECommerce.Application.Accounting.CostLayers;
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Services;
@@ -60,6 +61,31 @@ public sealed class CreateProductCommandHandlerTests
             error.PropertyName == nameof(CreateProductCommand.Tags));
     }
 
+    // Burada sıfır stokla pozitif açılış maliyetini ve dört haneyi aşan maliyet hassasiyetini reddediyorum.
+    [Fact]
+    public void Validator_Should_Reject_Invalid_Opening_Cost()
+    {
+        var result = new CreateProductCommandValidator().Validate(
+            new CreateProductCommand(
+                "Product",
+                "PRODUCT-MAIN",
+                Variants:
+                [
+                    new CreateProductVariantItem(
+                        "Standard",
+                        "PRODUCT-STD",
+                        100m,
+                        0,
+                        OpeningUnitCostExcludingVat: 10.12345m)
+                ]));
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(error =>
+            error.PropertyName.EndsWith(
+                nameof(CreateProductVariantItem.OpeningUnitCostExcludingVat),
+                StringComparison.Ordinal));
+    }
+
     // Burada ürünün ana SKU, aktif vergi oranı, oluşturulan URL ve adla çözümlenen etiketiyle kaydedildiğini doğruluyorum.
     [Fact]
     public async Task Handle_Should_Create_Product_With_Generated_Url_When_Url_Is_Not_Provided()
@@ -70,6 +96,8 @@ public sealed class CreateProductCommandHandlerTests
         var taxRateRepository = new Mock<ITaxRateRepository>();
         var collectionRepository = new Mock<ICollectionRepository>();
         var productTagResolver = new Mock<IProductTagResolver>();
+        var openingBalanceCostLayerWriter =
+            new Mock<IOpeningBalanceCostLayerWriter>();
         var unitOfWork = new Mock<IUnitOfWork>();
         var productUrlGenerator = new ProductUrlGenerator();
         var typeId = Guid.NewGuid();
@@ -126,13 +154,23 @@ public sealed class CreateProductCommandHandlerTests
             collectionRepository.Object,
             productTagResolver.Object,
             productUrlGenerator,
+            openingBalanceCostLayerWriter.Object,
             unitOfWork.Object);
 
         var result = await handler.Handle(new CreateProductCommand(
             "Basic T-Shirt",
             "  tshirt-main  ",
             typeId,
-            Variants: [new CreateProductVariantItem("Standard", "TSHIRT-STD", 100, 10)],
+            Variants:
+            [
+                new CreateProductVariantItem(
+                    "Standard",
+                    "TSHIRT-STD",
+                    100,
+                    10,
+                    OpeningUnitCostExcludingVat: 55.125m,
+                    OpeningUnitCostIncludingVat: 66.15m)
+            ],
             Tags: [" Summer "],
             TaxRateId: taxRateId), CancellationToken.None);
 
@@ -150,6 +188,14 @@ public sealed class CreateProductCommandHandlerTests
         createdProduct.Variants.Should().ContainSingle(variant => variant.Name == "Standard");
         createdProduct.Variants.Single().NetPrice.Should().Be(83.33m);
         createdProduct.ProductTags.Should().ContainSingle(tag => tag.TagId == tagId);
+        openingBalanceCostLayerWriter.Verify(
+            writer => writer.CreateForNewVariantsAsync(
+                It.Is<IEnumerable<OpeningBalanceCostLayerSeed>>(seeds =>
+                    seeds.Single().Variant.Stock == 10 &&
+                    seeds.Single().OpeningUnitCostExcludingVat == 55.125m &&
+                    seeds.Single().OpeningUnitCostIncludingVat == 66.15m),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -177,6 +223,7 @@ public sealed class CreateProductCommandHandlerTests
             collectionRepository.Object,
             Mock.Of<IProductTagResolver>(),
             new ProductUrlGenerator(),
+            Mock.Of<IOpeningBalanceCostLayerWriter>(),
             unitOfWork.Object);
 
         Func<Task> act = () => handler.Handle(new CreateProductCommand(
@@ -233,6 +280,7 @@ public sealed class CreateProductCommandHandlerTests
             collectionRepository.Object,
             Mock.Of<IProductTagResolver>(),
             new ProductUrlGenerator(),
+            Mock.Of<IOpeningBalanceCostLayerWriter>(),
             unitOfWork.Object);
 
         var result = await handler.Handle(
@@ -270,6 +318,7 @@ public sealed class CreateProductCommandHandlerTests
             Mock.Of<ICollectionRepository>(),
             Mock.Of<IProductTagResolver>(),
             new ProductUrlGenerator(),
+            Mock.Of<IOpeningBalanceCostLayerWriter>(),
             Mock.Of<IUnitOfWork>());
 
         Func<Task> act = () => handler.Handle(
@@ -307,6 +356,7 @@ public sealed class CreateProductCommandHandlerTests
             Mock.Of<ICollectionRepository>(),
             Mock.Of<IProductTagResolver>(),
             new ProductUrlGenerator(),
+            Mock.Of<IOpeningBalanceCostLayerWriter>(),
             Mock.Of<IUnitOfWork>());
 
         Func<Task> act = () => handler.Handle(

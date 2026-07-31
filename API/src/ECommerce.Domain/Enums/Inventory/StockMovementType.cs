@@ -9,6 +9,8 @@ public enum StockMovementType
 
     Sale = 20,
     SaleReturn = 21,
+    AccountingSale = 22,
+    AccountingSaleCancellation = 23,
 
     ManualAdjustment = 30,
     StockCountAdjustment = 31,

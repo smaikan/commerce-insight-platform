@@ -25,16 +25,17 @@ public sealed class StockMovementConfiguration : IEntityTypeConfiguration<StockM
                 "CAST([StockAfterMovement] AS bigint) = CAST([StockBeforeMovement] AS bigint) + CAST([QuantityDelta] AS bigint)");
             tableBuilder.HasCheckConstraint(
                 "CK_StockMovements_Type_Valid",
-                "[Type] IN (1, 10, 11, 20, 21, 30, 31, 40, 41, 42, 50, 51, 60)");
+                "[Type] IN (1, 10, 11, 20, 21, 22, 23, 30, 31, 40, 41, 42, 50, 51, 60)");
             tableBuilder.HasCheckConstraint(
                 "CK_StockMovements_Type_Matches_Direction",
-                "([Type] IN (1, 10, 21, 50, 60) AND [Direction] = 1) OR " +
-                "([Type] IN (11, 20, 40, 41, 42, 51) AND [Direction] = 2) OR " +
+                "([Type] IN (1, 10, 21, 23, 50, 60) AND [Direction] = 1) OR " +
+                "([Type] IN (11, 20, 22, 40, 41, 42, 51) AND [Direction] = 2) OR " +
                 "[Type] IN (30, 31)");
             tableBuilder.HasCheckConstraint(
                 "CK_StockMovements_Required_Reference",
                 "([Type] NOT IN (20, 60) OR [OrderId] IS NOT NULL) AND " +
-                "([Type] <> 21 OR [ReturnRequestId] IS NOT NULL)");
+                "([Type] <> 21 OR [ReturnRequestId] IS NOT NULL) AND " +
+                "([Type] NOT IN (22, 23) OR ([OrderId] IS NULL AND [ReturnRequestId] IS NULL))");
         });
 
         builder.HasKey(movement => movement.Id);

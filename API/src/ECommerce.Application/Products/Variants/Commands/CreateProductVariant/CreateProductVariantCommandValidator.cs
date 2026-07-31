@@ -4,6 +4,7 @@ namespace ECommerce.Application.Products.Variants.Commands.CreateProductVariant;
 
 public sealed class CreateProductVariantCommandValidator : AbstractValidator<CreateProductVariantCommand>
 {
+    // Burada varyant ve opsiyonel açılış maliyeti alanlarının kurallarını tanımlıyorum.
     public CreateProductVariantCommandValidator()
     {
         RuleFor(command => command.ProductId)
@@ -26,6 +27,28 @@ public sealed class CreateProductVariantCommandValidator : AbstractValidator<Cre
 
         RuleFor(command => command.Stock)
             .GreaterThanOrEqualTo(0);
+
+        RuleFor(command => command.OpeningUnitCostExcludingVat)
+            .GreaterThanOrEqualTo(0m)
+            .PrecisionScale(18, 4, false)
+            .When(command => command.OpeningUnitCostExcludingVat.HasValue);
+
+        RuleFor(command => command.OpeningUnitCostIncludingVat)
+            .GreaterThanOrEqualTo(0m)
+            .PrecisionScale(18, 4, false)
+            .When(command => command.OpeningUnitCostIncludingVat.HasValue);
+
+        RuleFor(command => command.OpeningUnitCostExcludingVat)
+            .Must((command, cost) =>
+                command.Stock > 0 || !cost.HasValue || cost.Value == 0m)
+            .WithMessage(
+                "A positive opening unit cost requires positive opening stock.");
+
+        RuleFor(command => command.OpeningUnitCostIncludingVat)
+            .Must((command, cost) =>
+                command.Stock > 0 || !cost.HasValue || cost.Value == 0m)
+            .WithMessage(
+                "A positive opening unit cost requires positive opening stock.");
 
         RuleFor(command => command.Barcode)
             .MaximumLength(100);

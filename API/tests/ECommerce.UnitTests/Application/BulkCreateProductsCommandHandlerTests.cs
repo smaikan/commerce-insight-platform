@@ -1,3 +1,4 @@
+using ECommerce.Application.Accounting.CostLayers;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Services;
 using ECommerce.Application.Products.Commands.BulkCreateProducts;
@@ -21,6 +22,8 @@ public sealed class BulkCreateProductsCommandHandlerTests
         var collectionRepository = new Mock<ICollectionRepository>();
         var tagRepository = new Mock<ITagRepository>();
         var productTagResolver = new Mock<IProductTagResolver>();
+        var openingBalanceCostLayerWriter =
+            new Mock<IOpeningBalanceCostLayerWriter>();
         var unitOfWork = new Mock<IUnitOfWork>();
         var typeId = Guid.NewGuid();
         var brandId = Guid.NewGuid();
@@ -98,6 +101,7 @@ public sealed class BulkCreateProductsCommandHandlerTests
             tagRepository.Object,
             productTagResolver.Object,
             new ProductUrlGenerator(),
+            openingBalanceCostLayerWriter.Object,
             unitOfWork.Object);
 
         var result = await handler.Handle(
@@ -110,7 +114,13 @@ public sealed class BulkCreateProductsCommandHandlerTests
                     BrandId: brandId,
                     Variants:
                     [
-                        new BulkCreateProductVariantItem("Black / Medium", "HOODIE-BLK-M", 1299.90m, 25)
+                        new BulkCreateProductVariantItem(
+                            "Black / Medium",
+                            "HOODIE-BLK-M",
+                            1299.90m,
+                            25,
+                            OpeningUnitCostExcludingVat: 700.25m,
+                            OpeningUnitCostIncludingVat: 840.30m)
                     ],
                     Images:
                     [
@@ -132,6 +142,14 @@ public sealed class BulkCreateProductsCommandHandlerTests
         createdProducts.Single().ProductTags.Should().HaveCount(2);
         createdProducts.Single().ProductTags.Select(tag => tag.TagId)
             .Should().BeEquivalentTo([tagId, dynamicTagId]);
+        openingBalanceCostLayerWriter.Verify(
+            writer => writer.CreateForNewVariantsAsync(
+                It.Is<IEnumerable<OpeningBalanceCostLayerSeed>>(seeds =>
+                    seeds.Single().Variant.Stock == 25 &&
+                    seeds.Single().OpeningUnitCostExcludingVat == 700.25m &&
+                    seeds.Single().OpeningUnitCostIncludingVat == 840.30m),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -148,6 +166,7 @@ public sealed class BulkCreateProductsCommandHandlerTests
             Mock.Of<ITagRepository>(),
             Mock.Of<IProductTagResolver>(),
             new ProductUrlGenerator(),
+            Mock.Of<IOpeningBalanceCostLayerWriter>(),
             Mock.Of<IUnitOfWork>());
 
         Func<Task> act = () => handler.Handle(
@@ -186,6 +205,7 @@ public sealed class BulkCreateProductsCommandHandlerTests
             Mock.Of<ITagRepository>(),
             Mock.Of<IProductTagResolver>(),
             new ProductUrlGenerator(),
+            Mock.Of<IOpeningBalanceCostLayerWriter>(),
             Mock.Of<IUnitOfWork>());
 
         Func<Task> act = () => handler.Handle(
@@ -203,5 +223,33 @@ public sealed class BulkCreateProductsCommandHandlerTests
             repository => repository.AddRangeAsync(
                 It.IsAny<IReadOnlyCollection<Product>>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    // Burada toplu ürün isteğinde sıfır stokla gönderilen pozitif açılış maliyetini reddediyorum.
+    [Fact]
+    public void Validator_Should_Reject_Positive_Opening_Cost_Without_Stock()
+    {
+        var result = new BulkCreateProductsCommandValidator().Validate(
+            new BulkCreateProductsCommand(
+            [
+                new BulkCreateProductItem(
+                    "Product",
+                    "PRODUCT-MAIN",
+                    Variants:
+                    [
+                        new BulkCreateProductVariantItem(
+                            "Standard",
+                            "PRODUCT-STD",
+                            100m,
+                            0,
+                            OpeningUnitCostIncludingVat: 12m)
+                    ])
+            ]));
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(error =>
+            error.PropertyName.EndsWith(
+                nameof(BulkCreateProductVariantItem.OpeningUnitCostIncludingVat),
+                StringComparison.Ordinal));
     }
 }

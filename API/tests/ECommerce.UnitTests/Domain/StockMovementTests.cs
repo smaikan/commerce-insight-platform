@@ -45,6 +45,46 @@ public sealed class StockMovementTests
         movement.OrderId.Should().Be(orderId);
     }
 
+    // Burada muhasebe satışının e-ticaret siparişi olmadan yalnız negatif stok çıkışı oluşturduğunu doğruluyorum.
+    [Fact]
+    public void ApplyStockMovement_Should_Record_An_Orderless_Accounting_Sale_As_Outgoing()
+    {
+        var variant = CreateVariant(stock: 8);
+
+        var movement = variant.ApplyStockMovement(
+            -2,
+            StockMovementType.AccountingSale,
+            "Accounting sales order posted.");
+
+        variant.Stock.Should().Be(6);
+        movement.Type.Should().Be(StockMovementType.AccountingSale);
+        movement.Direction.Should().Be(StockMovementDirection.Out);
+        movement.QuantityDelta.Should().Be(-2);
+        movement.StockBeforeMovement.Should().Be(8);
+        movement.StockAfterMovement.Should().Be(6);
+        movement.OrderId.Should().BeNull();
+    }
+
+    // Burada AccountingSale hareketinin e-ticaret Order veya Return referansı yerine yalnız Accounting mapping kullanmasını zorunlu tutuyorum.
+    [Fact]
+    public void ApplyStockMovement_Should_Reject_ECommerce_References_For_Accounting_Sale()
+    {
+        var variant = CreateVariant(stock: 8);
+
+        Action withOrder = () => variant.ApplyStockMovement(
+            -1,
+            StockMovementType.AccountingSale,
+            orderId: Guid.NewGuid());
+        Action withReturn = () => variant.ApplyStockMovement(
+            -1,
+            StockMovementType.AccountingSale,
+            returnRequestId: Guid.NewGuid());
+
+        withOrder.Should().Throw<DomainException>();
+        withReturn.Should().Throw<DomainException>();
+        variant.Stock.Should().Be(8);
+    }
+
     // Burada iptal hareketinin siparişe bağlı, pozitif imzalı stok girişi olduğunu doğruluyorum.
     [Fact]
     public void ApplyStockMovement_Should_Record_Cancellation_As_An_Incoming_Signed_Delta()
@@ -63,6 +103,23 @@ public sealed class StockMovementTests
         movement.Direction.Should().Be(StockMovementDirection.In);
         movement.QuantityDelta.Should().Be(2);
         movement.OrderId.Should().Be(orderId);
+    }
+
+    [Fact]
+    public void ApplyStockMovement_Should_Record_Accounting_Cancellation_Without_ECommerce_Reference()
+    {
+        var variant = CreateVariant(stock: 6);
+
+        var movement = variant.ApplyStockMovement(
+            2,
+            StockMovementType.AccountingSaleCancellation,
+            "Accounting sales order cancelled.");
+
+        variant.Stock.Should().Be(8);
+        movement.Type.Should().Be(StockMovementType.AccountingSaleCancellation);
+        movement.Direction.Should().Be(StockMovementDirection.In);
+        movement.OrderId.Should().BeNull();
+        movement.ReturnRequestId.Should().BeNull();
     }
 
     // Burada satış, iptal ve satış iadesi hareketlerinin zorunlu iş referansları olmadan oluşturulamadığını doğruluyorum.
@@ -89,10 +146,12 @@ public sealed class StockMovementTests
         var orderId = Guid.NewGuid();
 
         Action positiveSale = () => variant.ApplyStockMovement(1, StockMovementType.Sale, orderId: orderId);
+        Action positiveAccountingSale = () => variant.ApplyStockMovement(1, StockMovementType.AccountingSale);
         Action negativeStock = () => variant.ApplyStockMovement(-2, StockMovementType.Sale, orderId: orderId);
         Action stockOverflow = () => fullVariant.ApplyStockMovement(1, StockMovementType.ManualAdjustment, "Overflow check");
 
         positiveSale.Should().Throw<DomainException>();
+        positiveAccountingSale.Should().Throw<DomainException>();
         negativeStock.Should().Throw<DomainException>();
         stockOverflow.Should().Throw<DomainException>();
     }

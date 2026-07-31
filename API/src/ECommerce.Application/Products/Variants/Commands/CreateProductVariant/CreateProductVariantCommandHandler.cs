@@ -1,3 +1,4 @@
+using ECommerce.Application.Accounting.CostLayers;
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Products.Dtos;
@@ -10,16 +11,19 @@ public sealed class CreateProductVariantCommandHandler : IRequestHandler<CreateP
 {
     private readonly IProductRepository _productRepository;
     private readonly IProductVariantRepository _variantRepository;
+    private readonly IOpeningBalanceCostLayerWriter _openingBalanceCostLayerWriter;
     private readonly IUnitOfWork _unitOfWork;
 
     // Burada varyant oluşturma akışının ürün, varyant ve transaction bağımlılıklarını hazırlıyorum.
     public CreateProductVariantCommandHandler(
         IProductRepository productRepository,
         IProductVariantRepository variantRepository,
+        IOpeningBalanceCostLayerWriter openingBalanceCostLayerWriter,
         IUnitOfWork unitOfWork)
     {
         _productRepository = productRepository;
         _variantRepository = variantRepository;
+        _openingBalanceCostLayerWriter = openingBalanceCostLayerWriter;
         _unitOfWork = unitOfWork;
     }
 
@@ -51,6 +55,12 @@ public sealed class CreateProductVariantCommandHandler : IRequestHandler<CreateP
             product.TaxRate?.CalculateNetPrice(request.Price) ?? request.Price);
 
         await _variantRepository.AddAsync(variant, cancellationToken);
+        await _openingBalanceCostLayerWriter.CreateForNewVariantsAsync(
+            [new OpeningBalanceCostLayerSeed(
+                variant,
+                request.OpeningUnitCostExcludingVat,
+                request.OpeningUnitCostIncludingVat)],
+            cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return variant.ToDto();
