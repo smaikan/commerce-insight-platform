@@ -283,8 +283,10 @@ public sealed class ApiPipelineTests
     }
 
     // Burada hassas auth endpointinin istek sınırını aştığında 429 döndürdüğünü doğruluyorum.
-    [Fact]
-    public async Task Sensitive_Auth_Path_Should_Be_Rate_Limited()
+    [Theory]
+    [InlineData("/api/auth/login")]
+    [InlineData("/api/auth/reset-password")]
+    public async Task Sensitive_Auth_Path_Should_Be_Rate_Limited(string path)
     {
         await using var factory = new TestApiFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
@@ -298,11 +300,41 @@ public sealed class ApiPipelineTests
         {
             for (var attempt = 0; attempt < 6; attempt++)
             {
-                responses.Add(await client.PostAsync("/api/auth/login", content: null));
+                responses.Add(await client.PostAsync(path, content: null));
             }
 
             responses.Take(5).Should().OnlyContain(response => response.StatusCode != HttpStatusCode.TooManyRequests);
             responses[5].StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        }
+        finally
+        {
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
+        }
+    }
+
+    // Burada anonim katalog endpointinin IP başına genel istek sınırını uyguladığını doğruluyorum.
+    [Fact]
+    public async Task Public_Anonymous_Endpoint_Should_Be_Rate_Limited()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+        var responses = new List<HttpResponseMessage>();
+
+        try
+        {
+            for (var attempt = 0; attempt < 121; attempt++)
+            {
+                responses.Add(await client.GetAsync("/api/products"));
+            }
+
+            responses.Take(120).Should().OnlyContain(response => response.StatusCode != HttpStatusCode.TooManyRequests);
+            responses[120].StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
         }
         finally
         {

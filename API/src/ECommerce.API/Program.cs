@@ -4,6 +4,7 @@ using ECommerce.Persistence;
 using ECommerce.API.ErrorHandling;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using System.Text;
@@ -20,6 +21,8 @@ using ECommerce.Domain.Enums;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.OpenApi;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.AspNetCore.ResponseCompression;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +32,17 @@ builder.Host.UseSerilog((context, configuration) =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
+builder.Services.AddOutputCache(options =>
+{
+    options.AddPolicy("public-products", policy => policy
+        .Expire(TimeSpan.FromSeconds(30))
+        .SetVaryByQuery("*")
+        .Tag("products"));
+});
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddHostedService<UserTokenCleanupBackgroundService>();
@@ -279,19 +293,36 @@ builder.Services.AddRateLimiter(options =>
         var isSensitiveAuthPath = path.Equals("/api/auth/login", StringComparison.OrdinalIgnoreCase) ||
             path.Equals("/api/auth/register", StringComparison.OrdinalIgnoreCase) ||
             path.Equals("/api/auth/forgot-password", StringComparison.OrdinalIgnoreCase) ||
-            path.Equals("/api/auth/refresh-token", StringComparison.OrdinalIgnoreCase);
-
-        if (!isSensitiveAuthPath)
-        {
-            return RateLimitPartition.GetNoLimiter("unlimited");
-        }
+            path.Equals("/api/auth/refresh-token", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/api/auth/reset-password", StringComparison.OrdinalIgnoreCase);
 
         var clientKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        if (isSensitiveAuthPath)
+        {
+            return RateLimitPartition.GetFixedWindowLimiter(
+                $"auth:{clientKey}",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                });
+        }
+
+        var isAnonymousEndpoint = httpContext.GetEndpoint()?
+            .Metadata
+            .GetMetadata<AllowAnonymousAttribute>() is not null;
+        if (!isAnonymousEndpoint)
+        {
+            return RateLimitPartition.GetNoLimiter("authenticated-or-unmatched");
+        }
+
         return RateLimitPartition.GetFixedWindowLimiter(
-            clientKey,
+            $"public:{clientKey}",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 5,
+                PermitLimit = 120,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0,
                 AutoReplenishment = true
@@ -328,9 +359,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseResponseCompression();
+app.UseRouting();
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
+app.UseOutputCache();
 
 app.MapControllers();
 

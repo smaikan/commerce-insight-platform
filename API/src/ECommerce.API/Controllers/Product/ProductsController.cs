@@ -14,6 +14,7 @@ using ECommerce.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace ECommerce.API.Controllers.Product;
 
@@ -22,19 +23,26 @@ namespace ECommerce.API.Controllers.Product;
 public sealed class ProductsController : ControllerBase
 {
     private readonly ISender _sender;
+    private readonly IOutputCacheStore _outputCacheStore;
 
     // Burada controller isteklerini Application katmanına iletecek göndericiyi hazırlıyorum.
-    public ProductsController(ISender sender) => _sender = sender;
+    public ProductsController(ISender sender, IOutputCacheStore outputCacheStore)
+    {
+        _sender = sender;
+        _outputCacheStore = outputCacheStore;
+    }
 
     // Burada anonim ürün listeleme isteğini sorgu handler'ına iletiyorum.
     [AllowAnonymous]
     [HttpGet]
+    [OutputCache(PolicyName = "public-products")]
     public async Task<ActionResult> GetList([FromQuery] GetProductsQuery query, CancellationToken cancellationToken) =>
         Ok(await _sender.Send(query, cancellationToken));
 
     // Burada public ürün kimliğiyle anonim ürün detayı getiriyorum.
     [AllowAnonymous]
     [HttpGet("{id}")]
+    [OutputCache(PolicyName = "public-products")]
     public async Task<ActionResult<ProductDto>> GetById(string id, CancellationToken cancellationToken) =>
         Ok(await _sender.Send(new GetProductByIdQuery(ApiPublicIdParser.ParseProductId(id)), cancellationToken));
 
@@ -44,6 +52,7 @@ public sealed class ProductsController : ControllerBase
     public async Task<ActionResult<ProductDto>> Create(CreateProductCommand command, CancellationToken cancellationToken)
     {
         var product = await _sender.Send(command, cancellationToken);
+        await EvictProductCacheAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
     }
 
@@ -52,8 +61,12 @@ public sealed class ProductsController : ControllerBase
     [HttpPost("bulk")]
     public async Task<ActionResult<IReadOnlyList<ProductDto>>> BulkCreate(
         BulkCreateProductsCommand command,
-        CancellationToken cancellationToken) =>
-        StatusCode(StatusCodes.Status201Created, await _sender.Send(command, cancellationToken));
+        CancellationToken cancellationToken)
+    {
+        var products = await _sender.Send(command, cancellationToken);
+        await EvictProductCacheAsync(cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, products);
+    }
 
     // Burada adminin ürün temel bilgilerini, ana SKU değerini ve etiketlerini güncellemesini sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -62,9 +75,9 @@ public sealed class ProductsController : ControllerBase
         string id,
         UpdateProductRequest request,
         CancellationToken cancellationToken) =>
-        Ok(await _sender.Send(new UpdateProductCommand(
+        await EvictProductCacheAfterAsync(new UpdateProductCommand(
             ApiPublicIdParser.ParseProductId(id), request.Title, request.MainSku, request.TypeId, request.Url, request.BrandId, request.Description,
-            request.DisplayOrder, request.SeoTitle, request.SeoDescription, request.Tags, request.TaxRateId), cancellationToken));
+            request.DisplayOrder, request.SeoTitle, request.SeoDescription, request.Tags, request.TaxRateId), cancellationToken);
 
     // Burada adminin ürün yayın durumunu değiştirmesini sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -73,7 +86,7 @@ public sealed class ProductsController : ControllerBase
         string id,
         ChangeProductStatusRequest request,
         CancellationToken cancellationToken) =>
-        Ok(await _sender.Send(new ChangeProductStatusCommand(ApiPublicIdParser.ParseProductId(id), request.Status), cancellationToken));
+        await EvictProductCacheAfterAsync(new ChangeProductStatusCommand(ApiPublicIdParser.ParseProductId(id), request.Status), cancellationToken);
 
     // Burada adminin ürünü satışa açıp kapatmasını sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -82,7 +95,7 @@ public sealed class ProductsController : ControllerBase
         string id,
         SetActivationRequest request,
         CancellationToken cancellationToken) =>
-        Ok(await _sender.Send(new SetProductActivationCommand(ApiPublicIdParser.ParseProductId(id), request.IsActive), cancellationToken));
+        await EvictProductCacheAfterAsync(new SetProductActivationCommand(ApiPublicIdParser.ParseProductId(id), request.IsActive), cancellationToken);
 
     // Burada adminin ürünün öne çıkarılma durumunu değiştirmesini sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -91,7 +104,7 @@ public sealed class ProductsController : ControllerBase
         string id,
         SetFeaturedRequest request,
         CancellationToken cancellationToken) =>
-        Ok(await _sender.Send(new SetProductFeaturedCommand(ApiPublicIdParser.ParseProductId(id), request.IsFeatured), cancellationToken));
+        await EvictProductCacheAfterAsync(new SetProductFeaturedCommand(ApiPublicIdParser.ParseProductId(id), request.IsFeatured), cancellationToken);
 
     // Burada adminin ürün koleksiyon, etiket ve bundle ilişkilerini güncellemesini sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -108,8 +121,24 @@ public sealed class ProductsController : ControllerBase
             request.BundleItems.Select(item => new ProductBundleItemInput(
                 ApiPublicIdParser.ParseProductId(item.ProductId), item.Quantity)).ToList(),
             request.Tags), cancellationToken);
+        await EvictProductCacheAsync(cancellationToken);
         return NoContent();
     }
+
+    // Burada ürün değişikliğinden sonra cache'i temizleyip mevcut başarılı yanıtı koruyorum.
+    private async Task<ActionResult<ProductDto>> EvictProductCacheAfterAsync<TCommand>(
+        TCommand command,
+        CancellationToken cancellationToken)
+        where TCommand : IRequest<ProductDto>
+    {
+        var product = await _sender.Send(command, cancellationToken);
+        await EvictProductCacheAsync(cancellationToken);
+        return Ok(product);
+    }
+
+    // Burada liste ve detay yanıtlarının güncel kalması için ürün cache etiketini temizliyorum.
+    private ValueTask EvictProductCacheAsync(CancellationToken _) =>
+        _outputCacheStore.EvictByTagAsync("products", CancellationToken.None);
 }
 
 // Burada ürün temel bilgilerini güncelleyen HTTP isteğini taşıyorum.
