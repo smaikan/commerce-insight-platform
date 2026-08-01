@@ -1,0 +1,4 @@
+interface:
+  display_name: "Visual Design Review"
+  short_description: "Görsel tutarlılık ve responsive tasarım denetimi"
+  default_prompt: "Use $visual-design-review to audit this interface, report visual issues first, and then simplify and improve the design."

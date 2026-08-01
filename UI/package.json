@@ -1,0 +1,21 @@
+{
+  "name": "ecommerce-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:admin": "pnpm --filter ecommerce-admin dev",
+    "dev:storefront": "pnpm --filter ecommerce-storefront dev",
+    "build:admin": "pnpm --filter ecommerce-admin build",
+    "build:storefront": "pnpm --filter ecommerce-storefront build",
+    "lint:admin": "pnpm --filter ecommerce-admin lint",
+    "lint:storefront": "pnpm --filter ecommerce-storefront lint",
+    "typecheck:admin": "pnpm --filter ecommerce-admin typecheck",
+    "typecheck:storefront": "pnpm --filter ecommerce-storefront typecheck",
+    "test:admin": "pnpm --filter ecommerce-admin test",
+    "test:storefront": "pnpm --filter ecommerce-storefront test",
+    "build": "pnpm build:admin && pnpm build:storefront",
+    "lint": "pnpm lint:admin && pnpm lint:storefront",
+    "typecheck": "pnpm typecheck:admin && pnpm typecheck:storefront",
+    "test": "pnpm test:admin && pnpm test:storefront"
+  }
+}

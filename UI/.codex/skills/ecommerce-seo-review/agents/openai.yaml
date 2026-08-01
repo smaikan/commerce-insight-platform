@@ -1,0 +1,4 @@
+interface:
+  display_name: "E-Commerce SEO Review"
+  short_description: "Next.js maðaza SEO denetimi yapar"
+  default_prompt: "Use $ecommerce-seo-review to audit this Next.js e-commerce project for metadata, indexability, structured data, and Core Web Vitals risks."

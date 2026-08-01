@@ -1,0 +1,8 @@
+packages:
+  - "admin"
+  - "storefront"
+
+allowBuilds:
+  esbuild: true
+  sharp: false
+  unrs-resolver: false

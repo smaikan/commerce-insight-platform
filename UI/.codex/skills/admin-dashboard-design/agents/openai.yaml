@@ -1,0 +1,4 @@
+interface:
+  display_name: "Admin Dashboard Design"
+  short_description: "Kompakt ve işlevsel e-ticaret admin tasarımı"
+  default_prompt: "Use $admin-dashboard-design to design or improve a compact, data-focused e-commerce admin interface against this project's API contracts and local Shopify references."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Next.js E-Commerce Architecture"
+  short_description: "Okunabilir Next.js e-ticaret mimarisi kurar"
+  default_prompt: "Use $nextjs-ecommerce-architecture to design or review this project's clean Next.js architecture against its API contracts."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "API Integration & Auth"
+  short_description: "Next.js BFF ve ASP.NET auth entegrasyonu"
+  default_prompt: "Use $api-integration-auth to implement or review a secure, typed Next.js BFF integration with this ASP.NET API."
