@@ -18,6 +18,12 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
     private readonly ITagRepository _tagRepository;
     private readonly IProductTagResolver _productTagResolver;
     private readonly IProductUrlGenerator _productUrlGenerator;
+<<<<<<< HEAD
+=======
+    private readonly IProductUrlResolver _productUrlResolver;
+    private readonly IOpeningBalanceCostLayerWriter _openingBalanceCostLayerWriter;
+    private readonly IVariantOptionResolver? _variantOptionResolver;
+>>>>>>> 91f816d (123)
     private readonly IUnitOfWork _unitOfWork;
 
     // Burada toplu ürün oluşturma akışının ihtiyaç duyduğu bağımlılıkları hazırlıyorum.
@@ -30,7 +36,14 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         ITagRepository tagRepository,
         IProductTagResolver productTagResolver,
         IProductUrlGenerator productUrlGenerator,
+<<<<<<< HEAD
         IUnitOfWork unitOfWork)
+=======
+        IOpeningBalanceCostLayerWriter openingBalanceCostLayerWriter,
+        IUnitOfWork unitOfWork,
+        IVariantOptionResolver? variantOptionResolver = null,
+        IProductUrlResolver? productUrlResolver = null)
+>>>>>>> 91f816d (123)
     {
         _productRepository = productRepository;
         _productTypeRepository = productTypeRepository;
@@ -40,6 +53,12 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         _tagRepository = tagRepository;
         _productTagResolver = productTagResolver;
         _productUrlGenerator = productUrlGenerator;
+<<<<<<< HEAD
+=======
+        _productUrlResolver = productUrlResolver ?? new ProductUrlResolver(productRepository, productUrlGenerator);
+        _openingBalanceCostLayerWriter = openingBalanceCostLayerWriter;
+        _variantOptionResolver = variantOptionResolver;
+>>>>>>> 91f816d (123)
         _unitOfWork = unitOfWork;
     }
 
@@ -47,24 +66,22 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
     public async Task<IReadOnlyList<ProductDto>> Handle(BulkCreateProductsCommand request, CancellationToken cancellationToken)
     {
         var items = request.Products;
-        var preparedItems = items
-            .Select(item => new PreparedProductItem(
-                item,
-                string.IsNullOrWhiteSpace(item.Url) ? _productUrlGenerator.Generate(item.Title) : item.Url.Trim(),
-                item.MainSku.Trim().ToUpperInvariant()))
-            .ToList();
-
-        EnsureNoDuplicates(preparedItems.Select(item => item.Url), "Product url is duplicated in the request.");
-        await EnsureMainSkusAreUniqueAsync(preparedItems, cancellationToken);
-
-        var existingUrls = await _productRepository.GetExistingUrlsAsync(
-            preparedItems.Select(item => item.Url),
-            cancellationToken);
-
-        if (existingUrls.Count > 0)
+        var preparedItems = new List<PreparedProductItem>(items.Count);
+        var requestReservedUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in items)
         {
-            throw new ConflictException($"Product url already exists: {string.Join(", ", existingUrls)}.");
+            var resolvedUrl = await _productUrlResolver.ResolveAsync(
+                item.Title,
+                item.Url,
+                requestReservedUrls: requestReservedUrls,
+                cancellationToken: cancellationToken);
+            preparedItems.Add(new PreparedProductItem(
+                item,
+                resolvedUrl,
+                item.MainSku.Trim().ToUpperInvariant()));
         }
+
+        await EnsureMainSkusAreUniqueAsync(preparedItems, cancellationToken);
 
         await EnsureProductTypesExistAsync(preparedItems, cancellationToken);
         await EnsureBrandsExistAsync(preparedItems, cancellationToken);

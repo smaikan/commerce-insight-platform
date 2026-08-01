@@ -340,6 +340,123 @@ public sealed class ApiPipelineTests
     }
 
     // Burada istekteki opsiyonel etiket alanının string dizi sözleşmesini doğruluyorum.
+<<<<<<< HEAD
+=======
+    // Burada controller'lardaki her route'un Swagger sözleşmesinde yayınlandığını ve gerçek HTTP hattında doğru anonim/yetki sınırına ulaştığını tek tek doğruluyorum.
+    [Fact]
+    public async Task Every_Controller_Endpoint_Should_Be_Published_And_Reach_Its_Expected_Authentication_Boundary()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var endpoints = DiscoverControllerEndpoints();
+
+        endpoints.Should().HaveCount(208);
+
+        using var swaggerResponse = await client.GetAsync("/swagger/v1/swagger.json");
+        swaggerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var swagger = JsonDocument.Parse(await swaggerResponse.Content.ReadAsStringAsync());
+        var paths = swagger.RootElement.GetProperty("paths");
+
+        foreach (var endpoint in endpoints)
+        {
+            var openApiPath = ToOpenApiPath(endpoint.RouteTemplate);
+            paths.TryGetProperty(openApiPath, out var pathItem).Should().BeTrue(
+                $"{endpoint.Method.Method} {endpoint.RouteTemplate} Swagger tarafından yayınlanmalıdır");
+            pathItem.TryGetProperty(endpoint.Method.Method.ToLowerInvariant(), out _).Should().BeTrue(
+                $"{endpoint.Method.Method} {endpoint.RouteTemplate} HTTP fiili Swagger tarafından yayınlanmalıdır");
+
+            using var request = new HttpRequestMessage(endpoint.Method, MaterializeRoute(endpoint.RouteTemplate));
+            if (endpoint.Method != HttpMethod.Get && endpoint.Method != HttpMethod.Delete)
+            {
+                request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+            }
+
+            using var response = await client.SendAsync(request);
+            if (endpoint.AllowsAnonymous)
+            {
+                response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized,
+                    $"{endpoint.Method.Method} {endpoint.RouteTemplate} AllowAnonymous endpointidir");
+                response.StatusCode.Should().NotBe(HttpStatusCode.MethodNotAllowed,
+                    $"{endpoint.Method.Method} {endpoint.RouteTemplate} route'a eşlenmelidir");
+            }
+            else
+            {
+                response.StatusCode.Should().Be(HttpStatusCode.Unauthorized,
+                    $"{endpoint.Method.Method} {endpoint.RouteTemplate} handler'a girmeden önce JWT istemelidir");
+                response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+            }
+        }
+    }
+
+    // Burada controller attribute'larından her HTTP route ve AllowAnonymous kararını çıkarıyorum.
+    private static IReadOnlyList<ControllerEndpoint> DiscoverControllerEndpoints()
+    {
+        var endpoints = new List<ControllerEndpoint>();
+        var controllerTypes = typeof(Program).Assembly
+            .GetTypes()
+            .Where(type => !type.IsAbstract && typeof(Microsoft.AspNetCore.Mvc.ControllerBase).IsAssignableFrom(type));
+
+        foreach (var controllerType in controllerTypes)
+        {
+            var controllerRoute = controllerType
+                .GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.RouteAttribute), inherit: true)
+                .Cast<Microsoft.AspNetCore.Mvc.RouteAttribute>()
+                .SingleOrDefault()?.Template;
+            if (string.IsNullOrWhiteSpace(controllerRoute))
+            {
+                continue;
+            }
+
+            var controllerAllowsAnonymous = controllerType
+                .GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute), inherit: true)
+                .Any();
+            foreach (var action in controllerType.GetMethods(
+                         System.Reflection.BindingFlags.Instance |
+                         System.Reflection.BindingFlags.Public |
+                         System.Reflection.BindingFlags.DeclaredOnly))
+            {
+                var actionAllowsAnonymous = controllerAllowsAnonymous || action
+                    .GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute), inherit: true)
+                    .Any();
+                foreach (var httpAttribute in action
+                             .GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute), inherit: true)
+                             .Cast<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>())
+                {
+                    var route = string.IsNullOrWhiteSpace(httpAttribute.Template)
+                        ? controllerRoute
+                        : $"{controllerRoute.TrimEnd('/')}/{httpAttribute.Template.TrimStart('/')}";
+                    endpoints.AddRange(httpAttribute.HttpMethods.Select(method => new ControllerEndpoint(
+                        new HttpMethod(method),
+                        $"/{route}",
+                        actionAllowsAnonymous)));
+                }
+            }
+        }
+
+        return endpoints
+            .OrderBy(endpoint => endpoint.RouteTemplate, StringComparer.Ordinal)
+            .ThenBy(endpoint => endpoint.Method.Method, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    // Burada ASP.NET route constraint'lerini OpenAPI'nin constraint'siz path biçimine çeviriyorum.
+    private static string ToOpenApiPath(string routeTemplate) =>
+        System.Text.RegularExpressions.Regex.Replace(routeTemplate, "\\{([^}:]+)(?::[^}]+)?\\}", "{$1}");
+
+    // Burada HTTP hattına ulaşmak için route parametrelerini geçerli sentetik kimliklerle dolduruyorum.
+    private static string MaterializeRoute(string routeTemplate) =>
+        System.Text.RegularExpressions.Regex.Replace(
+            routeTemplate,
+            "\\{([^}:]+)(?::[^}]+)?\\}",
+            match => match.Groups[1].Value.Equals("productId", StringComparison.OrdinalIgnoreCase)
+                ? "P00001"
+                : match.Groups[1].Value.Equals("userId", StringComparison.OrdinalIgnoreCase)
+                    ? "U00001"
+                    : "00000000-0000-0000-0000-000000000001");
+
+    private sealed record ControllerEndpoint(HttpMethod Method, string RouteTemplate, bool AllowsAnonymous);
+
+>>>>>>> 91f816d (123)
     private static void AssertOptionalStringArrayProperty(JsonElement schema, string propertyName)
     {
         var property = schema.GetProperty("properties").GetProperty(propertyName);

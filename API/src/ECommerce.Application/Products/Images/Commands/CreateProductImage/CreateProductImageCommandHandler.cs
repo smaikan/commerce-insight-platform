@@ -45,7 +45,8 @@ public sealed class CreateProductImageCommandHandler : IRequestHandler<CreatePro
             request.ImageUrl,
             request.DisplayOrder,
             request.IsMain,
-            request.AltText);
+            string.IsNullOrWhiteSpace(request.AltText) ? product.Title : request.AltText,
+            string.IsNullOrWhiteSpace(request.AltText));
 
         await _imageRepository.AddAsync(image, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

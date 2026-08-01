@@ -9,6 +9,7 @@ using ECommerce.Application.Products.Images.Queries.GetProductImagesByProductId;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace ECommerce.API.Controllers.Product;
 
@@ -17,7 +18,13 @@ namespace ECommerce.API.Controllers.Product;
 public sealed class ProductImagesController : ControllerBase
 {
     private readonly ISender _sender;
-    public ProductImagesController(ISender sender) => _sender = sender;
+    private readonly IOutputCacheStore _outputCacheStore;
+
+    public ProductImagesController(ISender sender, IOutputCacheStore outputCacheStore)
+    {
+        _sender = sender;
+        _outputCacheStore = outputCacheStore;
+    }
 
     [AllowAnonymous]
     [HttpGet("{id:guid}")]
@@ -40,7 +47,7 @@ public sealed class ProductImagesController : ControllerBase
         string productId,
         ProductImageRequest request,
         CancellationToken cancellationToken) =>
-        StatusCode(StatusCodes.Status201Created, await _sender.Send(new CreateProductImageCommand(
+        StatusCode(StatusCodes.Status201Created, await SendAndEvictAsync(new CreateProductImageCommand(
             ApiPublicIdParser.ParseProductId(productId), request.ImageUrl, request.AltText, request.DisplayOrder, request.IsMain), cancellationToken));
 
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -49,7 +56,7 @@ public sealed class ProductImagesController : ControllerBase
         Guid id,
         ProductImageRequest request,
         CancellationToken cancellationToken) =>
-        Ok(await _sender.Send(new UpdateProductImageCommand(
+        Ok(await SendAndEvictAsync(new UpdateProductImageCommand(
             id, request.ImageUrl, request.AltText, request.DisplayOrder, request.IsMain), cancellationToken));
 
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -57,7 +64,18 @@ public sealed class ProductImagesController : ControllerBase
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _sender.Send(new DeleteProductImageCommand(id), cancellationToken);
+        await _outputCacheStore.EvictByTagAsync("products", CancellationToken.None);
         return NoContent();
+    }
+
+    private async Task<ProductImageDto> SendAndEvictAsync<TCommand>(
+        TCommand command,
+        CancellationToken cancellationToken)
+        where TCommand : IRequest<ProductImageDto>
+    {
+        var result = await _sender.Send(command, cancellationToken);
+        await _outputCacheStore.EvictByTagAsync("products", CancellationToken.None);
+        return result;
     }
 }
 

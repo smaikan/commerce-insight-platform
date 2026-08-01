@@ -9,11 +9,16 @@ public sealed class UpdateProductImageCommandHandler : IRequestHandler<UpdatePro
 {
     private readonly IProductImageRepository _imageRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IProductRepository? _productRepository;
 
-    public UpdateProductImageCommandHandler(IProductImageRepository imageRepository, IUnitOfWork unitOfWork)
+    public UpdateProductImageCommandHandler(
+        IProductImageRepository imageRepository,
+        IUnitOfWork unitOfWork,
+        IProductRepository? productRepository = null)
     {
         _imageRepository = imageRepository;
         _unitOfWork = unitOfWork;
+        _productRepository = productRepository;
     }
 
     // Burada ürün görselini domain kuralından geçirerek güncelliyorum.
@@ -35,7 +40,22 @@ public sealed class UpdateProductImageCommandHandler : IRequestHandler<UpdatePro
             currentMainImage?.UnsetAsMain();
         }
 
-        image.Update(request.ImageUrl, request.AltText, request.DisplayOrder, request.IsMain);
+        var useAutomaticAltText = string.IsNullOrWhiteSpace(request.AltText);
+        var altText = request.AltText;
+        if (useAutomaticAltText)
+        {
+            var product = _productRepository is null
+                ? null
+                : await _productRepository.GetByIdAsync(image.ProductId, cancellationToken);
+            if (product is null)
+            {
+                throw new NotFoundException("Product was not found.");
+            }
+
+            altText = product.Title;
+        }
+
+        image.Update(request.ImageUrl, altText, request.DisplayOrder, request.IsMain, useAutomaticAltText);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return image.ToDto();

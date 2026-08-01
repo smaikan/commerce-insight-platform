@@ -201,7 +201,7 @@ public sealed class UpdateProductCommandHandlerTests
             unitOfWork.Object);
 
         Func<Task> act = () => handler.Handle(
-            new UpdateProductCommand(product.Id, "Taken Product", "TAKEN-MAIN", typeId),
+            new UpdateProductCommand(product.Id, "Taken Product", "TAKEN-MAIN", typeId, "taken-product"),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<ConflictException>();
