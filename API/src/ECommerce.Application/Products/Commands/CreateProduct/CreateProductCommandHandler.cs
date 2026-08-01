@@ -18,6 +18,8 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
     private readonly ICollectionRepository _collectionRepository;
     private readonly IProductTagResolver _productTagResolver;
     private readonly IProductUrlGenerator _productUrlGenerator;
+
+    private readonly IProductUrlResolver _productUrlResolver;
     private readonly IOpeningBalanceCostLayerWriter _openingBalanceCostLayerWriter;
     private readonly IVariantOptionResolver? _variantOptionResolver;
     private readonly IUnitOfWork _unitOfWork;
@@ -31,9 +33,11 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
         ICollectionRepository collectionRepository,
         IProductTagResolver productTagResolver,
         IProductUrlGenerator productUrlGenerator,
+
         IOpeningBalanceCostLayerWriter openingBalanceCostLayerWriter,
         IUnitOfWork unitOfWork,
-        IVariantOptionResolver? variantOptionResolver = null)
+        IVariantOptionResolver? variantOptionResolver = null,
+        IProductUrlResolver? productUrlResolver = null)
     {
         _productRepository = productRepository;
         _productTypeRepository = productTypeRepository;
@@ -42,6 +46,8 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
         _collectionRepository = collectionRepository;
         _productTagResolver = productTagResolver;
         _productUrlGenerator = productUrlGenerator;
+
+        _productUrlResolver = productUrlResolver ?? new ProductUrlResolver(productRepository, productUrlGenerator);
         _openingBalanceCostLayerWriter = openingBalanceCostLayerWriter;
         _variantOptionResolver = variantOptionResolver;
         _unitOfWork = unitOfWork;
@@ -106,14 +112,10 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
             throw new ConflictException($"Variant SKU already exists: {string.Join(", ", existingSkus)}.");
         }
 
-        var url = string.IsNullOrWhiteSpace(request.Url)
-            ? _productUrlGenerator.Generate(request.Title)
-            : request.Url.Trim();
-
-        if (await _productRepository.UrlExistsAsync(url, cancellationToken: cancellationToken))
-        {
-            throw new ConflictException("Product url already exists.");
-        }
+        var url = await _productUrlResolver.ResolveAsync(
+            request.Title,
+            request.Url,
+            cancellationToken: cancellationToken);
 
         var product = new Product(
             request.Title,

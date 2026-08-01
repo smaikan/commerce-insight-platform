@@ -1,5 +1,6 @@
 using ECommerce.Domain.Entities;
 using ECommerce.Application.Common.Models;
+using ECommerce.Application.Products.Dtos;
 
 namespace ECommerce.Application.Common.Interfaces;
 
@@ -34,8 +35,22 @@ public interface IProductRepository
     // Burada filtrelenmiş ürün sayfasını getirme sözleşmesini tanımlıyorum.
     Task<PagedResult<Product>> GetListAsync(ProductListFilter filter, CancellationToken cancellationToken = default);
 
+    Task<Product?> GetPublishedByUrlAsync(string url, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<ProductSeoIndexItemDto>> GetPublishedSeoIndexAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
     // Burada URL değerinin başka üründe kullanılıp kullanılmadığını kontrol ediyorum.
     Task<bool> UrlExistsAsync(string url, long? excludedProductId = null, CancellationToken cancellationToken = default);
+
+    Task<bool> ReservedUrlExistsAsync(
+        string url,
+        long? excludedProductId = null,
+        CancellationToken cancellationToken = default);
+
+    Task AddUrlRedirectAsync(ProductUrlRedirect redirect, CancellationToken cancellationToken = default);
 
     // Burada ana SKU değerinin başka üründe kullanılıp kullanılmadığını kontrol ediyorum.
     Task<bool> MainSkuExistsAsync(

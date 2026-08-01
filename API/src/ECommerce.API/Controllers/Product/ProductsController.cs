@@ -9,6 +9,8 @@ using ECommerce.Application.Products.Commands.UpdateProduct;
 using ECommerce.Application.Products.Dtos;
 using ECommerce.Application.Products.Queries.GetProductById;
 using ECommerce.Application.Products.Queries.GetProducts;
+using ECommerce.Application.Products.Queries.GetPublishedProductByUrl;
+using ECommerce.Application.Products.Queries.GetProductSeoIndex;
 using ECommerce.Application.Products.Relations.Commands.UpdateProductRelations;
 using ECommerce.Domain.Enums;
 using MediatR;
@@ -37,6 +39,22 @@ public sealed class ProductsController : ControllerBase
     [HttpGet]
     [OutputCache(PolicyName = "public-products")]
     public async Task<ActionResult> GetList([FromQuery] GetProductsQuery query, CancellationToken cancellationToken) =>
+        Ok(await _sender.Send(query, cancellationToken));
+
+    [AllowAnonymous]
+    [HttpGet("by-url/{url}")]
+    [OutputCache(PolicyName = "public-products")]
+    public async Task<ActionResult<ProductSeoDto>> GetByUrl(
+        string url,
+        CancellationToken cancellationToken) =>
+        Ok(await _sender.Send(new GetPublishedProductByUrlQuery(url), cancellationToken));
+
+    [AllowAnonymous]
+    [HttpGet("seo-index")]
+    [OutputCache(PolicyName = "public-products")]
+    public async Task<ActionResult> GetSeoIndex(
+        [FromQuery] GetProductSeoIndexQuery query,
+        CancellationToken cancellationToken) =>
         Ok(await _sender.Send(query, cancellationToken));
 
     // Burada public ürün kimliğiyle anonim ürün detayı getiriyorum.

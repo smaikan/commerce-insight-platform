@@ -15,6 +15,7 @@ public sealed class UpdateProductCommandHandler : IRequestHandler<UpdateProductC
     private readonly ITaxRateRepository _taxRateRepository;
     private readonly IProductTagResolver _productTagResolver;
     private readonly IProductUrlGenerator _productUrlGenerator;
+    private readonly IProductUrlResolver _productUrlResolver;
     private readonly IUnitOfWork _unitOfWork;
 
     // Burada ürün güncelleme akışının ihtiyaç duyduğu bağımlılıkları hazırlıyorum.
@@ -25,7 +26,8 @@ public sealed class UpdateProductCommandHandler : IRequestHandler<UpdateProductC
         ITaxRateRepository taxRateRepository,
         IProductTagResolver productTagResolver,
         IProductUrlGenerator productUrlGenerator,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IProductUrlResolver? productUrlResolver = null)
     {
         _productRepository = productRepository;
         _productTypeRepository = productTypeRepository;
@@ -33,6 +35,7 @@ public sealed class UpdateProductCommandHandler : IRequestHandler<UpdateProductC
         _taxRateRepository = taxRateRepository;
         _productTagResolver = productTagResolver;
         _productUrlGenerator = productUrlGenerator;
+        _productUrlResolver = productUrlResolver ?? new ProductUrlResolver(productRepository, productUrlGenerator);
         _unitOfWork = unitOfWork;
     }
 
@@ -70,13 +73,17 @@ public sealed class UpdateProductCommandHandler : IRequestHandler<UpdateProductC
 
         var taxRate = await ResolveActiveTaxRateAsync(request.TaxRateId, cancellationToken);
 
-        var url = string.IsNullOrWhiteSpace(request.Url)
-            ? _productUrlGenerator.Generate(request.Title)
-            : request.Url.Trim();
+        var url = await _productUrlResolver.ResolveAsync(
+            request.Title,
+            request.Url,
+            request.Id,
+            cancellationToken: cancellationToken);
 
-        if (await _productRepository.UrlExistsAsync(url, request.Id, cancellationToken))
+        if (!string.Equals(product.Url, url, StringComparison.OrdinalIgnoreCase))
         {
-            throw new ConflictException("Product url already exists.");
+            await _productRepository.AddUrlRedirectAsync(
+                new ProductUrlRedirect(product, product.Url),
+                cancellationToken);
         }
 
         product.UpdateBasics(

@@ -215,6 +215,7 @@ public sealed class RelationalBehaviorTests
     }
 
     // Burada ilişkisel testler için açık SQLite bağlantısı oluşturuyorum.
+
     // Burada katalog read-model sorgusunun mevcut API DTO sözleşmesini ve filtre davranışını koruduğunu doğruluyorum.
     [Fact]
     public async Task ProductListReader_Should_Return_Filtered_ProductDto_With_Variants()
@@ -258,6 +259,40 @@ public sealed class RelationalBehaviorTests
             variant.ProductId == "P00001" &&
             variant.Name == "Blue / Standard" &&
             variant.Sku == "BLUE-DTO-STD");
+    }
+
+    [Fact]
+    public async Task ProductRepository_Should_Resolve_Published_Current_And_Legacy_Urls_Only()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        var options = CreateOptions(connection);
+        await using var context = new AppDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+
+        var published = new Product(
+            "Published Product",
+            "published-product",
+            "PUBLISHED-MAIN",
+            status: ProductStatus.Active);
+        published.Variants.Add(new ProductVariant(published, "Standard", "PUBLISHED-STD", 100m, 2));
+        published.Images.Add(new ProductImage(published, "https://cdn.test/published.jpg"));
+        published.UrlRedirects.Add(new ProductUrlRedirect(published, "legacy-product"));
+
+        var draft = new Product("Draft Product", "draft-product", "DRAFT-MAIN", status: ProductStatus.Draft);
+        draft.Variants.Add(new ProductVariant(draft, "Standard", "DRAFT-STD", 80m, 2));
+        context.AddRange(published, draft);
+        await context.SaveChangesAsync();
+
+        var repository = new ProductRepository(context);
+        var legacyResult = await repository.GetPublishedByUrlAsync("legacy-product");
+        var draftResult = await repository.GetPublishedByUrlAsync("draft-product");
+        var seoIndex = await repository.GetPublishedSeoIndexAsync(1, 100);
+
+        legacyResult.Should().NotBeNull();
+        legacyResult!.Url.Should().Be("published-product");
+        legacyResult.Images.Should().ContainSingle(image => image.AltText == "Published Product");
+        draftResult.Should().BeNull();
+        seoIndex.Items.Should().ContainSingle(item => item.Url == "published-product");
     }
 
     private static async Task<SqliteConnection> CreateOpenConnectionAsync()

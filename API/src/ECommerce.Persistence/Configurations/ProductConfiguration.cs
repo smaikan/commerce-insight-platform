@@ -76,6 +76,11 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasForeignKey(image => image.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasMany(product => product.UrlRedirects)
+            .WithOne(redirect => redirect.Product)
+            .HasForeignKey(redirect => redirect.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasMany(product => product.ProductCollections)
             .WithOne(productCollection => productCollection.Product)
             .HasForeignKey(productCollection => productCollection.ProductId)

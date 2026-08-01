@@ -371,7 +371,7 @@ public sealed class ApiPipelineTests
         }
     }
 
-    // Burada istekteki opsiyonel etiket alanının string dizi sözleşmesini doğruluyorum.
+
     // Burada controller'lardaki her route'un Swagger sözleşmesinde yayınlandığını ve gerçek HTTP hattında doğru anonim/yetki sınırına ulaştığını tek tek doğruluyorum.
     [Fact]
     public async Task Every_Controller_Endpoint_Should_Be_Published_And_Reach_Its_Expected_Authentication_Boundary()
@@ -380,7 +380,7 @@ public sealed class ApiPipelineTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var endpoints = DiscoverControllerEndpoints();
 
-        endpoints.Should().HaveCount(206);
+        endpoints.Should().HaveCount(208);
 
         using var swaggerResponse = await client.GetAsync("/swagger/v1/swagger.json");
         swaggerResponse.StatusCode.Should().Be(HttpStatusCode.OK);

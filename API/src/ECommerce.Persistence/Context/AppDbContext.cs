@@ -33,6 +33,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<ProductRating> ProductRatings => Set<ProductRating>();
     public DbSet<ProductReview> ProductReviews => Set<ProductReview>();
     public DbSet<ProductTag> ProductTags => Set<ProductTag>();
+    public DbSet<ProductUrlRedirect> ProductUrlRedirects => Set<ProductUrlRedirect>();
     public DbSet<ProductType> ProductTypes => Set<ProductType>();
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
     public DbSet<ProductVariantDailyMetric> ProductVariantDailyMetrics => Set<ProductVariantDailyMetric>();

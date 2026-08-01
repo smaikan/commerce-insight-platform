@@ -2,6 +2,8 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Models;
 using ECommerce.Domain.Entities;
 using ECommerce.Persistence.Context;
+using ECommerce.Application.Products.Dtos;
+using ECommerce.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.Persistence.Repositories;
@@ -70,6 +72,7 @@ public sealed class ProductRepository : IProductRepository
         return _context.Products
             .Include(product => product.TaxRate)
             .Include(product => product.Variants)
+            .Include(product => product.Images)
             .FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
     }
 
@@ -104,6 +107,7 @@ public sealed class ProductRepository : IProductRepository
         return _context.Products
             .Include(product => product.ProductCollections)
             .Include(product => product.ProductTags)
+            .Include(product => product.Images)
             .Include(product => product.BundleItems)
             .Include(product => product.TaxRate)
             .Include(product => product.Variants)
@@ -192,6 +196,66 @@ public sealed class ProductRepository : IProductRepository
         return _context.Products.AnyAsync(
             product => product.Url == url && (!excludedProductId.HasValue || product.Id != excludedProductId.Value),
             cancellationToken);
+    }
+
+    public Task<Product?> GetPublishedByUrlAsync(string url, CancellationToken cancellationToken = default)
+    {
+        var normalizedUrl = url.Trim();
+        return _context.Products
+            .AsNoTracking()
+            .Include(product => product.Type)
+            .Include(product => product.Brand)
+            .Include(product => product.TaxRate)
+            .Include(product => product.Variants)
+            .Include(product => product.Images)
+            .Include(product => product.ProductTags)
+                .ThenInclude(productTag => productTag.Tag)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(
+                product => product.IsActive &&
+                    product.Status == ProductStatus.Active &&
+                    (product.Url == normalizedUrl || product.UrlRedirects.Any(redirect => redirect.Url == normalizedUrl)),
+                cancellationToken);
+    }
+
+    public async Task<PagedResult<ProductSeoIndexItemDto>> GetPublishedSeoIndexAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Products
+            .AsNoTracking()
+            .Where(product => product.IsActive && product.Status == ProductStatus.Active);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderBy(product => product.Id)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(product => new ProductSeoIndexItemDto(
+                product.Url,
+                product.UpdatedAt ?? product.CreatedAt))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<ProductSeoIndexItemDto>(items, pageNumber, pageSize, totalCount);
+    }
+
+    public async Task<bool> ReservedUrlExistsAsync(
+        string url,
+        long? excludedProductId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedUrl = url.Trim();
+        return await _context.ProductUrlRedirects.AnyAsync(
+            redirect => redirect.Url == normalizedUrl,
+            cancellationToken);
+    }
+
+    public async Task AddUrlRedirectAsync(
+        ProductUrlRedirect redirect,
+        CancellationToken cancellationToken = default)
+    {
+        await _context.ProductUrlRedirects.AddAsync(redirect, cancellationToken);
     }
 
     // Burada ana SKU bilgisinin başka bir üründe kullanılıp kullanılmadığını kontrol ediyorum.

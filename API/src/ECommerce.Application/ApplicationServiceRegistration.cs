@@ -25,6 +25,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<ProductUrlGenerator>();
         services.AddScoped<IProductUrlGenerator>(provider => provider.GetRequiredService<ProductUrlGenerator>());
         services.AddScoped<IUrlGenerator>(provider => provider.GetRequiredService<ProductUrlGenerator>());
+        services.AddScoped<IProductUrlResolver, ProductUrlResolver>();
         services.AddScoped<IProductTagResolver, ProductTagResolver>();
         services.AddScoped<ICartOwnerResolver, CartOwnerResolver>();
         services.AddScoped<ICartMetricsRecorder, CartMetricsRecorder>();
