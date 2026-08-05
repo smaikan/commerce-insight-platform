@@ -128,3 +128,6 @@ Report one root cause per issue when possible. Include severity, affected flow/s
 8. Summarize passes, failures, skipped/not-verified checks, artifacts, and residual risk.
 
 When asked only to plan, review, audit, or report, do not modify application code. When asked to implement or fix, make the smallest cohesive change, preserve the repository architecture, and provide evidence from focused retesting.
+# Guest checkout extension
+
+Checkout testi guest shipping, member-only coupon, Turnstile/Redis fallback, idempotency/paralel stale cart, magic-link aynı/farklı cihaz, session/CSRF/origin, çapraz-order 404, payment/cancel/return ve claim senaryolarını kapsamalıdır. Hassas cookie/tokenları test çıktısında redakte et.

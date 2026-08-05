@@ -1,26 +1,96 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --admin-page: #e7eef7;
+  --admin-surface: #f8fafd;
+  --admin-surface-strong: #ffffff;
+  --admin-surface-subtle: #edf3fa;
+  --admin-border: #ccd8e7;
+  --admin-border-strong: #aebfd3;
+  --admin-foreground: #13233c;
+  --admin-muted: #5d6f88;
+  --admin-primary: #2f6fdb;
+  --admin-primary-hover: #245dbb;
+  --admin-primary-soft: #dbe9ff;
+  --admin-focus: #60a5fa;
+  --admin-sidebar: #10233f;
+  --admin-sidebar-elevated: #173052;
+  --admin-sidebar-hover: #1c3b63;
+  --admin-sidebar-active: #245c9f;
+  --admin-sidebar-border: #294766;
+  --admin-sidebar-foreground: #f2f7ff;
+  --admin-sidebar-muted: #a9bad1;
+  --admin-success: #067647;
+  --admin-warning: #a15c07;
+  --admin-danger: #b42318;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-page: var(--admin-page);
+  --color-surface: var(--admin-surface);
+  --color-surface-strong: var(--admin-surface-strong);
+  --color-surface-subtle: var(--admin-surface-subtle);
+  --color-border: var(--admin-border);
+  --color-border-strong: var(--admin-border-strong);
+  --color-foreground: var(--admin-foreground);
+  --color-muted: var(--admin-muted);
+  --color-primary: var(--admin-primary);
+  --color-primary-hover: var(--admin-primary-hover);
+  --color-primary-soft: var(--admin-primary-soft);
+  --color-focus: var(--admin-focus);
+  --color-sidebar: var(--admin-sidebar);
+  --color-sidebar-elevated: var(--admin-sidebar-elevated);
+  --color-sidebar-hover: var(--admin-sidebar-hover);
+  --color-sidebar-active: var(--admin-sidebar-active);
+  --color-sidebar-border: var(--admin-sidebar-border);
+  --color-sidebar-foreground: var(--admin-sidebar-foreground);
+  --color-sidebar-muted: var(--admin-sidebar-muted);
+  --color-success: var(--admin-success);
+  --color-warning: var(--admin-warning);
+  --color-danger: var(--admin-danger);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--admin-page);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  background: var(--admin-page);
+  color: var(--admin-foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+button,
+a,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--admin-primary-soft);
+  color: var(--admin-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

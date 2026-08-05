@@ -70,7 +70,10 @@ Use only a local/test environment and a sandbox or explicitly safe fake provider
 
 Cover:
 
-- anonymous checkout requires login and returns safely to the intended checkout path;
+- anonymous checkout login istemeden zorunlu müşteri, shipping adresi, aktif kargo, cart concurrency ve idempotency ile tamamlanır;
+- guest checkout'ta member-only kupon, challenge/rate-limit/fallback, sıfır toplamlı sipariş ve pasif kargo durumları test edilir;
+- guest magic-link aynı/farklı cihaz, tek kullanım/süre sonu/resend, session/CSRF/origin ve çapraz-order 404 akışları test edilir;
+- guest ödeme/iptal/iade/değişim ile aynı e-postalı güvenli claim ve claim öncesi review/rating engeli test edilir;
 - current cart is re-read before submission;
 - unavailable items, price changes, stale concurrency, empty cart, and insufficient stock prevent or recover checkout safely;
 - required address fields, shipping choice, coupon state, consent, and payment controls have accessible validation;

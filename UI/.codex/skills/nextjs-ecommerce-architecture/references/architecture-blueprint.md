@@ -153,3 +153,6 @@ Start without Redux, Zustand, or TanStack Query. Add one only after a concrete r
 - Structured data: server-rendered in the owning public page.
 
 The product API reads detail by public product ID while the DTO carries a URL slug. Use `/products/[productId]/[slug]`, fetch by ID, and redirect stale slugs to the canonical ID-plus-current-slug URL. Treat the API-provided slug as content data: preserve it rather than translating or inventing a second slug.
+## Guest commerce sınırı
+
+Guest cart, checkout ve order self-service için browser yalnız same-origin BFF Route Handler kullanır. Bu handler'lar auth token BFF'sinden ayrı route gruplarında tutulabilir ancak aynı server-only API istemcisini ve ProblemDetails mapper'ını paylaşır. Cookie/header allowlist kullanılır; guest sırları client component sınırını geçmez. Server-rendered page verisi Route Handler self-fetch yerine doğrudan server-only servisle alınır ve `no-store` işaretlenir.

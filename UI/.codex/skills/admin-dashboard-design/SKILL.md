@@ -126,3 +126,6 @@ When asked only to review or plan, report findings and decisions without editing
 - Run type checking, lint, focused tests, and a production build for implementation work.
 
 Finish with the implemented routes/states, reference adaptations, intentional deviations, screenshots, checks run, and remaining risk. Never claim visual completion without inspecting the rendered result.
+# Coupon extension
+
+Coupon admin işi geldiğinde `project-admin-contracts.md` içindeki `isMemberOnly` sözleşmesini uygula: list/create/update alanı görünür, create varsayılanı false ve backend uygunluk otoritesidir.

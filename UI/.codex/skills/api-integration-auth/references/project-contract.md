@@ -55,3 +55,11 @@ The current OpenAPI document mainly exposes success contracts and may omit Probl
 ## Known documentation conflict
 
 The OpenAPI document applies a global Bearer security requirement, while `AuthController` is `[AllowAnonymous]`. Do not attach bearer requirements to login/register/refresh/logout based solely on the global OpenAPI security entry. Report/fix the contract separately.
+## Guest checkout ve erişim kontratı
+
+- Guest checkout: `POST /api/cart/checkout/guest`; `Idempotency-Key`, son cart concurrency tokenı, zorunlu müşteri/shipping/aktif shipping method ve opsiyonel billing/coupon alır.
+- Guest order erişimi: access-links, exchange, list/detail, payment, cancel, returns ve claim uçları `/api/guest-orders` altındadır.
+- `ecommerce_guest_orders` ve `ecommerce_guest_csrf` yedi günlük Secure/HttpOnly/SameSite=Lax cookie'lerdir. Mutasyonlar trusted Origin + server-side `X-Guest-CSRF` ister.
+- Magic-link 30 dakika ve tek kullanımlıdır; token URL fragment'ından exchange body alanına taşınır.
+- `409 coupon_members_only`, `428 guest_checkout_challenge_required`, `429 guest_checkout_rate_limited`, `503 guest_checkout_protection_unavailable` kodları typed frontend error birliğine eklenir.
+- Sipariş numarası/e-posta yetki değildir; grant dışı order/return erişimi 404'tür. Claim JWT + aynı doğrulanmış e-posta ister.

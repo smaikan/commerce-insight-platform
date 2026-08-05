@@ -69,3 +69,8 @@ Server Components can read but cannot set cookies during rendering. Prefer proac
 - Do not forward untrusted proxy/IP headers; original-client IP propagation requires trusted infrastructure configuration.
 - Keep private responses `no-store`.
 - Avoid simultaneous refresh attempts when refresh rotation invalidates previous tokens; test the real backend behavior.
+## Guest cookie BFF topolojisi
+
+Browser guest cart/order işlemlerini same-origin Route Handler'a yapar. Handler yalnız `ecommerce_guest_cart`, `ecommerce_guest_orders`, `ecommerce_guest_csrf` cookie'lerini ve açıkça allowlist edilmiş `Idempotency-Key`, `X-Turnstile-Token` gibi header'ları upstream API'ye taşır. Upstream `Set-Cookie`, storefront origin altında Secure/HttpOnly/SameSite=Lax olarak yeniden yazılır; değerler JS, localStorage, DOM, props, log ve analytics'e açılmaz.
+
+Mutation öncesi browser `Origin` değeri BFF tarafından allowlist ile doğrulanır. BFF CSRF cookie'sini server-side okur ve `X-Guest-CSRF` header'ına koyar. Magic-link tokenı query yerine URL fragment'ında gelir; browser onu tek seferlik BFF exchange body alanına aktarır ve URL'yi hemen temizler. Server Component kendi Route Handler'ına HTTP self-fetch yapmaz; ortak server-only fonksiyonu çağırır. Guest cart/order/detail cevapları `no-store` kalır.

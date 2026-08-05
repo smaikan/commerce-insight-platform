@@ -123,3 +123,6 @@ Do not invent endpoints, filters, sort fields, roles, exports, workflows, or acc
 - Review the final diff for unnecessary Client Components, duplicated DTOs, accidental public environment variables, broad shared abstractions, and undocumented API assumptions.
 
 When asked only for an architecture plan or review, do not mutate the project. Return concrete decisions, affected boundaries, risks, and acceptance tests.
+# Guest checkout extension
+
+Guest commerce mimarisinde anonymous checkout'u login'e yönlendirme. Same-origin BFF Route Handler cookie sınırını, zorunlu aktif shipping yöntemini, guest self-service/claim akışını ve Server Component self-fetch yasağını `project-api-map.md` ile `architecture-blueprint.md` kaynaklarından uygula.

@@ -45,3 +45,6 @@ Verify exact fields and operations in `docs/api/api-project-docs/openapi-control
 ## Dashboard truthfulness
 
 Before showing a metric, identify its endpoint, filters, period, scope, and failure state. A paged response's `totalCount` may support a scoped count; current-page sums do not support global money totals. Use accounting report data only with its documented column semantics. If no authoritative source exists, omit the metric or mark the proposed backend contract as required.
+## Coupon üyelik alanı
+
+Coupon list/create/update DTO'ları `isMemberOnly: boolean` taşır; create varsayılanı `false`tır. Admin form ve listesi alanı açıkça göstermeli, fakat guest uygunluğunu browser'da yeniden hesaplamamalıdır. Backend `true` kuponu guest checkout'ta `409 coupon_members_only` ile reddeder.

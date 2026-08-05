@@ -16,10 +16,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: siteConfig.name,
-    template: `%s | ${siteConfig.name}`,
+    default: `Yönetim Paneli | ${siteConfig.name}`,
+    template: `%s | ${siteConfig.name} Yönetim Paneli`,
   },
-  description: `${siteConfig.name} ürünlerini keşfedin.`,
+  description: `${siteConfig.name} operasyon yönetim paneli.`,
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
 };
 
 export default function RootLayout({
@@ -32,7 +37,7 @@ export default function RootLayout({
       lang="tr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full bg-page text-foreground">{children}</body>
     </html>
   );
 }

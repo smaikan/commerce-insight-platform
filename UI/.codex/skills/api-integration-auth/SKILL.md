@@ -113,3 +113,6 @@ Apply behavior by status:
 - Test private/authenticated responses are never placed in a shared cache.
 
 When asked only to review or diagnose, do not edit files. When asked to implement, make the smallest cohesive integration, preserve the existing architecture, and report contract gaps separately from frontend defects.
+# Guest checkout extension
+
+Guest cart/checkout/order işi geldiğinde `project-contract.md` ve `bff-auth-flow.md` içindeki guest bölümlerini zorunlu oku. Guest cookie/token değerlerini client'a açma; allowlist BFF forwarding, trusted Origin, server-side CSRF, fragment-to-body magic exchange, `no-store`, idempotency ve typed `coupon_members_only`/challenge/rate-limit/protection errors kurallarını uygula.

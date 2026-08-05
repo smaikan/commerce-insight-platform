@@ -59,6 +59,8 @@ Build deterministic fixtures for:
 - unavailable/out-of-stock product;
 - product with a server-side price change;
 - guest cart and authenticated cart;
+- guest checkout shipping/member-only coupon/challenge/idempotency ve stale cart;
+- guest magic-link/session/CSRF/cross-order 404/self-service/claim;
 - valid customer with address;
 - expiring session;
 - valid, invalid, and exhausted coupon;

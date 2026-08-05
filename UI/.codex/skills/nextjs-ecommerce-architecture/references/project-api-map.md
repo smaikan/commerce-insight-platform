@@ -18,6 +18,8 @@ Use this map for feature discovery. Verify exact request and response fields aga
 - Catalog: products, variants, images, brands, collections, tags, product types.
 - Engagement: favorites, ratings, reviews, activity, and admin metrics.
 - Cart: guest HttpOnly cookie cart, authenticated cart, merge, optimistic concurrency.
+- Guest checkout: `/api/cart/checkout/guest`; müşteri/shipping/aktif shipping/idempotency zorunlu, billing ve coupon opsiyonel.
+- Guest orders: `/api/guest-orders/**`; magic-link exchange, 7 günlük grant session, payment/cancel/return ve JWT claim.
 - Checkout: cart-based order creation, shipping, coupon, reservation, provider payment.
 - Orders: customer list/detail/cancel and admin lifecycle management.
 - Returns: refund or exchange request; admin approve, reject, receive, and complete.
