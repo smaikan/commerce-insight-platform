@@ -16,9 +16,8 @@ public sealed class CreateProductCommandValidator : AbstractValidator<CreateProd
             .NotEmpty()
             .MaximumLength(100);
 
-        RuleFor(command => command.TypeId)
-            .Must(typeId => !typeId.HasValue || typeId.Value != Guid.Empty)
-            .WithMessage("Product type id cannot be empty.");
+        RuleFor(command => command.Type)
+            .MaximumLength(150);
 
         RuleFor(command => command.BrandId)
             .Must(brandId => !brandId.HasValue || brandId.Value != Guid.Empty)
@@ -43,12 +42,15 @@ public sealed class CreateProductCommandValidator : AbstractValidator<CreateProd
         RuleFor(command => command.SeoDescription)
             .MaximumLength(500);
 
-        RuleForEach(command => command.CollectionIds)
+        RuleForEach(command => command.Collections)
             .NotEmpty();
 
-        RuleFor(command => command.CollectionIds)
-            .Must(ids => ids is null || ids.Distinct().Count() == ids.Count)
-            .WithMessage("Collection ids cannot contain duplicates.");
+        RuleFor(command => command.Collections)
+            .Must(names => names is null || names.Select(name => name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() == names.Count)
+            .WithMessage("Collection names cannot contain duplicates.");
+
+        RuleForEach(command => command.Collections)
+            .MaximumLength(150);
 
         RuleForEach(command => command.Tags)
             .NotEmpty()
@@ -61,6 +63,10 @@ public sealed class CreateProductCommandValidator : AbstractValidator<CreateProd
         RuleFor(command => command.Variants)
             .NotEmpty()
             .WithMessage("A product must have at least one variant.");
+
+        RuleFor(command => command)
+            .Must(command => command.HasVariants || (command.Variants?.Count ?? 0) <= 1)
+            .WithMessage("A product with multiple variants must have HasVariants enabled.");
 
         RuleForEach(command => command.Variants)
             .ChildRules(variant =>

@@ -36,9 +36,8 @@ public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkC
                     .NotEmpty()
                     .MaximumLength(100);
 
-                product.RuleFor(item => item.TypeId)
-                    .Must(typeId => !typeId.HasValue || typeId.Value != Guid.Empty)
-                    .WithMessage("Product type id cannot be empty.");
+                product.RuleFor(item => item.Type)
+                    .MaximumLength(150);
 
                 product.RuleFor(item => item.BrandId)
                     .Must(brandId => !brandId.HasValue || brandId.Value != Guid.Empty)
@@ -127,6 +126,10 @@ public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkC
                     .NotEmpty()
                     .WithMessage("A product must have at least one variant.");
 
+                product.RuleFor(item => item)
+                    .Must(item => item.HasVariants || (item.Variants?.Count ?? 0) <= 1)
+                    .WithMessage("A product with multiple variants must have HasVariants enabled.");
+
                 product.RuleForEach(item => item.Images)
                     .ChildRules(image =>
                     {
@@ -145,15 +148,15 @@ public sealed class BulkCreateProductsCommandValidator : AbstractValidator<BulkC
                     .Must(images => images is null || images.Count(image => image.IsMain) <= 1)
                     .WithMessage("A product can contain at most one main image.");
 
-                product.RuleForEach(item => item.CollectionIds)
+                product.RuleForEach(item => item.Collections)
                     .NotEmpty();
 
-                product.RuleFor(item => item.CollectionIds)
-                    .Must(ids => ids is null || ids.Distinct().Count() == ids.Count)
-                    .WithMessage("Collection ids cannot contain duplicates.");
+                product.RuleForEach(item => item.Collections)
+                    .MaximumLength(150);
 
-                product.RuleForEach(item => item.TagIds)
-                    .NotEmpty();
+                product.RuleFor(item => item.Collections)
+                    .Must(names => names is null || names.Select(name => name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() == names.Count)
+                    .WithMessage("Collection names cannot contain duplicates.");
 
                 product.RuleForEach(item => item.Tags)
                     .NotEmpty()

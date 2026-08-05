@@ -14,4 +14,5 @@ public sealed record CreateCouponCommand(
     int? UsageLimit = null,
     DateTime? StartsAt = null,
     DateTime? ExpiresAt = null,
-    bool IsActive = true) : IRequest<CouponDto>;
+    bool IsActive = true,
+    bool IsMemberOnly = false) : IRequest<CouponDto>;

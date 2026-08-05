@@ -27,6 +27,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
     {
         var (statusCode, title, errorCode) = exception switch
         {
+            ApiContractException apiContractException => (apiContractException.StatusCode, apiContractException.Title, apiContractException.ErrorCode),
             ValidationException => (StatusCodes.Status400BadRequest, "Validation failed", ApiErrorCodes.Validation),
             DomainException => (StatusCodes.Status400BadRequest, "Business rule violation", ApiErrorCodes.BusinessRule),
             NotFoundException => (StatusCodes.Status404NotFound, "Resource not found", ApiErrorCodes.NotFound),

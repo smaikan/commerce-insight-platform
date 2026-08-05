@@ -14,4 +14,5 @@ public sealed record UpdateCouponCommand(
     decimal? MinimumOrderAmount = null,
     int? UsageLimit = null,
     DateTime? StartsAt = null,
-    DateTime? ExpiresAt = null) : IRequest<CouponDto>;
+    DateTime? ExpiresAt = null,
+    bool IsMemberOnly = false) : IRequest<CouponDto>;

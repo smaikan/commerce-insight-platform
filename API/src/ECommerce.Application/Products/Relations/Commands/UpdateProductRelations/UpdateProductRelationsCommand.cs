@@ -5,8 +5,7 @@ namespace ECommerce.Application.Products.Relations.Commands.UpdateProductRelatio
 // Burada ürünün koleksiyon, etiket ve bundle ilişkilerini değiştirecek isteği taşıyorum.
 public sealed record UpdateProductRelationsCommand(
     long ProductId,
-    IReadOnlyList<Guid> CollectionIds,
-    IReadOnlyList<Guid> TagIds,
+    IReadOnlyList<string> Collections,
     IReadOnlyList<ProductBundleItemInput> BundleItems,
     IReadOnlyList<string>? Tags = null) : IRequest;
 

@@ -39,7 +39,8 @@ public sealed class UpdateCouponCommandHandler : IRequestHandler<UpdateCouponCom
             request.MinimumOrderAmount,
             request.UsageLimit,
             request.StartsAt,
-            request.ExpiresAt);
+            request.ExpiresAt,
+            request.IsMemberOnly);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return coupon.ToDto();

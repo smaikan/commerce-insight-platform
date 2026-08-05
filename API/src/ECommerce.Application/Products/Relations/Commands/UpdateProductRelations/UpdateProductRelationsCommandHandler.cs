@@ -9,23 +9,20 @@ namespace ECommerce.Application.Products.Relations.Commands.UpdateProductRelatio
 public sealed class UpdateProductRelationsCommandHandler : IRequestHandler<UpdateProductRelationsCommand>
 {
     private readonly IProductRepository _products;
-    private readonly ICollectionRepository _collections;
-    private readonly ITagRepository _tags;
     private readonly IProductTagResolver _productTagResolver;
+    private readonly IProductCollectionNameResolver _productCollectionNameResolver;
     private readonly IUnitOfWork _unitOfWork;
 
     // Burada ürün ilişkilerini güncellemek için gereken repository ve etiket çözümleyicilerini hazırlıyorum.
     public UpdateProductRelationsCommandHandler(
         IProductRepository products,
-        ICollectionRepository collections,
-        ITagRepository tags,
         IProductTagResolver productTagResolver,
+        IProductCollectionNameResolver productCollectionNameResolver,
         IUnitOfWork unitOfWork)
     {
         _products = products;
-        _collections = collections;
-        _tags = tags;
         _productTagResolver = productTagResolver;
+        _productCollectionNameResolver = productCollectionNameResolver;
         _unitOfWork = unitOfWork;
     }
 
@@ -40,17 +37,7 @@ public sealed class UpdateProductRelationsCommandHandler : IRequestHandler<Updat
             throw new ConflictException("A bundle cannot include itself.");
         }
 
-        var existingCollections = await _collections.GetExistingIdsAsync(request.CollectionIds, cancellationToken);
-        if (existingCollections.Count != request.CollectionIds.Count)
-        {
-            throw new NotFoundException("One or more collections were not found.");
-        }
-
-        var existingTags = await _tags.GetExistingIdsAsync(request.TagIds, cancellationToken);
-        if (existingTags.Count != request.TagIds.Count)
-        {
-            throw new NotFoundException("One or more tags were not found.");
-        }
+        var collectionIds = await _productCollectionNameResolver.ResolveAsync(request.Collections, cancellationToken);
 
         var resolvedTags = request.Tags is { Count: > 0 }
             ? await _productTagResolver.ResolveAsync(request.Tags, cancellationToken)
@@ -62,14 +49,12 @@ public sealed class UpdateProductRelationsCommandHandler : IRequestHandler<Updat
         }
 
         product.ProductCollections.Clear();
-        foreach (var collectionId in request.CollectionIds)
+        foreach (var collectionId in collectionIds)
         {
             product.ProductCollections.Add(new ProductCollection(product.Id, collectionId));
         }
 
-        var tagIds = request.TagIds
-            .Concat(resolvedTags.GetIds(request.Tags))
-            .ToHashSet();
+        var tagIds = resolvedTags.GetIds(request.Tags).ToHashSet();
         var removedProductTags = product.ProductTags
             .Where(productTag => !tagIds.Contains(productTag.TagId))
             .ToList();

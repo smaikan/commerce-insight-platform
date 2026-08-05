@@ -11,7 +11,7 @@ public sealed class ReturnRequestConfiguration : IEntityTypeConfiguration<Return
     {
         builder.ToTable("ReturnRequests", tableBuilder =>
         {
-            tableBuilder.HasCheckConstraint("CK_ReturnRequests_UserId_Positive", "[UserId] > 0");
+            tableBuilder.HasCheckConstraint("CK_ReturnRequests_UserId_Positive", "[UserId] IS NULL OR [UserId] > 0");
             tableBuilder.HasCheckConstraint("CK_ReturnRequests_RefundTotal_NonNegative", "[RefundTotal] >= 0");
         });
 

@@ -8,7 +8,7 @@ public sealed record UpdateProductCommand(
     long Id,
     string Title,
     string MainSku,
-    Guid? TypeId,
+    string? Type,
     string? Url = null,
     Guid? BrandId = null,
     string? Description = null,

@@ -338,7 +338,6 @@ public sealed class OpeningBalanceCostLayerCreationTests
                 BrandRepository,
                 TaxRateRepository,
                 CollectionRepository,
-                TagRepository,
                 TagResolver,
                 UrlGenerator,
                 LayerWriter,

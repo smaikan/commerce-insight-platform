@@ -37,6 +37,9 @@ public sealed class ApiPipelineTests
         swagger.Should().Contain("/api/orders");
         swagger.Should().Contain("/api/orders/mine");
         swagger.Should().Contain("/api/orders/{id}/payments");
+        swagger.Should().Contain("/api/orders/import");
+        swagger.Should().Contain("/api/orders/import/bulk");
+        swagger.Should().Contain("/api/products/performance-metrics");
         swagger.Should().Contain("/api/addresses");
         swagger.Should().Contain("/api/coupons");
         swagger.Should().Contain("/api/stock-movements");
@@ -380,7 +383,7 @@ public sealed class ApiPipelineTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var endpoints = DiscoverControllerEndpoints();
 
-        endpoints.Should().HaveCount(208);
+        endpoints.Should().HaveCount(222);
 
         using var swaggerResponse = await client.GetAsync("/swagger/v1/swagger.json");
         swaggerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -404,8 +407,16 @@ public sealed class ApiPipelineTests
             using var response = await client.SendAsync(request);
             if (endpoint.AllowsAnonymous)
             {
-                response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized,
-                    $"{endpoint.Method.Method} {endpoint.RouteTemplate} AllowAnonymous endpointidir");
+                var requiresGuestSession = endpoint.RouteTemplate.StartsWith(
+                    "/api/guest-orders", StringComparison.Ordinal) &&
+                    endpoint.RouteTemplate is not "/api/guest-orders/access-links" and
+                    not "/api/guest-orders/access/exchange";
+                if (!requiresGuestSession)
+                {
+                    response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized,
+                        $"{endpoint.Method.Method} {endpoint.RouteTemplate} AllowAnonymous endpointidir");
+                }
+
                 response.StatusCode.Should().NotBe(HttpStatusCode.MethodNotAllowed,
                     $"{endpoint.Method.Method} {endpoint.RouteTemplate} route'a eşlenmelidir");
             }

@@ -9,5 +9,6 @@ public enum EmailOutboxMessageType
     PaymentFailed = 5,
     OrderStatusChanged = 6,
     ReturnRequested = 7,
-    ReturnStatusChanged = 8
+    ReturnStatusChanged = 8,
+    GuestOrderAccess = 9
 }

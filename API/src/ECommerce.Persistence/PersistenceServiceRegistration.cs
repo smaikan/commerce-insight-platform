@@ -41,6 +41,7 @@ public static class PersistenceServiceRegistration
         services.AddScoped<IAddressRepository, AddressRepository>();
         services.AddScoped<ICouponRepository, CouponRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IGuestOrderRepository, GuestOrderRepository>();
         services.AddScoped<IReturnRequestRepository, ReturnRequestRepository>();
         services.AddScoped<IShippingMethodRepository, ShippingMethodRepository>();
         services.AddScoped<ITaxRateRepository, TaxRateRepository>();

@@ -13,8 +13,9 @@ public sealed class Order : AuditableEntity
 
     private readonly List<OrderItem> _items = [];
     private readonly List<Payment> _payments = [];
+    private readonly List<OrderAddressSnapshot> _addressSnapshots = [];
 
-    public long UserId { get; private set; }
+    public long? UserId { get; private set; }
     public string OrderNumber { get; private set; } = null!;
     public OrderStatus Status { get; private set; }
     public decimal SubTotal { get; private set; }
@@ -29,7 +30,10 @@ public sealed class Order : AuditableEntity
     public ShippingMethod? ShippingMethod { get; private set; }
     public string? ShippingMethodName { get; private set; }
     public DateTime? ReservationExpiresAt { get; private set; }
-    public OrderAddressSnapshot? ShippingAddressSnapshot { get; private set; }
+    public OrderCustomerSnapshot? CustomerSnapshot { get; private set; }
+    public IReadOnlyCollection<OrderAddressSnapshot> AddressSnapshots => _addressSnapshots.AsReadOnly();
+    public OrderAddressSnapshot? ShippingAddressSnapshot => _addressSnapshots.SingleOrDefault(snapshot => snapshot.Type == AddressType.Shipping);
+    public OrderAddressSnapshot? BillingAddressSnapshot => _addressSnapshots.SingleOrDefault(snapshot => snapshot.Type == AddressType.Billing);
     public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
     public IReadOnlyCollection<Payment> Payments => _payments.AsReadOnly();
     public DateTime? PaidAt { get; private set; }
@@ -42,7 +46,7 @@ public sealed class Order : AuditableEntity
 
     // Burada siparişin kullanıcı, numara ve parasal özet kurallarını koruyarak aggregate'ı oluşturuyorum.
     public Order(
-        long userId,
+        long? userId,
         string orderNumber,
         decimal subTotal,
         decimal discountTotal,
@@ -54,9 +58,9 @@ public sealed class Order : AuditableEntity
         Guid? shippingMethodId = null,
         string? shippingMethodName = null)
     {
-        if (userId <= 0)
+        if (userId.HasValue && userId.Value <= 0)
         {
-            throw new DomainException("User id is required.");
+            throw new DomainException("User id must be positive when supplied.");
         }
 
         OrderNumber = NormalizeOrderNumber(orderNumber);
@@ -141,12 +145,98 @@ public sealed class Order : AuditableEntity
             throw new DomainException("The shipping address must match the order address id.");
         }
 
-        if (ShippingAddressSnapshot is not null)
+        AddAddressSnapshot(new OrderAddressSnapshot(this, address, AddressType.Shipping));
+    }
+
+    // Burada üye veya guest siparişinin zorunlu müşteri iletişim snapshot'ını yalnız bir kez oluşturuyorum.
+    public void SetCustomerSnapshot(string firstName, string lastName, string email, string phoneNumber)
+    {
+        if (CustomerSnapshot is not null)
         {
-            throw new DomainException("Order shipping address snapshot is already set.");
+            throw new DomainException("Order customer snapshot is already set.");
         }
 
-        ShippingAddressSnapshot = new OrderAddressSnapshot(this, address);
+        CustomerSnapshot = new OrderCustomerSnapshot(this, firstName, lastName, email, phoneNumber);
+        MarkAsUpdated();
+    }
+
+    // Burada guest checkout teslimat adresini kaynak kullanıcı adresi olmadan snapshot olarak saklıyorum.
+    public void SetGuestShippingAddressSnapshot(
+        string title,
+        string firstName,
+        string lastName,
+        string phoneNumber,
+        string city,
+        string district,
+        string fullAddress,
+        string? postalCode)
+    {
+        AddAddressSnapshot(new OrderAddressSnapshot(
+            this,
+            null,
+            AddressType.Shipping,
+            title,
+            firstName,
+            lastName,
+            phoneNumber,
+            city,
+            district,
+            fullAddress,
+            postalCode));
+    }
+
+    // Burada ayrı fatura adresini kaynak adresi olsa da olmasa da değişmez snapshot olarak saklıyorum.
+    public void SetBillingAddressSnapshot(
+        Guid? sourceAddressId,
+        string title,
+        string firstName,
+        string lastName,
+        string phoneNumber,
+        string city,
+        string district,
+        string fullAddress,
+        string? postalCode)
+    {
+        AddAddressSnapshot(new OrderAddressSnapshot(
+            this,
+            sourceAddressId,
+            AddressType.Billing,
+            title,
+            firstName,
+            lastName,
+            phoneNumber,
+            city,
+            district,
+            fullAddress,
+            postalCode));
+    }
+
+    // Burada guest sipariş claim edildiğinde kullanıcı bağını yalnız sahipsiz siparişe atıyorum.
+    public void Claim(long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new DomainException("Claim user id must be positive.");
+        }
+
+        if (UserId.HasValue && UserId.Value != userId)
+        {
+            throw new DomainException("Order is already owned by another user.");
+        }
+
+        UserId = userId;
+        MarkAsUpdated();
+    }
+
+    // Burada aynı tipte ikinci adres snapshot'ı oluşmasını engelleyerek aggregate koleksiyonuna ekliyorum.
+    private void AddAddressSnapshot(OrderAddressSnapshot snapshot)
+    {
+        if (_addressSnapshots.Any(existing => existing.Type == snapshot.Type))
+        {
+            throw new DomainException($"Order {snapshot.Type} address snapshot is already set.");
+        }
+
+        _addressSnapshots.Add(snapshot);
         MarkAsUpdated();
     }
 
@@ -332,6 +422,13 @@ public sealed class Order : AuditableEntity
         }
 
         MarkAsUpdated();
+    }
+
+    // Burada yalnızca içe aktarma akışının, geçmişte oluşmuş siparişin UTC oluşma anını korumasını sağlıyorum.
+    public void SetImportedCreatedAt(DateTime createdAtUtc)
+    {
+        EnsureUtc(createdAtUtc, "Imported order creation time");
+        CreatedAt = createdAtUtc;
     }
 
     // Burada hedef sipariş durumunun mevcut durumdan izin verilen bir geçiş olup olmadığını denetliyorum.

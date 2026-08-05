@@ -26,7 +26,7 @@ public sealed class OrderNotificationService : IOrderNotificationService
     // Burada sipariş oluşturma bilgisini kullanıcının e-posta snapshot'ıyla atomik outbox mesajına ekliyorum.
     public async Task QueueOrderCreatedAsync(Order order, CancellationToken cancellationToken = default)
     {
-        var recipient = await GetRecipientAsync(order.UserId, cancellationToken);
+        var recipient = await GetRecipientAsync(order, cancellationToken);
         await _emailOutboxRepository.AddAsync(
             EmailOutboxMessage.CreateOrderCreated(
                 recipient.Email,
@@ -44,7 +44,7 @@ public sealed class OrderNotificationService : IOrderNotificationService
         Payment payment,
         CancellationToken cancellationToken = default)
     {
-        var recipient = await GetRecipientAsync(order.UserId, cancellationToken);
+        var recipient = await GetRecipientAsync(order, cancellationToken);
         var message = payment.Status switch
         {
             PaymentStatus.Paid => EmailOutboxMessage.CreatePaymentPaid(
@@ -70,7 +70,7 @@ public sealed class OrderNotificationService : IOrderNotificationService
     // Burada kesinleşmiş sipariş durumunu müşteri için tekilleştirilmiş durum bildirimi olarak kuyruğa ekliyorum.
     public async Task QueueOrderStatusChangedAsync(Order order, CancellationToken cancellationToken = default)
     {
-        var recipient = await GetRecipientAsync(order.UserId, cancellationToken);
+        var recipient = await GetRecipientAsync(order, cancellationToken);
         await _emailOutboxRepository.AddAsync(
             EmailOutboxMessage.CreateOrderStatusChanged(
                 recipient.Email,
@@ -89,7 +89,7 @@ public sealed class OrderNotificationService : IOrderNotificationService
         CancellationToken cancellationToken = default)
     {
         EnsureReturnBelongsToOrder(returnRequest, order);
-        var recipient = await GetRecipientAsync(returnRequest.UserId, cancellationToken);
+        var recipient = await GetRecipientAsync(order, cancellationToken);
         await _emailOutboxRepository.AddAsync(
             EmailOutboxMessage.CreateReturnRequested(
                 recipient.Email,
@@ -108,7 +108,7 @@ public sealed class OrderNotificationService : IOrderNotificationService
         CancellationToken cancellationToken = default)
     {
         EnsureReturnBelongsToOrder(returnRequest, order);
-        var recipient = await GetRecipientAsync(returnRequest.UserId, cancellationToken);
+        var recipient = await GetRecipientAsync(order, cancellationToken);
         await _emailOutboxRepository.AddAsync(
             EmailOutboxMessage.CreateReturnStatusChanged(
                 recipient.Email,
@@ -122,10 +122,23 @@ public sealed class OrderNotificationService : IOrderNotificationService
     }
 
     // Burada sipariş sahibinin bildirim alacağı geçerli kullanıcı kaydını güvenilir depodan çözümlüyorum.
-    private async Task<User> GetRecipientAsync(long userId, CancellationToken cancellationToken)
+    private async Task<NotificationRecipient> GetRecipientAsync(Order order, CancellationToken cancellationToken)
     {
-        return await _userRepository.GetByIdAsync(userId, cancellationToken)
+        if (order.CustomerSnapshot is not null)
+        {
+            return new NotificationRecipient(
+                order.CustomerSnapshot.Email,
+                $"{order.CustomerSnapshot.FirstName} {order.CustomerSnapshot.LastName}");
+        }
+
+        if (!order.UserId.HasValue)
+        {
+            throw new InvalidOperationException("Guest order notification snapshot was not found.");
+        }
+
+        var user = await _userRepository.GetByIdAsync(order.UserId.Value, cancellationToken)
             ?? throw new InvalidOperationException("Order notification recipient was not found.");
+        return new NotificationRecipient(user.Email, user.FullName);
     }
 
     // Burada iade bildiriminin başka bir sipariş snapshot'ıyla eşleşmesini engelliyorum.
@@ -136,4 +149,7 @@ public sealed class OrderNotificationService : IOrderNotificationService
             throw new InvalidOperationException("Return notification order does not match the return request.");
         }
     }
+
+    // Burada outbox için gerekli en küçük alıcı snapshot'ını taşıyorum.
+    private sealed record NotificationRecipient(string Email, string FullName);
 }

@@ -55,7 +55,8 @@ public sealed class CouponsController : ControllerBase
                 request.UsageLimit,
                 request.StartsAt,
                 request.ExpiresAt,
-                request.IsActive),
+                request.IsActive,
+                request.IsMemberOnly),
             cancellationToken);
         return StatusCode(StatusCodes.Status201Created, coupon);
     }
@@ -77,7 +78,8 @@ public sealed class CouponsController : ControllerBase
                 request.MinimumOrderAmount,
                 request.UsageLimit,
                 request.StartsAt,
-                request.ExpiresAt),
+                request.ExpiresAt,
+                request.IsMemberOnly),
             cancellationToken);
         return Ok(coupon);
     }
@@ -106,7 +108,8 @@ public sealed record CouponRequest(
     int? UsageLimit = null,
     DateTime? StartsAt = null,
     DateTime? ExpiresAt = null,
-    bool IsActive = true);
+    bool IsActive = true,
+    bool IsMemberOnly = false);
 
 // Burada kupon aktiflik değişikliği için gereken tek HTTP alanını tanımlıyorum.
 public sealed record SetCouponActivationRequest(bool IsActive);

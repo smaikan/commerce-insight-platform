@@ -38,7 +38,7 @@ public sealed class Product : AuditableEntity<long>
     public Guid ConcurrencyToken { get; private set; }
 
     // Burada ürünün varyant içerip içermediğini gerçek varyant koleksiyonundan türetiyorum.
-    public bool HasVariants => Variants.Count > 0;
+    public bool HasVariants { get; private set; }
 
     public ICollection<ProductVariant> Variants { get; private set; } = new List<ProductVariant>();
     public ICollection<ProductImage> Images { get; private set; } = new List<ProductImage>();
@@ -70,7 +70,8 @@ public sealed class Product : AuditableEntity<long>
         int displayOrder = 0,
         string? seoTitle = null,
         string? seoDescription = null,
-        Guid? taxRateId = null)
+        Guid? taxRateId = null,
+        bool hasVariants = false)
     {
         SetTitle(title);
         SetUrl(url);
@@ -79,6 +80,7 @@ public sealed class Product : AuditableEntity<long>
         SetBrand(brandId);
         SetTaxRate(taxRateId);
         SetDisplayOrder(displayOrder);
+        HasVariants = hasVariants;
 
         Description = description?.Trim();
         Status = status;
@@ -162,6 +164,56 @@ public sealed class Product : AuditableEntity<long>
         MarkAsChanged();
     }
 
+    // Burada harici katalogdan gelen ürün performans özetini tüm türetilmiş alanlarıyla
+    // birlikte güvenli biçimde senkronize ediyorum. Popülerlik puanı dışarıdan kabul edilmez.
+    public void ReplacePerformanceMetrics(
+        long clickCount,
+        long totalAddToCartCount,
+        long totalPurchaseCount,
+        long favoriteCount,
+        decimal averageRating,
+        long ratingCount,
+        long reviewCount)
+    {
+        if (clickCount < 0 || totalAddToCartCount < 0 || totalPurchaseCount < 0 ||
+            favoriteCount < 0 || ratingCount < 0 || reviewCount < 0)
+        {
+            throw new DomainException("Product performance metrics cannot be negative.");
+        }
+
+        if (averageRating < 0m || averageRating > 5m || decimal.Round(averageRating, 2) != averageRating)
+        {
+            throw new DomainException("Average rating must be between 0 and 5 with at most two decimal places.");
+        }
+
+        if (ratingCount == 0 && averageRating != 0m)
+        {
+            throw new DomainException("Average rating must be zero when there are no ratings.");
+        }
+
+        try
+        {
+            ClickCount = clickCount;
+            TotalAddToCartCount = totalAddToCartCount;
+            TotalPurchaseCount = totalPurchaseCount;
+            FavoriteCount = favoriteCount;
+            AverageRating = averageRating;
+            RatingCount = ratingCount;
+            ReviewCount = reviewCount;
+            PopularityScore = checked(
+                (clickCount * ClickScoreWeight) +
+                (favoriteCount * FavoriteScoreWeight) +
+                (totalAddToCartCount * AddToCartScoreWeight) +
+                (totalPurchaseCount * PurchaseScoreWeight));
+        }
+        catch (OverflowException exception)
+        {
+            throw new DomainException("Product popularity score exceeds the supported range.", exception);
+        }
+
+        MarkAsChanged();
+    }
+
     // Burada onaylı yorum sayısını artırıyorum.
     public void IncreaseReviewCount()
     {
@@ -220,6 +272,17 @@ public sealed class Product : AuditableEntity<long>
     public void ChangeType(Guid? typeId)
     {
         SetType(typeId);
+        MarkAsChanged();
+    }
+
+    public void SetHasVariants(bool hasVariants)
+    {
+        if (!hasVariants && Variants.Count > 1)
+        {
+            throw new DomainException("A product with multiple variants must have HasVariants enabled.");
+        }
+
+        HasVariants = hasVariants;
         MarkAsChanged();
     }
 

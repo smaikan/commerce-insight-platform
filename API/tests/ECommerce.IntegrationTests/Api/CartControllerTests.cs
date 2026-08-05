@@ -8,6 +8,7 @@ using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 
 namespace ECommerce.IntegrationTests.Api;
 
@@ -84,7 +85,13 @@ public sealed class CartControllerTests
                 authenticationType: "Test"));
         }
 
-        return new CartController(sender)
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["GuestProtection:TrustedOrigins"] = "https://store.example.test"
+            })
+            .Build();
+        return new CartController(sender, configuration)
         {
             ControllerContext = new ControllerContext
             {

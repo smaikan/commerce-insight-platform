@@ -2357,6 +2357,11 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsMemberOnly")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<decimal?>("MinimumOrderAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -2405,7 +2410,7 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<DateTime>("UsedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<long>("UserId")
+                    b.Property<long?>("UserId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
@@ -2537,6 +2542,163 @@ namespace ECommerce.Persistence.Migrations
                     b.ToTable("FavoriteProducts", (string)null);
                 });
 
+            modelBuilder.Entity("ECommerce.Domain.Entities.GuestCheckoutIdempotency", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CartSessionHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("CartSessionHash", "KeyHash")
+                        .IsUnique();
+
+                    b.ToTable("GuestCheckoutIdempotencies", (string)null);
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.GuestOrderAccessGrant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("GrantedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId", "RevokedAt");
+
+                    b.HasIndex("SessionId", "OrderId")
+                        .IsUnique();
+
+                    b.ToTable("GuestOrderAccessGrants", (string)null);
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.GuestOrderMagicLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EmailHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("OrderId", "ExpiresAt");
+
+                    b.ToTable("GuestOrderMagicLinks", (string)null);
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.GuestOrderSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CsrfTokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("LastUsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.Property<string>("VerifiedEmailHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("VerifiedEmailHash");
+
+                    b.HasIndex("ExpiresAt", "RevokedAt");
+
+                    b.ToTable("GuestOrderSessions", (string)null);
+                });
+
             modelBuilder.Entity("ECommerce.Domain.Entities.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2602,7 +2764,7 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<long>("UserId")
+                    b.Property<long?>("UserId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
@@ -2675,7 +2837,7 @@ namespace ECommerce.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<Guid>("SourceAddressId")
+                    b.Property<Guid?>("SourceAddressId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Title")
@@ -2690,12 +2852,51 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("SourceAddressId");
+
+                    b.HasIndex("OrderId", "Type")
+                        .IsUnique();
+
+                    b.ToTable("OrderAddressSnapshots", (string)null);
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.OrderCustomerSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email");
+
                     b.HasIndex("OrderId")
                         .IsUnique();
 
-                    b.HasIndex("SourceAddressId");
-
-                    b.ToTable("OrderAddressSnapshots", (string)null);
+                    b.ToTable("OrderCustomerSnapshots", (string)null);
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.OrderItem", b =>
@@ -2866,6 +3067,11 @@ namespace ECommerce.Persistence.Migrations
 
                     b.Property<long>("FavoriteCount")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("HasVariants")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -3518,7 +3724,7 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<long>("UserId")
+                    b.Property<long?>("UserId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
@@ -3536,7 +3742,7 @@ namespace ECommerce.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_ReturnRequests_RefundTotal_NonNegative", "[RefundTotal] >= 0");
 
-                            t.HasCheckConstraint("CK_ReturnRequests_UserId_Positive", "[UserId] > 0");
+                            t.HasCheckConstraint("CK_ReturnRequests_UserId_Positive", "[UserId] IS NULL OR [UserId] > 0");
                         });
                 });
 
@@ -4455,8 +4661,7 @@ namespace ECommerce.Persistence.Migrations
                     b.HasOne("ECommerce.Domain.Entities.User", null)
                         .WithMany("CouponUsages")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Coupon");
                 });
@@ -4478,6 +4683,47 @@ namespace ECommerce.Persistence.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("ECommerce.Domain.Entities.GuestCheckoutIdempotency", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.GuestOrderAccessGrant", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ECommerce.Domain.Entities.GuestOrderSession", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.GuestOrderMagicLink", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("ECommerce.Domain.Entities.Order", b =>
                 {
                     b.HasOne("ECommerce.Domain.Entities.Address", "Address")
@@ -4493,8 +4739,7 @@ namespace ECommerce.Persistence.Migrations
                     b.HasOne("ECommerce.Domain.Entities.User", null)
                         .WithMany("Orders")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Address");
 
@@ -4504,8 +4749,19 @@ namespace ECommerce.Persistence.Migrations
             modelBuilder.Entity("ECommerce.Domain.Entities.OrderAddressSnapshot", b =>
                 {
                     b.HasOne("ECommerce.Domain.Entities.Order", "Order")
-                        .WithOne("ShippingAddressSnapshot")
-                        .HasForeignKey("ECommerce.Domain.Entities.OrderAddressSnapshot", "OrderId")
+                        .WithMany("AddressSnapshots")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.OrderCustomerSnapshot", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.Order", "Order")
+                        .WithOne("CustomerSnapshot")
+                        .HasForeignKey("ECommerce.Domain.Entities.OrderCustomerSnapshot", "OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -4799,8 +5055,7 @@ namespace ECommerce.Persistence.Migrations
                     b.HasOne("ECommerce.Domain.Entities.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Order");
                 });
@@ -4927,11 +5182,13 @@ namespace ECommerce.Persistence.Migrations
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Order", b =>
                 {
+                    b.Navigation("AddressSnapshots");
+
+                    b.Navigation("CustomerSnapshot");
+
                     b.Navigation("Items");
 
                     b.Navigation("Payments");
-
-                    b.Navigation("ShippingAddressSnapshot");
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Product", b =>

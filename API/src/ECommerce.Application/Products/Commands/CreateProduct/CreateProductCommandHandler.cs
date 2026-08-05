@@ -17,6 +17,8 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
     private readonly ITaxRateRepository _taxRateRepository;
     private readonly ICollectionRepository _collectionRepository;
     private readonly IProductTagResolver _productTagResolver;
+    private readonly IProductTypeNameResolver _productTypeNameResolver;
+    private readonly IProductCollectionNameResolver _productCollectionNameResolver;
     private readonly IProductUrlGenerator _productUrlGenerator;
 
     private readonly IProductUrlResolver _productUrlResolver;
@@ -37,7 +39,9 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
         IOpeningBalanceCostLayerWriter openingBalanceCostLayerWriter,
         IUnitOfWork unitOfWork,
         IVariantOptionResolver? variantOptionResolver = null,
-        IProductUrlResolver? productUrlResolver = null)
+        IProductUrlResolver? productUrlResolver = null,
+        IProductTypeNameResolver? productTypeNameResolver = null,
+        IProductCollectionNameResolver? productCollectionNameResolver = null)
     {
         _productRepository = productRepository;
         _productTypeRepository = productTypeRepository;
@@ -48,6 +52,11 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
         _productUrlGenerator = productUrlGenerator;
 
         _productUrlResolver = productUrlResolver ?? new ProductUrlResolver(productRepository, productUrlGenerator);
+        _productTypeNameResolver = productTypeNameResolver ?? new ProductTypeNameResolver(productTypeRepository);
+        _productCollectionNameResolver = productCollectionNameResolver ?? new ProductCollectionNameResolver(
+            collectionRepository,
+            productUrlGenerator as IUrlGenerator ?? throw new InvalidOperationException(
+                "Product URL generator must also implement IUrlGenerator."));
         _openingBalanceCostLayerWriter = openingBalanceCostLayerWriter;
         _variantOptionResolver = variantOptionResolver;
         _unitOfWork = unitOfWork;
@@ -64,11 +73,7 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
             throw new ConflictException("Product main SKU already exists.");
         }
 
-        if (request.TypeId.HasValue &&
-            !await _productTypeRepository.ExistsAsync(request.TypeId.Value, cancellationToken))
-        {
-            throw new NotFoundException("Product type was not found.");
-        }
+        var typeId = await _productTypeNameResolver.ResolveAsync(request.Type, cancellationToken);
 
         if (request.BrandId.HasValue && !await _brandRepository.ExistsAsync(request.BrandId.Value, cancellationToken))
         {
@@ -77,17 +82,7 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
 
         var taxRate = await ResolveActiveTaxRateAsync(request.TaxRateId, cancellationToken);
 
-        var collectionIds = request.CollectionIds?.Distinct().ToList() ?? [];
-        if (collectionIds.Count > 0)
-        {
-            var existingCollectionIds = await _collectionRepository.GetExistingIdsAsync(collectionIds, cancellationToken);
-            var missingCollectionIds = collectionIds.Where(id => !existingCollectionIds.Contains(id)).ToList();
-
-            if (missingCollectionIds.Count > 0)
-            {
-                throw new NotFoundException($"Collection was not found: {string.Join(", ", missingCollectionIds)}.");
-            }
-        }
+        var collectionIds = await _productCollectionNameResolver.ResolveAsync(request.Collections, cancellationToken);
 
         var resolvedTags = request.Tags is { Count: > 0 }
             ? await _productTagResolver.ResolveAsync(request.Tags, cancellationToken)
@@ -121,7 +116,7 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
             request.Title,
             url,
             normalizedMainSku,
-            request.TypeId,
+            typeId,
             request.BrandId,
             request.Description,
             request.Status,
@@ -130,7 +125,8 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
             request.DisplayOrder,
             request.SeoTitle,
             request.SeoDescription,
-            request.TaxRateId);
+            request.TaxRateId,
+            request.HasVariants);
 
         foreach (var collectionId in collectionIds)
         {

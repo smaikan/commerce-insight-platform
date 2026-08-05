@@ -19,9 +19,8 @@ public sealed class UpdateProductCommandValidator : AbstractValidator<UpdateProd
             .NotEmpty()
             .MaximumLength(100);
 
-        RuleFor(command => command.TypeId)
-            .Must(typeId => !typeId.HasValue || typeId.Value != Guid.Empty)
-            .WithMessage("Product type id cannot be empty.");
+        RuleFor(command => command.Type)
+            .MaximumLength(150);
 
         RuleFor(command => command.BrandId)
             .Must(brandId => !brandId.HasValue || brandId.Value != Guid.Empty)

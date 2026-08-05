@@ -26,6 +26,8 @@ public sealed class SmtpEmailSender : IEmailSender
         "ECommerce.Infrastructure.Email.Templates.ReturnRequestedEmailTemplate.html";
     private const string ReturnStatusChangedTemplateResource =
         "ECommerce.Infrastructure.Email.Templates.ReturnStatusChangedEmailTemplate.html";
+    private const string GuestOrderAccessTemplateResource =
+        "ECommerce.Infrastructure.Email.Templates.GuestOrderAccessEmailTemplate.html";
 
     private readonly IConfiguration _configuration;
 
@@ -165,6 +167,25 @@ public sealed class SmtpEmailSender : IEmailSender
     }
 
     // Burada hazırlanmış e-posta içeriğini kısa SMTP retry politikasıyla iletiyorum.
+    // Burada guest magic-link tokenını URL fragment'ına koyarak referrer ve sunucu loglarından uzak tutuyorum.
+    public async Task SendGuestOrderAccessAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        string rawToken,
+        DateTime expiresAt,
+        CancellationToken cancellationToken = default)
+    {
+        var accessUrl = GetRequiredValue("Email:GuestOrderAccessUrl");
+        var link = $"{accessUrl}#token={Uri.EscapeDataString(rawToken)}";
+        var body = LoadTemplate(GuestOrderAccessTemplateResource)
+            .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
+            .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
+            .Replace("{{AccessLink}}", HtmlEncoder.Default.Encode(link), StringComparison.Ordinal)
+            .Replace("{{ExpiresAt}}", HtmlEncoder.Default.Encode(expiresAt.ToString("O")), StringComparison.Ordinal);
+        await SendAsync(email, "Siparişinize güvenli erişim bağlantısı", body, cancellationToken);
+    }
+
     private async Task SendAsync(
         string email,
         string subject,

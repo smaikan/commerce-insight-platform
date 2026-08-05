@@ -22,7 +22,6 @@ public sealed class UpdateProductCommandHandlerTests
         var productTagResolver = new Mock<IProductTagResolver>();
         var unitOfWork = new Mock<IUnitOfWork>();
         var currentTypeId = Guid.NewGuid();
-        var newTypeId = Guid.NewGuid();
         var brandId = Guid.NewGuid();
         var tagId = Guid.NewGuid();
         var product = new Product("Old Product", "old-product", "OLD-MAIN", currentTypeId).WithId(1);
@@ -46,9 +45,9 @@ public sealed class UpdateProductCommandHandlerTests
                 "NEW-MAIN", product.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        productTypeRepository
-            .Setup(repository => repository.ExistsAsync(newTypeId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        var typeResolver = new Mock<IProductTypeNameResolver>();
+        typeResolver.Setup(resolver => resolver.ResolveAsync("Apparel", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
 
         brandRepository
             .Setup(repository => repository.ExistsAsync(brandId, It.IsAny<CancellationToken>()))
@@ -75,14 +74,15 @@ public sealed class UpdateProductCommandHandlerTests
             taxRateRepository.Object,
             productTagResolver.Object,
             new ProductUrlGenerator(),
-            unitOfWork.Object);
+            unitOfWork.Object,
+            productTypeNameResolver: typeResolver.Object);
 
         var result = await handler.Handle(
             new UpdateProductCommand(
                 product.Id,
                 "New Product",
                 "new-main",
-                newTypeId,
+                "Apparel",
                 BrandId: brandId,
                 Description: "Updated",
                 DisplayOrder: 3,
@@ -92,7 +92,7 @@ public sealed class UpdateProductCommandHandlerTests
         result.Title.Should().Be("New Product");
         result.MainSku.Should().Be("NEW-MAIN");
         result.Url.Should().Be("new-product");
-        result.TypeId.Should().Be(newTypeId);
+        result.TypeId.Should().NotBeEmpty();
         result.BrandId.Should().Be(brandId);
         result.DisplayOrder.Should().Be(3);
         product.Description.Should().Be("Updated");
@@ -152,7 +152,7 @@ public sealed class UpdateProductCommandHandlerTests
                 product.Id,
                 "Product",
                 "MAIN-SKU",
-                TypeId: null,
+                Type: null,
                 Url: "product",
                 Tags: []),
             CancellationToken.None);
@@ -201,7 +201,7 @@ public sealed class UpdateProductCommandHandlerTests
             unitOfWork.Object);
 
         Func<Task> act = () => handler.Handle(
-            new UpdateProductCommand(product.Id, "Taken Product", "TAKEN-MAIN", typeId, "taken-product"),
+            new UpdateProductCommand(product.Id, "Taken Product", "TAKEN-MAIN", null, "taken-product"),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<ConflictException>();

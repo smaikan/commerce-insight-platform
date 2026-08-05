@@ -160,7 +160,7 @@ public sealed class OrderPaymentWorkflowPersistenceTests
         await using var readContext = new AppDbContext(options);
         var savedOrder = await readContext.Orders
             .AsNoTracking()
-            .Include(order => order.ShippingAddressSnapshot)
+            .Include(order => order.AddressSnapshots)
             .SingleAsync(order => order.Id == orderId);
 
         savedOrder.ShippingAddressSnapshot.Should().NotBeNull();

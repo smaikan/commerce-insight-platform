@@ -32,6 +32,17 @@ builder.Host.UseSerilog((context, configuration) =>
 });
 
 builder.Services.AddControllers();
+var corsOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy => policy
+        .WithOrigins(corsOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
+});
 builder.Services.AddResponseCompression(options =>
 {
     options.EnableForHttps = true;
@@ -361,6 +372,7 @@ app.UseHttpsRedirection();
 
 app.UseResponseCompression();
 app.UseRouting();
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();

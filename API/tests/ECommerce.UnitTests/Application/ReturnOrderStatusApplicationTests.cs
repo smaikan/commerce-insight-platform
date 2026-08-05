@@ -23,7 +23,7 @@ public sealed class ReturnOrderStatusApplicationTests
         var orders = new Mock<IOrderRepository>();
         orders.Setup(repository => repository.GetByIdForUserForUpdateAsync(
                 order.Id,
-                order.UserId,
+                order.UserId!.Value,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
         var returnRequests = new Mock<IReturnRequestRepository>();
@@ -39,7 +39,7 @@ public sealed class ReturnOrderStatusApplicationTests
             orders.Object,
             returnRequests.Object,
             Mock.Of<IProductVariantRepository>(),
-            new FixedCurrentUser(order.UserId),
+            new FixedCurrentUser(order.UserId!.Value),
             CreateTransactionalUnitOfWork<ReturnRequestDto>().Object);
 
         await handler.Handle(

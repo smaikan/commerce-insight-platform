@@ -16,6 +16,7 @@ public sealed record CouponDto(
     DateTime? StartsAt,
     DateTime? ExpiresAt,
     bool IsActive,
+    bool IsMemberOnly,
     DateTime CreatedAt,
     DateTime? UpdatedAt);
 
@@ -36,6 +37,7 @@ public static class CouponDtoMapping
             coupon.StartsAt,
             coupon.ExpiresAt,
             coupon.IsActive,
+            coupon.IsMemberOnly,
             coupon.CreatedAt,
             coupon.UpdatedAt);
     }

@@ -6,11 +6,45 @@ using ECommerce.Domain.Entities;
 using ECommerce.UnitTests.Testing;
 using FluentAssertions;
 using Moq;
+using System.Text.Json;
 
 namespace ECommerce.UnitTests.Application;
 
 public sealed class BulkCreateProductsCommandHandlerTests
 {
+    // Burada Swagger gövdesindeki varyantın tek JSON kurucusuna bağlandığını doğruluyorum.
+    [Fact]
+    public void Bulk_Request_Should_Deserialize_Variant_Item()
+    {
+        const string requestBody = """
+            {
+              "products": [
+                {
+                  "title": "Luna İnce Halka Küpe",
+                  "mainSku": "AUR-EAR-001",
+                  "hasVariants": false,
+                  "variants": [
+                    {
+                      "name": "Standart",
+                      "value": "Tek seçenek",
+                      "sku": "AUR-EAR-001-STD",
+                      "price": 499.90,
+                      "stock": 10
+                    }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        var command = JsonSerializer.Deserialize<BulkCreateProductsCommand>(
+            requestBody,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        command.Should().NotBeNull();
+        command!.Products[0].Variants![0].Value.Should().Be("Tek seçenek");
+    }
+
     // Burada toplu ürünlerin ana SKU, varyant, görsel ve ilişkileriyle oluşturulduğunu doğruluyorum.
     [Fact]
     public async Task Handle_Should_Create_Products_With_Variants_Images_Collections_And_Tags()
@@ -98,7 +132,6 @@ public sealed class BulkCreateProductsCommandHandlerTests
             brandRepository.Object,
             taxRateRepository.Object,
             collectionRepository.Object,
-            tagRepository.Object,
             productTagResolver.Object,
             new ProductUrlGenerator(),
             openingBalanceCostLayerWriter.Object,
@@ -110,7 +143,7 @@ public sealed class BulkCreateProductsCommandHandlerTests
                 new BulkCreateProductItem(
                     "Premium Hoodie",
                     "hoodie-main",
-                    typeId,
+                    Type: "Hoodie",
                     BrandId: brandId,
                     Variants:
                     [
@@ -126,8 +159,7 @@ public sealed class BulkCreateProductsCommandHandlerTests
                     [
                         new BulkCreateProductImageItem("https://cdn.example.com/hoodie.jpg", IsMain: true)
                     ],
-                    CollectionIds: [collectionId],
-                    TagIds: [tagId],
+                    Collections: ["Summer Collection"],
                     Tags: ["New Season"])
             ]),
             CancellationToken.None);
@@ -139,9 +171,9 @@ public sealed class BulkCreateProductsCommandHandlerTests
         createdProducts!.Single().Variants.Should().ContainSingle();
         createdProducts.Single().Images.Should().ContainSingle();
         createdProducts.Single().ProductCollections.Should().ContainSingle();
-        createdProducts.Single().ProductTags.Should().HaveCount(2);
+        createdProducts.Single().ProductTags.Should().HaveCount(1);
         createdProducts.Single().ProductTags.Select(tag => tag.TagId)
-            .Should().BeEquivalentTo([tagId, dynamicTagId]);
+            .Should().BeEquivalentTo([dynamicTagId]);
         openingBalanceCostLayerWriter.Verify(
             writer => writer.CreateForNewVariantsAsync(
                 It.Is<IEnumerable<OpeningBalanceCostLayerSeed>>(seeds =>
@@ -163,7 +195,6 @@ public sealed class BulkCreateProductsCommandHandlerTests
             Mock.Of<IBrandRepository>(),
             Mock.Of<ITaxRateRepository>(),
             Mock.Of<ICollectionRepository>(),
-            Mock.Of<ITagRepository>(),
             Mock.Of<IProductTagResolver>(),
             new ProductUrlGenerator(),
             Mock.Of<IOpeningBalanceCostLayerWriter>(),
@@ -202,7 +233,6 @@ public sealed class BulkCreateProductsCommandHandlerTests
             Mock.Of<IBrandRepository>(),
             Mock.Of<ITaxRateRepository>(),
             Mock.Of<ICollectionRepository>(),
-            Mock.Of<ITagRepository>(),
             Mock.Of<IProductTagResolver>(),
             new ProductUrlGenerator(),
             Mock.Of<IOpeningBalanceCostLayerWriter>(),

@@ -9,12 +9,10 @@ public sealed class UpdateProductRelationsCommandValidator : AbstractValidator<U
     public UpdateProductRelationsCommandValidator()
     {
         RuleFor(command => command.ProductId).NotEmpty();
-        RuleFor(command => command.CollectionIds).NotNull()
-            .Must(ids => ids.Distinct().Count() == ids.Count).WithMessage("Collection ids must be unique.");
-        RuleForEach(command => command.CollectionIds).NotEmpty();
-        RuleFor(command => command.TagIds).NotNull()
-            .Must(ids => ids.Distinct().Count() == ids.Count).WithMessage("Tag ids must be unique.");
-        RuleForEach(command => command.TagIds).NotEmpty();
+        RuleFor(command => command.Collections).NotNull()
+            .Must(names => names.Select(name => name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() == names.Count)
+            .WithMessage("Collection names must be unique.");
+        RuleForEach(command => command.Collections).NotEmpty().MaximumLength(150);
         RuleForEach(command => command.Tags)
             .NotEmpty()
             .MaximumLength(ProductTagRules.MaximumTagNameLength);

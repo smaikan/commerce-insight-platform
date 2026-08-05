@@ -48,6 +48,15 @@ public sealed class ProductTypeRepository : IProductTypeRepository
             .FirstOrDefaultAsync(type => type.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ProductType>> GetByNamesAsync(IEnumerable<string> names, CancellationToken cancellationToken = default)
+    {
+        var normalizedNames = names.Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name.Trim().ToUpperInvariant()).Distinct().ToList();
+        return await _context.ProductTypes.AsNoTracking()
+            .Where(type => normalizedNames.Contains(type.Name.ToUpper()))
+            .ToListAsync(cancellationToken);
+    }
+
     // Burada ürün tiplerini ada göre sıralı şekilde getiriyorum.
     public async Task<PagedResult<ProductType>> GetListAsync(
         int pageNumber,

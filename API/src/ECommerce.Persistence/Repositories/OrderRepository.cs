@@ -42,6 +42,13 @@ public sealed class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(order => order.Id == orderId, cancellationToken);
     }
 
+    // Burada benzersiz sipariş numarasını idempotent import anahtarı olarak kullanarak mevcut kaydı getiriyorum.
+    public Task<Order?> GetByOrderNumberAsync(string orderNumber, CancellationToken cancellationToken = default)
+    {
+        return CreateReadGraphQuery()
+            .FirstOrDefaultAsync(order => order.OrderNumber == orderNumber, cancellationToken);
+    }
+
     // Burada kullanıcının kendi siparişini ödeme veya iptal akışında takipli ilişkileriyle getiriyorum.
     public Task<Order?> GetByIdForUserForUpdateAsync(
         Guid orderId,
@@ -144,7 +151,8 @@ public sealed class OrderRepository : IOrderRepository
         return _context.Orders
             .Include(order => order.Items)
             .Include(order => order.Payments)
-            .Include(order => order.ShippingAddressSnapshot)
+            .Include(order => order.AddressSnapshots)
+            .Include(order => order.CustomerSnapshot)
             .AsSplitQuery();
     }
 }

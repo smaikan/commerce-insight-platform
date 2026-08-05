@@ -42,6 +42,18 @@ public sealed class CollectionRepository : ICollectionRepository
             .FirstOrDefaultAsync(collection => collection.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Collection>> GetByNamesOrUrlsAsync(
+        IEnumerable<string> names, IEnumerable<string> urls, CancellationToken cancellationToken = default)
+    {
+        var normalizedNames = names.Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name.Trim().ToUpperInvariant()).Distinct().ToList();
+        var normalizedUrls = urls.Where(url => !string.IsNullOrWhiteSpace(url))
+            .Select(url => url.Trim().ToUpperInvariant()).Distinct().ToList();
+        return await _context.Collections.AsNoTracking()
+            .Where(collection => normalizedNames.Contains(collection.Name.ToUpper()) || normalizedUrls.Contains(collection.Url.ToUpper()))
+            .ToListAsync(cancellationToken);
+    }
+
     // Burada koleksiyonları gösterim sırasına göre getiriyorum.
     public async Task<PagedResult<Collection>> GetListAsync(
         int pageNumber,

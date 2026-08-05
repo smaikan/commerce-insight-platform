@@ -64,6 +64,7 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
             var clock = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
             var repository = scope.ServiceProvider.GetRequiredService<IEmailOutboxRepository>();
             var protector = scope.ServiceProvider.GetRequiredService<IPasswordResetTokenProtector>();
+            var guestProtector = scope.ServiceProvider.GetRequiredService<IGuestOrderAccessTokenProtector>();
             var sender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
             var utcNow = clock.UtcNow;
             var expiredMessageCount = await repository.ExpirePendingAsync(
@@ -134,7 +135,7 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
 
                     using var sendTimeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                     sendTimeoutSource.CancelAfter(GetSendTimeout(message, beforeSendUtcNow));
-                    await SendMessageAsync(message, protector, sender, sendTimeoutSource.Token);
+                    await SendMessageAsync(message, protector, guestProtector, sender, sendTimeoutSource.Token);
                     var afterSendUtcNow = clock.UtcNow;
                     if (message.IsExpired(afterSendUtcNow))
                     {
@@ -228,6 +229,7 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
     private static Task SendMessageAsync(
         EmailOutboxMessage message,
         IPasswordResetTokenProtector protector,
+        IGuestOrderAccessTokenProtector guestProtector,
         IEmailSender sender,
         CancellationToken cancellationToken)
     {
@@ -300,6 +302,17 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
                     ?? throw new InvalidOperationException("Return number is missing."),
                 message.Status
                     ?? throw new InvalidOperationException("Return status is missing."),
+                cancellationToken),
+            EmailOutboxMessageType.GuestOrderAccess => sender.SendGuestOrderAccessAsync(
+                message.Email,
+                message.RecipientName
+                    ?? throw new InvalidOperationException("Guest order recipient name is missing."),
+                message.OrderNumber
+                    ?? throw new InvalidOperationException("Guest order number is missing."),
+                guestProtector.Unprotect(message.ProtectedToken
+                    ?? throw new InvalidOperationException("Guest order access token is missing.")),
+                message.ExpiresAt
+                    ?? throw new InvalidOperationException("Guest order access expiry is missing."),
                 cancellationToken),
             _ => throw new InvalidOperationException($"Email outbox type '{message.Type}' is not supported.")
         };
