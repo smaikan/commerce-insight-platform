@@ -1,5 +1,7 @@
 using ECommerce.Domain.Entities;
+using ECommerce.Application.Products.Variants.Commands.UpdateProductVariant;
 using ECommerce.Persistence.Context;
+using ECommerce.Persistence.Repositories;
 using ECommerce.Persistence.Services;
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
@@ -72,6 +74,55 @@ public sealed class VariantOptionPersistenceTests
         saved.Value.Should().Be("100x150");
         saved.VariantOptionNameId.Should().Be(option.Name.Id);
         saved.VariantOptionValueId.Should().Be(option.Value.Id);
+    }
+
+    // Burada mevcut tekli ve çoklu seçeneklerin düzenlemede tekrar bağ eklemediğini doğruluyorum.
+    [Theory]
+    [InlineData("Renk", "Gümüş", 1)]
+    [InlineData("Renk / Boyut", "Gümüş / Mini", 2)]
+    public async Task UpdateProductVariant_Should_Keep_Existing_Option_Relationships(
+        string optionName,
+        string optionValue,
+        int expectedOptionCount)
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        var options = CreateOptions(connection);
+        Guid variantId;
+
+        await using (var seedContext = new AppDbContext(options))
+        {
+            await seedContext.Database.EnsureCreatedAsync();
+            var resolver = new VariantOptionResolver(seedContext);
+            var selections = await resolver.ResolveCompositeAsync(optionName, optionValue);
+            var product = new Product("Kolye", "kolye", "KOLYE-001");
+            var variant = new ProductVariant(product, optionName, "KOLYE-001-GUMUS-MINI", 100m, 5, value: optionValue);
+            variant.ReplaceOptionValues(selections);
+            product.Variants.Add(variant);
+            seedContext.Products.Add(product);
+            await seedContext.SaveChangesAsync();
+            variantId = variant.Id;
+        }
+
+        await using (var updateContext = new AppDbContext(options))
+        {
+            var handler = new UpdateProductVariantCommandHandler(
+                new ProductVariantRepository(updateContext),
+                new UnitOfWork(updateContext),
+                new VariantOptionResolver(updateContext));
+
+            await handler.Handle(new UpdateProductVariantCommand(
+                variantId,
+                optionName,
+                optionValue,
+                "KOLYE-001-GUMUS-MINI",
+                120m,
+                5), CancellationToken.None);
+        }
+
+        await using var assertionContext = new AppDbContext(options);
+        (await assertionContext.ProductVariantOptionValues
+            .Where(item => item.ProductVariantId == variantId)
+            .CountAsync()).Should().Be(expectedOptionCount);
     }
 
     // Burada büyük-küçük harf duyarlı SQLite karşılaştırmasını SQL Server test kolasyonuna yakın şekilde kaydediyorum.

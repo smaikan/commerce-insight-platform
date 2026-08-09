@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api/problem";
 import { requireAdminPageSession } from "@/lib/auth/session";
 import { PageHeader } from "@/modules/admin-shell/components/page-header";
+import { getProductDailyMetrics } from "@/modules/analytics/api";
+import { AnalyticsUnavailable, ProductAnalyticsPanel } from "@/modules/analytics/components/analytics-panels";
+import { getAnalyticsDateRange, parseAnalyticsPeriod } from "@/modules/analytics/query";
 import { getProduct, getProductFormOptions, getProductImages } from "@/modules/products/api";
 import { ProductForm } from "@/modules/products/components/product-form";
 
@@ -22,16 +25,24 @@ export default async function EditProductPage({
 }) {
   const { productId } = await params;
   const notices = await searchParams;
+  const selectedPeriod = parseAnalyticsPeriod(notices);
+  const range = getAnalyticsDateRange(selectedPeriod);
   const returnTo = `/products/${encodeURIComponent(productId)}`;
   const session = await requireAdminPageSession(returnTo);
 
   let data;
+  let metrics: Awaited<ReturnType<typeof getProductDailyMetrics>> | null = null;
   try {
-    data = await Promise.all([
-      getProduct(productId, session),
-      getProductImages(productId, session),
-      getProductFormOptions(session),
+    const [baseData, metricResult] = await Promise.all([
+      Promise.all([
+        getProduct(productId, session),
+        getProductImages(productId, session),
+        getProductFormOptions(session),
+      ]),
+      getProductDailyMetrics(productId, range, session).catch(() => null),
     ]);
+    data = baseData;
+    metrics = metricResult;
   } catch (error) {
     if (error instanceof ApiError && error.problem.status === 404) notFound();
     throw error;
@@ -39,7 +50,7 @@ export default async function EditProductPage({
 
   const [product, imagePage, options] = data;
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <div className="mx-auto w-full max-w-6xl">
       <PageHeader
         title={product.title}
         description={`${product.id} · ${product.mainSku}`}
@@ -50,7 +61,16 @@ export default async function EditProductPage({
       ) : notices.saved === "1" ? (
         <p className="mb-5 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900" role="status">Ürün değişiklikleri kaydedildi.</p>
       ) : null}
-      <ProductForm mode="edit" product={product} images={imagePage.items} options={options} />
+      {/* Burada sunucudan doğrulanan durum değiştiğinde formu yeni yetkili değerle yeniden kuruyorum. */}
+      <ProductForm key={`${product.id}:${product.status}`} mode="edit" product={product} images={imagePage.items} options={options} />
+      {/* Burada performans analizini düzenleme akışından ayırıp sayfanın en altındaki inceleme alanına taşıyorum. */}
+      <div className="mt-4">
+        {metrics ? (
+          <ProductAnalyticsPanel metrics={metrics} selectedPeriod={selectedPeriod} searchParams={notices} productId={productId} />
+        ) : (
+          <AnalyticsUnavailable />
+        )}
+      </div>
     </div>
   );
 }

@@ -102,6 +102,31 @@ public sealed class EmailOutboxMessage : BaseEntity
             amount: grandTotal);
     }
 
+    // Burada guest sipariş erişim bağlantısını korunan token ve kısa geçerlilik süresiyle kuyruğa hazırlıyorum.
+    public static EmailOutboxMessage CreateGuestOrderAccess(
+        string email,
+        string recipientName,
+        string orderNumber,
+        string protectedToken,
+        DateTime expiresAt,
+        DateTime createdAt)
+    {
+        if (string.IsNullOrWhiteSpace(protectedToken) || expiresAt <= createdAt)
+        {
+            throw new DomainException("Protected guest access token and future expiry are required.");
+        }
+
+        return CreateMessage(
+            EmailOutboxMessageType.GuestOrderAccess,
+            email,
+            CreateRandomDeduplicationKey("guest-order-access"),
+            createdAt,
+            recipientName: recipientName,
+            protectedToken: protectedToken,
+            expiresAt: expiresAt,
+            orderNumber: orderNumber);
+    }
+
     // Burada başarılı ödeme için ödeme kaydına bağlı tekilleştirilmiş müşteri bildirimini hazırlıyorum.
     public static EmailOutboxMessage CreatePaymentPaid(
         string email,

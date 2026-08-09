@@ -37,6 +37,10 @@ public sealed class CouponConfiguration : IEntityTypeConfiguration<Coupon>
         builder.Property(coupon => coupon.MinimumOrderAmount)
             .HasPrecision(18, 2);
 
+        builder.Property(coupon => coupon.IsMemberOnly)
+            .HasDefaultValue(false)
+            .IsRequired();
+
         builder.HasIndex(coupon => coupon.Code)
             .IsUnique();
         builder.HasIndex(coupon => new { coupon.IsActive, coupon.StartsAt, coupon.ExpiresAt });

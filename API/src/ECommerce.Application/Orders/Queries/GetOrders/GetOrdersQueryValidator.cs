@@ -9,6 +9,7 @@ public sealed class GetOrdersQueryValidator : AbstractValidator<GetOrdersQuery>
     {
         RuleFor(query => query.PageNumber).InclusiveBetween(1, 10_000);
         RuleFor(query => query.PageSize).InclusiveBetween(1, 100);
+        RuleFor(query => query.Search).MaximumLength(100);
         RuleFor(query => query.Status).IsInEnum().When(query => query.Status.HasValue);
         RuleFor(query => query)
             .Must(query => !query.CreatedFromUtc.HasValue || !query.CreatedToUtc.HasValue || query.CreatedFromUtc <= query.CreatedToUtc)

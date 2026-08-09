@@ -21,6 +21,6 @@ public sealed class OrderAddressSnapshotConfiguration : IEntityTypeConfiguration
         builder.Property(snapshot => snapshot.FullAddress).HasMaxLength(OrderAddressSnapshot.MaximumFullAddressLength).IsRequired();
         builder.Property(snapshot => snapshot.PostalCode).HasMaxLength(OrderAddressSnapshot.MaximumPostalCodeLength);
         builder.HasIndex(snapshot => snapshot.SourceAddressId);
-        builder.HasIndex(snapshot => snapshot.OrderId).IsUnique();
+        builder.HasIndex(snapshot => new { snapshot.OrderId, snapshot.Type }).IsUnique();
     }
 }

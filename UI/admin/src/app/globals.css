@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --admin-page: #e7eef7;
-  --admin-surface: #f8fafd;
+  --admin-page: #f3f6fa;
+  --admin-surface: #ffffff;
   --admin-surface-strong: #ffffff;
-  --admin-surface-subtle: #edf3fa;
+  --admin-surface-subtle: #eef3f8;
   --admin-border: #ccd8e7;
   --admin-border-strong: #aebfd3;
   --admin-foreground: #13233c;

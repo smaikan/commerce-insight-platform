@@ -49,7 +49,7 @@ public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateP
             request.Sku,
             request.Barcode,
             request.Material);
-        if (resolvedOption is not null)
+        if (resolvedOption is not null && !HasSameOptionValues(variant, resolvedOption))
         {
             variant.ReplaceOptionValues(resolvedOption);
         }
@@ -82,5 +82,22 @@ public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateP
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return variant.ToDto();
+    }
+
+    // Burada aynı seçenek bağlarını tekrar yazıp benzersizlik ihlali oluşturmaktan kaçınıyorum.
+    private static bool HasSameOptionValues(
+        ProductVariant variant,
+        IReadOnlyList<VariantOptionSelection> resolvedOptions)
+    {
+        var existing = variant.OptionValues
+            .Select(item => (item.VariantOptionNameId, item.VariantOptionValueId))
+            .OrderBy(item => item.VariantOptionNameId)
+            .ThenBy(item => item.VariantOptionValueId);
+        var resolved = resolvedOptions
+            .Select(item => (OptionNameId: item.Name.Id, OptionValueId: item.Value.Id))
+            .OrderBy(item => item.OptionNameId)
+            .ThenBy(item => item.OptionValueId);
+
+        return existing.SequenceEqual(resolved);
     }
 }

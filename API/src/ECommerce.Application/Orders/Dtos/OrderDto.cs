@@ -22,7 +22,12 @@ public sealed record OrderDto(
     DateTime? ReservationExpiresAt,
     DateTime? PaidAt,
     DateTime? CancelledAt,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    OrderCustomerDto? Customer = null,
+    OrderAddressDto? BillingAddress = null);
+
+// Burada sipariş sahibine gösterilecek değişmez müşteri iletişim snapshot'ını tanımlıyorum.
+public sealed record OrderCustomerDto(string FirstName, string LastName, string Email, string PhoneNumber);
 
 // Burada sipariş kaleminin snapshot bilgilerini tanımlıyorum.
 public sealed record OrderItemDto(
@@ -47,11 +52,12 @@ public sealed record OrderSummaryDto(
     decimal GrandTotal,
     int ItemCount,
     DateTime CreatedAt,
-    DateTime? PaidAt);
+    DateTime? PaidAt,
+    string? CustomerName);
 
 // Burada sipariş sahibine gösterilecek değişmez teslimat adresi snapshot'ını tanımlıyorum.
 public sealed record OrderAddressDto(
-    Guid SourceAddressId,
+    Guid? SourceAddressId,
     string Title,
     string FirstName,
     string LastName,
@@ -143,7 +149,26 @@ public static class OrderDtoMapping
             order.ReservationExpiresAt,
             order.PaidAt,
             order.CancelledAt,
-            order.CreatedAt);
+            order.CreatedAt,
+            order.CustomerSnapshot is null
+                ? null
+                : new OrderCustomerDto(
+                    order.CustomerSnapshot.FirstName,
+                    order.CustomerSnapshot.LastName,
+                    order.CustomerSnapshot.Email,
+                    order.CustomerSnapshot.PhoneNumber),
+            order.BillingAddressSnapshot is null
+                ? null
+                : new OrderAddressDto(
+                    order.BillingAddressSnapshot.SourceAddressId,
+                    order.BillingAddressSnapshot.Title,
+                    order.BillingAddressSnapshot.FirstName,
+                    order.BillingAddressSnapshot.LastName,
+                    order.BillingAddressSnapshot.PhoneNumber,
+                    order.BillingAddressSnapshot.City,
+                    order.BillingAddressSnapshot.District,
+                    order.BillingAddressSnapshot.FullAddress,
+                    order.BillingAddressSnapshot.PostalCode));
     }
 
     // Burada sipariş aggregate'ını listeler için küçük ve PII içermeyen özet DTO'ya dönüştürüyorum.
@@ -156,6 +181,9 @@ public static class OrderDtoMapping
             order.GrandTotal,
             order.Items.Count,
             order.CreatedAt,
-            order.PaidAt);
+            order.PaidAt,
+            order.CustomerSnapshot is null
+                ? null
+                : $"{order.CustomerSnapshot.FirstName} {order.CustomerSnapshot.LastName}".Trim());
     }
 }

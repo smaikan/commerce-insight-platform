@@ -53,7 +53,7 @@ public sealed class StockMovementsController : ControllerBase
 
     [HttpGet]
     // Burada yöneticinin stok hareketlerini güvenli filtrelerle sayfalı görmesini sağlıyorum.
-    public async Task<ActionResult<PagedResult<StockMovementDto>>> GetList(
+    public async Task<ActionResult<PagedResult<StockMovementListItemDto>>> GetList(
         [FromQuery] GetStockMovementsQuery query,
         CancellationToken cancellationToken)
     {

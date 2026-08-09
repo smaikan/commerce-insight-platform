@@ -27,6 +27,7 @@ public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderComma
     private readonly IDateTimeProvider _clock;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderReservationPolicy _reservationPolicy;
+    private readonly OrderCheckoutOrchestrator? _checkoutOrchestrator;
 
     // Burada checkout akışının sepet, katalog, sipariş, metrik ve transaction bağımlılıklarını hazırlıyorum.
     public CreateOrderCommandHandler(
@@ -43,7 +44,8 @@ public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderComma
         IOrderReservationPolicy? reservationPolicy = null,
         IShippingMethodRepository? shippingMethodRepository = null,
         OrderPricingService? pricingService = null,
-        IOrderNotificationService? notificationService = null)
+        IOrderNotificationService? notificationService = null,
+        OrderCheckoutOrchestrator? checkoutOrchestrator = null)
     {
         _cartRepository = cartRepository;
         _productRepository = productRepository;
@@ -59,15 +61,51 @@ public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderComma
         _clock = clock;
         _unitOfWork = unitOfWork;
         _reservationPolicy = reservationPolicy ?? DefaultOrderReservationPolicy.Instance;
+        _checkoutOrchestrator = checkoutOrchestrator;
     }
 
     // Burada oturum açmış kullanıcının sepetini serializable transaction içinde siparişe dönüştürüyorum.
     public Task<OrderDto> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetRequiredUserId();
+        if (_checkoutOrchestrator is not null)
+        {
+            return _unitOfWork.ExecuteInSerializableTransactionAsync(
+                transactionCancellationToken => CreateWithSharedOrchestratorAsync(
+                    request,
+                    userId,
+                    transactionCancellationToken),
+                cancellationToken);
+        }
+
         return _unitOfWork.ExecuteInSerializableTransactionAsync(
             transactionCancellationToken => CreateInTransactionAsync(request, userId, transactionCancellationToken),
             cancellationToken);
+    }
+
+    // Burada production üye checkout'unu guest ile aynı ortak orkestratör üzerinden yürütüyorum.
+    private async Task<OrderDto> CreateWithSharedOrchestratorAsync(
+        CreateOrderCommand request,
+        long userId,
+        CancellationToken cancellationToken)
+    {
+        if (!request.ShippingAddressId.HasValue || !request.ShippingMethodId.HasValue)
+        {
+            throw new ConflictException("Shipping address and shipping method are required for checkout.");
+        }
+
+        var order = await _checkoutOrchestrator!.CreateAsync(
+            new OrderCheckoutInput(
+                CartOwner.ForUser(userId),
+                userId,
+                request.ExpectedCartConcurrencyToken,
+                request.ShippingMethodId.Value,
+                request.CouponCode,
+                false,
+                request.ShippingAddressId),
+            cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return order.ToDto();
     }
 
     // Burada stok, katalog snapshot'ı, envanter hareketi, metrikler ve sepet temizliğini atomik kaydediyorum.
@@ -146,6 +184,7 @@ public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderComma
         var checkoutCoupon = await _couponService.ResolveForCheckoutAsync(
             request.CouponCode,
             subTotal,
+            false,
             cancellationToken);
         var discountTotal = checkoutCoupon?.DiscountTotal ?? 0m;
         OrderPricingResult pricing;

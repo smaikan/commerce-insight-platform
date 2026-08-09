@@ -9,6 +9,7 @@ namespace ECommerce.Application.Orders.Queries.GetOrders;
 public sealed record GetOrdersQuery(
     int PageNumber = 1,
     int PageSize = 20,
+    string? Search = null,
     OrderStatus? Status = null,
     DateTime? CreatedFromUtc = null,
     DateTime? CreatedToUtc = null) : IRequest<PagedResult<OrderSummaryDto>>;

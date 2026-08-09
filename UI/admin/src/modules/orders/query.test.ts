@@ -16,11 +16,13 @@ describe("order list query", () => {
       createdFrom: "2026-08-01",
       createdTo: "2026-08-03",
       pageSize: "50",
+      search: "Ayşe Yılmaz",
     });
 
     expect(query).toMatchObject({
       status: 4,
       pageSize: 50,
+      search: "Ayşe Yılmaz",
       createdFromUtc: "2026-08-01T00:00:00.000Z",
       createdToUtc: "2026-08-03T23:59:59.999Z",
     });
@@ -38,7 +40,7 @@ describe("order list query", () => {
 
   // Burada sayfalama bağlantısının filtreleri koruyup varsayılan değerleri URL'de çoğaltmadığını doğruluyorum.
   it("builds a filtered pagination href", () => {
-    const query = parseOrderListQuery({ status: "2", createdFrom: "2026-08-01" });
-    expect(buildOrderListHref(query, 3)).toBe("/orders?pageNumber=3&status=2&createdFrom=2026-08-01");
+    const query = parseOrderListQuery({ search: "ORD-100", status: "2", createdFrom: "2026-08-01" });
+    expect(buildOrderListHref(query, 3)).toBe("/orders?pageNumber=3&search=ORD-100&status=2&createdFrom=2026-08-01");
   });
 });

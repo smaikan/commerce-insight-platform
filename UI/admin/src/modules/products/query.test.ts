@@ -3,11 +3,11 @@ import { buildProductListHref, parseProductListQuery } from "./query";
 
 describe("product list query", () => {
   // Burada sayfa boyutunun ürün listesinde varsayılan olarak 20 kaldığını doğruluyorum.
-  it("uses documented paging and popularity defaults", () => {
+  it("uses documented paging and newest-first defaults", () => {
     expect(parseProductListQuery({})).toMatchObject({
       pageNumber: 1,
       pageSize: 20,
-      sortBy: 3,
+      sortBy: 2,
       descending: true,
     });
   });

@@ -11,7 +11,7 @@ public sealed record ProductListFilter(
     ProductStatus? Status = null,
     bool? IsActive = null,
     bool? IsFeatured = null,
-    ProductSortBy SortBy = ProductSortBy.PopularityScore,
+    ProductSortBy SortBy = ProductSortBy.CreatedAt,
     bool Descending = true);
 
 public enum ProductSortBy

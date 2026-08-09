@@ -70,7 +70,7 @@ public sealed class ProductMainSkuTests
 
     // Burada ürünün varyant durumunun gerçek varyant koleksiyonundan türetildiğini doğruluyorum.
     [Fact]
-    public void HasVariants_Should_Reflect_Variant_Collection()
+    public void HasVariants_Should_Use_Stored_Product_Preference()
     {
         var product = new Product(
             "Product",
@@ -85,6 +85,10 @@ public sealed class ProductMainSkuTests
             "VARIANT-SKU",
             price: 10m,
             stock: 0));
+
+        product.HasVariants.Should().BeFalse();
+
+        product.SetHasVariants(true);
 
         product.HasVariants.Should().BeTrue();
     }

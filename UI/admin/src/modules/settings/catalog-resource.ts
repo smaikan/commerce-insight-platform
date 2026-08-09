@@ -1,0 +1,23 @@
+export type CatalogResource = "brands" | "product-types" | "tags";
+
+export type CatalogResourceConfig = {
+  resource: CatalogResource;
+  title: string;
+  singularTitle: string;
+  description: string;
+  endpoint: string;
+  supportsUrl: boolean;
+  supportsDescription: boolean;
+};
+
+// Burada üç katalog tanımının gerçek API alanlarını ve ekran metinlerini tek açık haritada tutuyorum.
+export const catalogResourceConfigs: Record<CatalogResource, CatalogResourceConfig> = {
+  brands: { resource: "brands", title: "Markalar", singularTitle: "Marka", description: "Ürünleri üretici veya marka kimliğiyle düzenleyin.", endpoint: "/api/brands", supportsUrl: true, supportsDescription: true },
+  "product-types": { resource: "product-types", title: "Ürün türleri", singularTitle: "Ürün türü", description: "Ürünlerin temel katalog sınıflandırmalarını yönetin.", endpoint: "/api/product-types", supportsUrl: false, supportsDescription: true },
+  tags: { resource: "tags", title: "Etiketler", singularTitle: "Etiket", description: "Ürünleri aranabilir ve tekrar kullanılabilir etiketlerle düzenleyin.", endpoint: "/api/tags", supportsUrl: true, supportsDescription: false },
+};
+
+// Burada URL segmentinin yalnızca desteklenen katalog kaynaklarından biri olmasını doğruluyorum.
+export function isCatalogResource(value: string): value is CatalogResource {
+  return value === "brands" || value === "product-types" || value === "tags";
+}

@@ -7,6 +7,7 @@ using ECommerce.Application.Common.Payments;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
+using StackExchange.Redis;
 
 namespace ECommerce.Infrastructure;
 
@@ -38,6 +39,28 @@ public static class InfrastructureServiceRegistration
         }
 
         services.AddSingleton<IPasswordResetTokenProtector, PasswordResetTokenProtector>();
+        services.AddSingleton<IGuestTokenService, GuestTokenService>();
+        services.AddSingleton<IGuestOrderAccessTokenProtector, GuestOrderAccessTokenProtector>();
+        services.AddMemoryCache();
+        services.AddHttpClient<ITurnstileVerifier, TurnstileVerifier>(client =>
+        {
+            client.BaseAddress = new Uri("https://challenges.cloudflare.com/");
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
+        var redisConnection = configuration?["GuestProtection:Redis:ConnectionString"];
+        if (!string.IsNullOrWhiteSpace(redisConnection))
+        {
+            services.AddSingleton<IConnectionMultiplexer>(_ =>
+            {
+                var options = ConfigurationOptions.Parse(redisConnection);
+                options.AbortOnConnectFail = false;
+                options.ConnectTimeout = 2_000;
+                options.AsyncTimeout = 2_000;
+                return ConnectionMultiplexer.Connect(options);
+            });
+        }
+
+        services.AddSingleton<IGuestCheckoutProtectionService, GuestCheckoutProtectionService>();
 
         return services;
     }

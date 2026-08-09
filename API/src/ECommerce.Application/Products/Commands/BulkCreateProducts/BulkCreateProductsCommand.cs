@@ -1,6 +1,7 @@
 using ECommerce.Application.Products.Dtos;
 using ECommerce.Domain.Enums;
 using MediatR;
+using System.Text.Json.Serialization;
 
 namespace ECommerce.Application.Products.Commands.BulkCreateProducts;
 
@@ -12,7 +13,8 @@ public sealed record BulkCreateProductsCommand(
 public sealed record BulkCreateProductItem(
     string Title,
     string MainSku,
-    Guid? TypeId = null,
+    bool HasVariants = false,
+    string? Type = null,
     string? Url = null,
     Guid? BrandId = null,
     string? Description = null,
@@ -24,12 +26,12 @@ public sealed record BulkCreateProductItem(
     string? SeoDescription = null,
     IReadOnlyList<BulkCreateProductVariantItem>? Variants = null,
     IReadOnlyList<BulkCreateProductImageItem>? Images = null,
-    IReadOnlyList<Guid>? CollectionIds = null,
-    IReadOnlyList<Guid>? TagIds = null,
+    IReadOnlyList<string>? Collections = null,
     IReadOnlyList<string>? Tags = null,
     Guid? TaxRateId = null);
 
 // Burada toplu ürünle birlikte oluşturulacak varyant bilgisini taşıyorum.
+[method: JsonConstructor]
 public sealed record BulkCreateProductVariantItem(
     string Name,
     string Value,
@@ -43,7 +45,7 @@ public sealed record BulkCreateProductVariantItem(
     decimal? OpeningUnitCostExcludingVat = null,
     decimal? OpeningUnitCostIncludingVat = null)
 {
-    // Burada eski toplu varyant çağrılarını aynı adı değer olarak kullanarak uyumlu tutuyorum.
+    // Burada eski uygulama çağrılarını tek seçenek değerine eşleyerek uyumlu tutuyorum.
     public BulkCreateProductVariantItem(
         string Name,
         string Sku,

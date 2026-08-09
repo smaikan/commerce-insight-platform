@@ -13,6 +13,11 @@ public interface IProductImageRepository
         long productId,
         Guid? excludedImageId = null,
         CancellationToken cancellationToken = default);
+    Task<int> CountByProductIdAsync(long productId, CancellationToken cancellationToken = default);
+    Task<ProductImage?> GetFirstByProductIdForUpdateAsync(
+        long productId,
+        Guid excludedImageId,
+        CancellationToken cancellationToken = default);
     Task<PagedResult<ProductImage>> GetByProductIdAsync(
         long productId,
         int pageNumber,

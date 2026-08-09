@@ -1,0 +1,51 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Ana içeriğe geç" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: SERANTIS
+        - generic [ref=e8]: Yönetim Paneli
+      - navigation "Ana navigasyon" [ref=e10]:
+        - group [ref=e11]:
+          - generic "Genel Bakış" [ref=e12] [cursor=pointer]
+          - list [ref=e19]:
+            - listitem [ref=e20]:
+              - link "Dashboard" [ref=e21] [cursor=pointer]:
+                - /url: /dashboard
+        - group [ref=e24]:
+          - generic "Ticaret" [ref=e25] [cursor=pointer]
+          - list [ref=e32]:
+            - listitem [ref=e33]:
+              - generic [ref=e36]:
+                - generic [ref=e37]: Siparişler
+                - generic [ref=e38]: Sırada
+            - listitem [ref=e39]:
+              - link "Ürünler" [ref=e40] [cursor=pointer]:
+                - /url: /products
+            - listitem [ref=e43]:
+              - generic [ref=e46]:
+                - generic [ref=e47]: Koleksiyonlar
+                - generic [ref=e48]: Planlı
+            - listitem [ref=e49]:
+              - generic [ref=e52]:
+                - generic [ref=e53]: Kampanyalar / Kuponlar
+                - generic [ref=e54]: Planlı
+        - group [ref=e55]:
+          - generic "Operasyonlar" [ref=e56] [cursor=pointer]
+        - group [ref=e63]:
+          - generic "Muhasebe" [ref=e64] [cursor=pointer]
+        - group [ref=e71]:
+          - generic "Pazaryeri Entegrasyonları" [ref=e72] [cursor=pointer]
+        - group [ref=e79]:
+          - generic "Sistem" [ref=e80] [cursor=pointer]
+      - generic [ref=e87]: Operasyon çalışma alanı
+    - generic [ref=e88]:
+      - banner [ref=e89]:
+        - generic [ref=e90]:
+          - paragraph [ref=e91]: Yönetim Paneli
+          - paragraph [ref=e92]: Operasyon çalışma alanı
+      - main [ref=e93]:
+        - generic "Ürünler yükleniyor" [ref=e94]
+  - button "Open Next.js Dev Tools" [ref=e110] [cursor=pointer]
+  - alert [ref=e114]

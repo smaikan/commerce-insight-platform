@@ -1,50 +1,58 @@
 export type NavigationItem = {
   label: string;
   href?: string;
-  status: "available" | "next" | "planned" | "future";
+  status: "available" | "next" | "planned" | "future" | "in-development";
 };
 
 export type NavigationSection = {
   label: string;
   items: NavigationItem[];
-  defaultOpen?: boolean;
+  collapsible?: boolean;
+  status?: NavigationItem["status"];
 };
 
+// Burada menüyü API/controller adlarına göre değil, yöneticinin günlük görev akışına göre grupluyorum.
 export const navigationSections: NavigationSection[] = [
   {
-    label: "Genel Bakış",
-    defaultOpen: true,
-    items: [{ label: "Dashboard", href: "/dashboard", status: "available" }],
+    label: "Genel",
+    items: [{ label: "Genel Bakış", href: "/dashboard", status: "available" }],
   },
   {
-    label: "Ticaret",
-    defaultOpen: true,
+    label: "Satış",
     items: [
       { label: "Siparişler", href: "/orders", status: "available" },
-      { label: "Ürünler", href: "/products", status: "available" },
-      { label: "Koleksiyonlar", status: "planned" },
-      { label: "Kampanyalar / Kuponlar", status: "planned" },
+      { label: "Müşteriler", href: "/customers", status: "available" },
+      { label: "İndirimler", href: "/coupons", status: "available" },
     ],
   },
   {
-    label: "Operasyonlar",
+    label: "Katalog ve Stok",
     items: [
-      { label: "Stok İşlemleri", status: "planned" },
-      { label: "Müşteriler", status: "planned" },
+      { label: "Ürünler", href: "/products", status: "available" },
+      { label: "Koleksiyonlar", href: "/collections", status: "available" },
+      { label: "Stok İşlemleri", href: "/inventory/stock-movements", status: "available" },
     ],
   },
   {
     label: "Muhasebe",
+    collapsible: true,
+    status: "in-development",
     items: [
-      { label: "Genel Bakış", status: "planned" },
-      { label: "Cari Hesaplar", status: "planned" },
-      { label: "Alış ve Satış Belgeleri", status: "planned" },
-      { label: "Ödemeler ve Tahsilatlar", status: "planned" },
-      { label: "Raporlar", status: "planned" },
+      { label: "Genel Bakış", status: "in-development" },
+      { label: "Cari Hesaplar", status: "in-development" },
+      { label: "Alış Faturaları", status: "in-development" },
+      { label: "Muhasebe Satış Siparişleri", status: "in-development" },
+      { label: "Satış Faturaları", status: "in-development" },
+      { label: "Ödemeler ve Tahsilatlar", status: "in-development" },
+      { label: "Kasa ve Banka", status: "in-development" },
+      { label: "Giderler", status: "in-development" },
+      { label: "Raporlar", status: "in-development" },
     ],
   },
   {
     label: "Pazaryeri Entegrasyonları",
+    collapsible: true,
+    status: "future",
     items: [
       { label: "Bağlantılar", status: "future" },
       { label: "Ürün ve Sipariş Senkronu", status: "future" },
@@ -53,14 +61,16 @@ export const navigationSections: NavigationSection[] = [
   {
     label: "Sistem",
     items: [
-      { label: "Yöneticiler", status: "planned" },
-      { label: "Ayarlar", status: "future" },
+      { label: "Yöneticiler", href: "/managers", status: "available" },
+      { label: "Ayarlar", href: "/settings", status: "available" },
     ],
   },
 ];
 
 export function navigationStatusLabel(status: NavigationItem["status"]): string {
   switch (status) {
+    case "in-development":
+      return "Geliştirme aşamasında";
     case "next":
       return "Sırada";
     case "planned":

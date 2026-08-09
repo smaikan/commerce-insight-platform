@@ -52,6 +52,21 @@ public sealed class ProductImageRepository : IProductImageRepository
             cancellationToken);
     }
 
+    // Burada yeni görsel eklemeden önce ürünün mevcut görsel sayısını güvenle alıyorum.
+    public Task<int> CountByProductIdAsync(long productId, CancellationToken cancellationToken = default) =>
+        _context.ProductImages.CountAsync(image => image.ProductId == productId, cancellationToken);
+
+    // Burada ana görsel silindiğinde yerine geçecek ilk görseli takipli olarak seçiyorum.
+    public Task<ProductImage?> GetFirstByProductIdForUpdateAsync(
+        long productId,
+        Guid excludedImageId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProductImages
+            .Where(image => image.ProductId == productId && image.Id != excludedImageId)
+            .OrderBy(image => image.DisplayOrder)
+            .ThenBy(image => image.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
     // Burada bir ürüne ait görselleri ekrandaki sıralamasına göre getiriyorum.
     public async Task<PagedResult<ProductImage>> GetByProductIdAsync(
         long productId,

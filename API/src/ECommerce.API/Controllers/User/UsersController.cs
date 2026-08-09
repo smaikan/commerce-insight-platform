@@ -13,6 +13,9 @@ using ECommerce.Application.Users.Queries.GetActiveSessions;
 using ECommerce.Application.Users.Queries.GetCurrentUser;
 using ECommerce.Application.Users.Queries.GetUserById;
 using ECommerce.Application.Users.Queries.GetUsers;
+using ECommerce.Application.Orders.Queries.GetUserOrders;
+using ECommerce.Application.Orders.Dtos;
+using ECommerce.Application.Common.Models;
 using ECommerce.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -82,6 +85,15 @@ public sealed class UsersController : ControllerBase
     [HttpGet]
     public async Task<ActionResult> GetUsers([FromQuery] GetUsersQuery query, CancellationToken cancellationToken) =>
         Ok(await _sender.Send(query, cancellationToken));
+
+    // Burada yöneticinin seçili müşteriye ait sipariş özetlerini yalnızca public kullanıcı kimliğiyle getirmesini sağlıyorum.
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [HttpGet("{id}/orders")]
+    public async Task<ActionResult<PagedResult<OrderSummaryDto>>> GetUserOrders(
+        string id,
+        [FromQuery] GetUserOrdersQuery query,
+        CancellationToken cancellationToken) =>
+        Ok(await _sender.Send(query with { UserId = ApiPublicIdParser.ParseUserId(id) }, cancellationToken));
 
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpGet("{id}")]

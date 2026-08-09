@@ -1,12 +1,12 @@
 using ECommerce.Application.Common.Models;
-using ECommerce.Domain.Entities;
+using ECommerce.Application.StockMovements.Dtos;
 
 namespace ECommerce.Application.Common.Interfaces;
 
 public interface IStockMovementRepository
 {
     // Burada stok hareketlerini filtreli ve sayfalı okuma sözleşmesini tanımlıyorum.
-    Task<PagedResult<StockMovement>> GetListAsync(
+    Task<PagedResult<StockMovementListItemDto>> GetListAsync(
         StockMovementListFilter filter,
         CancellationToken cancellationToken = default);
 

@@ -21,6 +21,7 @@ public sealed class Coupon : AuditableEntity
     public DateTime? StartsAt { get; private set; }
     public DateTime? ExpiresAt { get; private set; }
     public bool IsActive { get; private set; }
+    public bool IsMemberOnly { get; private set; }
 
     // Burada EF Core'un kupon kaydÄ±nÄ± veritabanÄ±ndan oluÅŸturabilmesi iÃ§in boÅŸ kurucuyu tutuyorum.
     private Coupon()
@@ -37,7 +38,8 @@ public sealed class Coupon : AuditableEntity
         int? usageLimit = null,
         DateTime? startsAt = null,
         DateTime? expiresAt = null,
-        bool isActive = true)
+        bool isActive = true,
+        bool isMemberOnly = false)
     {
         ApplyDetails(
             code,
@@ -49,6 +51,7 @@ public sealed class Coupon : AuditableEntity
             startsAt,
             expiresAt);
         IsActive = isActive;
+        IsMemberOnly = isMemberOnly;
     }
 
     // Burada kullanÄ±lmÄ±ÅŸ sayaÃ§ deÄŸerini koruyarak kuponun yÃ¶netilebilir alanlarÄ±nÄ± gÃ¼ncelliyorum.
@@ -60,7 +63,8 @@ public sealed class Coupon : AuditableEntity
         decimal? minimumOrderAmount,
         int? usageLimit,
         DateTime? startsAt,
-        DateTime? expiresAt)
+        DateTime? expiresAt,
+        bool isMemberOnly = false)
     {
         ApplyDetails(
             code,
@@ -71,6 +75,7 @@ public sealed class Coupon : AuditableEntity
             usageLimit,
             startsAt,
             expiresAt);
+        IsMemberOnly = isMemberOnly;
         MarkAsUpdated();
     }
 

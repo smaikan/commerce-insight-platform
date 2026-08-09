@@ -63,4 +63,13 @@ public interface IEmailSender
         string returnNumber,
         string status,
         CancellationToken cancellationToken = default);
+
+    // Burada guest sipariş magic-link e-postasının gönderim sözleşmesini tanımlıyorum.
+    Task SendGuestOrderAccessAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        string rawToken,
+        DateTime expiresAt,
+        CancellationToken cancellationToken = default);
 }

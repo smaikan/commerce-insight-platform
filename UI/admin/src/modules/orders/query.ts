@@ -10,6 +10,7 @@ export function parseOrderListQuery(params: Record<string, string | string[] | u
   const pageNumber = boundedInteger(single(params.pageNumber), 1, 10_000, 1);
   const requestedPageSize = boundedInteger(single(params.pageSize), 1, 100, 20);
   const pageSize = pageSizes.includes(requestedPageSize as (typeof pageSizes)[number]) ? requestedPageSize : 20;
+  const search = single(params.search)?.trim() || undefined;
   const statusText = single(params.status);
   const statusValue = statusText === undefined || statusText === "" ? Number.NaN : Number(statusText);
   const status = orderStatuses.includes(statusValue as OrderStatus) ? statusValue as OrderStatus : undefined;
@@ -22,6 +23,7 @@ export function parseOrderListQuery(params: Record<string, string | string[] | u
   return {
     pageNumber,
     pageSize,
+    search,
     status,
     createdFrom,
     createdTo,
@@ -33,7 +35,7 @@ export function parseOrderListQuery(params: Record<string, string | string[] | u
 
 // Burada filtre varlığını boş sonuç metni ve temizleme aksiyonu için tek biçimde belirliyorum.
 export function hasOrderFilters(query: OrderListQuery): boolean {
-  return query.status !== undefined || Boolean(query.createdFrom) || Boolean(query.createdTo);
+  return Boolean(query.search) || query.status !== undefined || Boolean(query.createdFrom) || Boolean(query.createdTo);
 }
 
 // Burada sayfalama bağlantılarında mevcut sipariş filtrelerini URL üzerinde koruyorum.
@@ -41,6 +43,7 @@ export function buildOrderListHref(query: OrderListQuery, pageNumber: number): s
   const params = new URLSearchParams();
   if (pageNumber > 1) params.set("pageNumber", String(pageNumber));
   if (query.pageSize !== 20) params.set("pageSize", String(query.pageSize));
+  if (query.search) params.set("search", query.search);
   if (query.status !== undefined) params.set("status", String(query.status));
   if (query.createdFrom) params.set("createdFrom", query.createdFrom);
   if (query.createdTo) params.set("createdTo", query.createdTo);

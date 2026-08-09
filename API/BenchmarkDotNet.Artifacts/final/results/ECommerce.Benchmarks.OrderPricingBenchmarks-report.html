@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>ECommerce.Benchmarks.OrderPricingBenchmarks-20260731-155247</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.8973/25H2/2025Update/HudsonValley2)
+Intel Core i5-7300HQ CPU 2.50GHz (Kaby Lake), 1 CPU, 4 logical and 4 physical cores
+.NET SDK 10.0.300
+  [Host]             : .NET 10.0.8 (10.0.8, 10.0.826.23019), X64 RyuJIT x86-64-v3
+  ShortRun-.NET 10.0 : .NET 10.0.8 (10.0.8, 10.0.826.23019), X64 RyuJIT x86-64-v3
+</code></pre>
+<pre><code>Job=ShortRun-.NET 10.0  Runtime=.NET 10.0  IterationCount=3  
+LaunchCount=1  WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method             </th><th>LineCount</th><th>Mean </th><th>Error </th><th>StdDev</th><th>Gen0</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>Calculate</td><td>1</td><td>270.7 ns</td><td>28.65 ns</td><td>1.57 ns</td><td>0.1884</td><td>592 B</td>
+</tr><tr><td>SerializeResultToUtf8Json</td><td>1</td><td>873.1 ns</td><td>179.97 ns</td><td>9.86 ns</td><td>0.1936</td><td>608 B</td>
+</tr><tr><td>Calculate</td><td>10</td><td>2,684.1 ns</td><td>196.80 ns</td><td>10.79 ns</td><td>0.6256</td><td>1968 B</td>
+</tr><tr><td>SerializeResultToUtf8Json</td><td>10</td><td>3,067.4 ns</td><td>206.63 ns</td><td>11.33 ns</td><td>0.4883</td><td>1536 B</td>
+</tr><tr><td>Calculate</td><td>100</td><td>25,562.8 ns</td><td>5,635.07 ns</td><td>308.88 ns</td><td>4.5776</td><td>14424 B</td>
+</tr><tr><td>SerializeResultToUtf8Json</td><td>100</td><td>26,132.5 ns</td><td>11,498.90 ns</td><td>630.29 ns</td><td>3.3875</td><td>10721 B</td>
+</tr></tbody></table>
+</body>
+</html>

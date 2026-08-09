@@ -4,7 +4,9 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Services;
 using ECommerce.Application.Carts.Services;
 using ECommerce.Application.Orders.Services;
+using ECommerce.Application.Orders.Commands.ImportOrders;
 using ECommerce.Application.Returns.Services;
+using ECommerce.Application.GuestOrders;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,12 +29,18 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IUrlGenerator>(provider => provider.GetRequiredService<ProductUrlGenerator>());
         services.AddScoped<IProductUrlResolver, ProductUrlResolver>();
         services.AddScoped<IProductTagResolver, ProductTagResolver>();
+        services.AddScoped<IProductTypeNameResolver, ProductTypeNameResolver>();
+        services.AddScoped<IProductCollectionNameResolver, ProductCollectionNameResolver>();
         services.AddScoped<ICartOwnerResolver, CartOwnerResolver>();
         services.AddScoped<ICartMetricsRecorder, CartMetricsRecorder>();
         services.AddScoped<IOrderMetricsRecorder, OrderMetricsRecorder>();
+        services.AddScoped<ImportedOrderProcessor>();
         services.AddScoped<OrderInventoryService>();
         services.AddScoped<OrderCouponService>();
         services.AddScoped<OrderPricingService>();
+        services.AddScoped<OrderCheckoutOrchestrator>();
+        services.AddScoped<GuestOrderAccessService>();
+        services.AddScoped<GuestOrderOperationsService>();
         services.AddScoped<IOrderNotificationService, OrderNotificationService>();
         services.AddScoped<ReturnInventoryService>();
 

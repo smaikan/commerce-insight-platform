@@ -10,6 +10,7 @@ export function getOrders(query: OrderListQuery, session: AdminSession): Promise
     PageNumber: String(query.pageNumber),
     PageSize: String(query.pageSize),
   });
+  if (query.search) params.set("Search", query.search);
   if (query.status !== undefined) params.set("Status", String(query.status));
   if (query.createdFromUtc) params.set("CreatedFromUtc", query.createdFromUtc);
   if (query.createdToUtc) params.set("CreatedToUtc", query.createdToUtc);

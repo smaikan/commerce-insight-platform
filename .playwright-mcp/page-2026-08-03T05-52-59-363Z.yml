@@ -1,0 +1,201 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - link "Ana içeriğe geç" [ref=f1e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=f1e4]:
+      - generic [ref=f1e6]:
+        - generic [ref=f1e7]: SERANTIS
+        - generic [ref=f1e8]: Yönetim Paneli
+      - navigation "Ana navigasyon" [ref=f1e10]:
+        - group [ref=f1e11]:
+          - generic "Genel Bakış" [ref=f1e12] [cursor=pointer]
+          - list [ref=f1e19]:
+            - listitem [ref=f1e20]:
+              - link "Dashboard" [ref=f1e21] [cursor=pointer]:
+                - /url: /dashboard
+        - group [ref=f1e24]:
+          - generic "Ticaret" [ref=f1e25] [cursor=pointer]
+          - list [ref=f1e32]:
+            - listitem [ref=f1e33]:
+              - generic [ref=f1e36]:
+                - generic [ref=f1e37]: Siparişler
+                - generic [ref=f1e38]: Sırada
+            - listitem [ref=f1e39]:
+              - link "Ürünler" [ref=f1e40] [cursor=pointer]:
+                - /url: /products
+            - listitem [ref=f1e43]:
+              - generic [ref=f1e46]:
+                - generic [ref=f1e47]: Koleksiyonlar
+                - generic [ref=f1e48]: Planlı
+            - listitem [ref=f1e49]:
+              - generic [ref=f1e52]:
+                - generic [ref=f1e53]: Kampanyalar / Kuponlar
+                - generic [ref=f1e54]: Planlı
+        - group [ref=f1e55]:
+          - generic "Operasyonlar" [ref=f1e56] [cursor=pointer]
+        - group [ref=f1e63]:
+          - generic "Muhasebe" [ref=f1e64] [cursor=pointer]
+        - group [ref=f1e71]:
+          - generic "Pazaryeri Entegrasyonları" [ref=f1e72] [cursor=pointer]
+        - group [ref=f1e79]:
+          - generic "Sistem" [ref=f1e80] [cursor=pointer]
+      - generic [ref=f1e87]: Operasyon çalışma alanı
+    - generic [ref=f1e88]:
+      - banner [ref=f1e89]:
+        - generic [ref=f1e90]:
+          - paragraph [ref=f1e91]: Yönetim Paneli
+          - paragraph [ref=f1e92]: Operasyon çalışma alanı
+      - main [ref=f1e93]:
+        - generic [ref=f1e94]:
+          - generic [ref=f1e96]:
+            - link "← Listeye dön" [ref=f1e97] [cursor=pointer]:
+              - /url: /products
+            - heading "Yeni ürün" [level=1] [ref=f1e98]
+            - paragraph [ref=f1e99]: Temel bilgiler, durum, organizasyon ve en az bir varyantla katalog kaydı oluşturun.
+          - generic [ref=f1e100]:
+            - generic [ref=f1e101]:
+              - generic [ref=f1e102]:
+                - generic [ref=f1e103]:
+                  - generic [ref=f1e104]:
+                    - heading "Temel bilgiler" [level=2] [ref=f1e105]
+                    - paragraph [ref=f1e106]: Ürünün katalog kimliğini ve açıklamasını tanımlayın.
+                  - generic [ref=f1e107]:
+                    - generic [ref=f1e108]:
+                      - text: Ürün başlığı *
+                      - textbox "Ürün başlığı *" [ref=f1e109]
+                    - generic [ref=f1e110]:
+                      - text: Ana SKU *
+                      - textbox "Ana SKU *" [ref=f1e111]
+                    - generic [ref=f1e113]:
+                      - text: URL
+                      - textbox "URL Boş bırakılırsa backend ürün başlığından oluşturabilir." [ref=f1e114]
+                      - generic [ref=f1e115]: Boş bırakılırsa backend ürün başlığından oluşturabilir.
+                    - generic [ref=f1e116]:
+                      - text: Açıklama
+                      - textbox "Açıklama" [ref=f1e117]
+                - generic [ref=f1e118]:
+                  - generic [ref=f1e119]:
+                    - heading "Medya" [level=2] [ref=f1e120]
+                    - paragraph [ref=f1e121]: Dosya yükleme endpoint'i bulunmadığı için yalnız URL tabanlı görsel eklenir.
+                  - generic [ref=f1e122]:
+                    - generic [ref=f1e124]:
+                      - text: İlk görsel URL'si
+                      - textbox "İlk görsel URL'si" [ref=f1e125]
+                    - generic [ref=f1e126]:
+                      - text: Alternatif metin
+                      - textbox "Alternatif metin" [ref=f1e127]
+                    - generic [ref=f1e128]:
+                      - text: Görüntüleme sırası
+                      - spinbutton "Görüntüleme sırası" [ref=f1e129]: "0"
+                    - generic [ref=f1e130]:
+                      - checkbox "Ana görsel olarak işaretle" [checked] [ref=f1e131]
+                      - text: Ana görsel olarak işaretle
+                - region [ref=f1e132]:
+                  - generic [ref=f1e133]:
+                    - generic [ref=f1e134]:
+                      - heading "Varyantlar" [level=2] [ref=f1e135]
+                      - paragraph [ref=f1e136]: Ad ve değer ayrı alanlardır; en az bir varyant zorunludur.
+                    - button "Varyant ekle" [ref=f1e137]
+                  - group "Varyant 1" [ref=f1e139]:
+                    - generic [ref=f1e141]:
+                      - generic [ref=f1e142]:
+                        - text: Varyant adı *
+                        - textbox "Varyant adı *" [ref=f1e143]
+                      - generic [ref=f1e144]:
+                        - text: Varyant değeri *
+                        - textbox "Varyant değeri *" [ref=f1e145]
+                      - generic [ref=f1e146]:
+                        - text: SKU *
+                        - textbox "SKU *" [ref=f1e147]
+                      - generic [ref=f1e148]:
+                        - text: Fiyat *
+                        - spinbutton "Fiyat *" [ref=f1e149]
+                      - generic [ref=f1e150]:
+                        - text: Karşılaştırma fiyatı
+                        - spinbutton "Karşılaştırma fiyatı" [ref=f1e151]
+                      - generic [ref=f1e152]:
+                        - text: Stok *
+                        - spinbutton "Stok *" [ref=f1e153]: "0"
+                      - generic [ref=f1e154]:
+                        - text: Barkod
+                        - textbox "Barkod" [ref=f1e155]
+                      - generic [ref=f1e156]:
+                        - text: Materyal
+                        - textbox "Materyal" [ref=f1e157]
+                      - generic [ref=f1e158]:
+                        - text: Açılış birim maliyeti (KDV hariç)
+                        - spinbutton "Açılış birim maliyeti (KDV hariç)" [ref=f1e159]
+                      - generic [ref=f1e160]:
+                        - text: Açılış birim maliyeti (KDV dahil)
+                        - spinbutton "Açılış birim maliyeti (KDV dahil)" [ref=f1e161]
+                    - generic [ref=f1e163]:
+                      - checkbox "Varyant aktif" [checked] [ref=f1e164]
+                      - text: Varyant aktif
+                - generic [ref=f1e165]:
+                  - generic [ref=f1e166]:
+                    - heading "Arama motoru bilgileri" [level=2] [ref=f1e167]
+                    - paragraph [ref=f1e168]: Storefront ürün sayfasında kullanılacak başlık ve açıklamayı tanımlayın.
+                  - generic [ref=f1e169]:
+                    - generic [ref=f1e170]:
+                      - text: SEO başlığı
+                      - textbox "SEO başlığı" [ref=f1e171]
+                    - generic [ref=f1e172]:
+                      - text: SEO açıklaması
+                      - textbox "SEO açıklaması" [ref=f1e173]
+              - complementary [ref=f1e174]:
+                - generic [ref=f1e175]:
+                  - heading "Durum" [level=2] [ref=f1e177]
+                  - generic [ref=f1e178]:
+                    - text: Ürün durumu
+                    - combobox "Ürün durumu" [ref=f1e179]:
+                      - option "Taslak" [selected]
+                      - option "Aktif"
+                      - option "Pasif"
+                      - option "Arşivlenmiş"
+                  - generic [ref=f1e180]:
+                    - generic [ref=f1e181]:
+                      - checkbox "Ürün aktif" [checked] [ref=f1e182]
+                      - text: Ürün aktif
+                    - generic [ref=f1e183]:
+                      - checkbox "Öne çıkar" [ref=f1e184]
+                      - text: Öne çıkar
+                    - generic [ref=f1e185]:
+                      - checkbox "Varyantlı ürün" [ref=f1e186]
+                      - text: Varyantlı ürün
+                - generic [ref=f1e187]:
+                  - heading "Organizasyon" [level=2] [ref=f1e189]
+                  - generic [ref=f1e190]:
+                    - generic [ref=f1e191]:
+                      - text: Ürün tipi
+                      - textbox "Ürün tipi Adla gönderilir; yoksa API oluşturur." [ref=f1e192]
+                      - generic [ref=f1e193]: Adla gönderilir; yoksa API oluşturur.
+                    - generic [ref=f1e194]:
+                      - text: Marka
+                      - combobox "Marka" [ref=f1e195]:
+                        - option "Marka yok" [selected]
+                        - option "SERANTIS"
+                    - generic [ref=f1e196]:
+                      - text: Vergi oranı
+                      - combobox "Vergi oranı Vergi oranları yönetici oturumu olmadan yüklenemedi." [disabled] [ref=f1e197]:
+                        - option "Vergi oranı yok" [selected]
+                      - generic [ref=f1e198]: Vergi oranları yönetici oturumu olmadan yüklenemedi.
+                    - generic [ref=f1e199]:
+                      - text: Etiketler
+                      - textbox "Etiketler Virgülle ayırın; en fazla 20 etiket." [ref=f1e200]
+                      - generic [ref=f1e201]: Virgülle ayırın; en fazla 20 etiket.
+                    - generic [ref=f1e202]:
+                      - text: Koleksiyonlar
+                      - textbox "Koleksiyonlar Virgülle ayırın; adla gönderilir." [ref=f1e203]
+                      - generic [ref=f1e204]: Virgülle ayırın; adla gönderilir.
+                    - generic [ref=f1e205]:
+                      - text: Görüntüleme sırası
+                      - spinbutton "Görüntüleme sırası" [ref=f1e206]: "0"
+                - generic [ref=f1e207]:
+                  - paragraph [ref=f1e208]: Kayıt sınırı
+                  - paragraph [ref=f1e209]: Ürün, durum, varyant ve görsel işlemleri ayrı API çağrıları olabilir. Kısmi başarı durumunda ürün kimliği korunur.
+            - generic [ref=f1e210]:
+              - link "Vazgeç" [ref=f1e211] [cursor=pointer]:
+                - /url: /products
+              - button "Ürünü oluştur" [ref=f1e212]
+  - button "Open Next.js Dev Tools" [ref=f1e218] [cursor=pointer]
+  - alert [ref=f1e222]

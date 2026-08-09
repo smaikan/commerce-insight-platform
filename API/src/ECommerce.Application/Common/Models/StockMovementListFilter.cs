@@ -10,4 +10,5 @@ public sealed record StockMovementListFilter(
     StockMovementDirection? Direction = null,
     StockMovementType? Type = null,
     DateTime? CreatedFromUtc = null,
-    DateTime? CreatedToUtc = null);
+    DateTime? CreatedToUtc = null,
+    string? Search = null);

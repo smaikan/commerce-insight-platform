@@ -31,7 +31,8 @@ public sealed class UpdateProductImageCommandHandler : IRequestHandler<UpdatePro
             throw new NotFoundException("Product image was not found.");
         }
 
-        if (request.IsMain)
+        var isMain = image.IsMain || request.IsMain;
+        if (isMain)
         {
             var currentMainImage = await _imageRepository.GetMainByProductIdForUpdateAsync(
                 image.ProductId,
@@ -55,7 +56,7 @@ public sealed class UpdateProductImageCommandHandler : IRequestHandler<UpdatePro
             altText = product.Title;
         }
 
-        image.Update(request.ImageUrl, altText, request.DisplayOrder, request.IsMain, useAutomaticAltText);
+        image.Update(request.ImageUrl, altText, request.DisplayOrder, isMain, useAutomaticAltText);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return image.ToDto();

@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "bench:orders:browser": "playwright test --config=playwright.performance.config.ts",
     "api:types": "openapi-typescript ../docs/api/api-project-docs/openapi-controller-contract.json -o src/generated/api.ts",
     "api:types:check": "openapi-typescript ../docs/api/api-project-docs/openapi-controller-contract.json -o src/generated/api.ts --check"
   },
@@ -19,6 +20,7 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

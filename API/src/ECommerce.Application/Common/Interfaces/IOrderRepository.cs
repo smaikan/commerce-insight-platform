@@ -17,6 +17,9 @@ public interface IOrderRepository
     // Burada siparişi yönetim detay ekranı için takip etmeden ilişkileriyle getirme sözleşmesini tanımlıyorum.
     Task<Order?> GetByIdAsync(Guid orderId, CancellationToken cancellationToken = default);
 
+    // Burada dış sistem sipariş numarasıyla yapılan tekrar güvenli içe aktarmayı çözümlemek için siparişi getiriyorum.
+    Task<Order?> GetByOrderNumberAsync(string orderNumber, CancellationToken cancellationToken = default);
+
     // Burada kullanıcının kendi siparişini ödeme veya iptal için ilişkileriyle takipli getirme sözleşmesini tanımlıyorum.
     Task<Order?> GetByIdForUserForUpdateAsync(Guid orderId, long userId, CancellationToken cancellationToken = default);
 

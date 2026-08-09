@@ -35,7 +35,8 @@ public sealed class CreateCouponCommandHandler : IRequestHandler<CreateCouponCom
             request.UsageLimit,
             request.StartsAt,
             request.ExpiresAt,
-            request.IsActive);
+            request.IsActive,
+            request.IsMemberOnly);
 
         await _couponRepository.AddAsync(coupon, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

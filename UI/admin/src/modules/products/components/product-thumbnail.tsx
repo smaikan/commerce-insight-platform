@@ -10,8 +10,8 @@ export function ProductThumbnail({ src, alt }: { src?: string | null; alt: strin
 
   if (!src || failed) {
     return (
-      <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-gradient-to-br from-primary-soft to-surface-subtle text-primary" aria-hidden="true">
-        <svg viewBox="0 0 24 24" className="size-6 fill-none stroke-current stroke-[1.7]">
+      <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-gradient-to-br from-primary-soft to-surface-subtle text-primary" aria-hidden="true">
+        <svg viewBox="0 0 24 24" className="size-5 fill-none stroke-current stroke-[1.7]">
           <path d="m5 8 7-4 7 4-7 4-7-4Z" strokeLinejoin="round" />
           <path d="M5 8v8l7 4 7-4V8M12 12v8" strokeLinejoin="round" />
         </svg>
@@ -20,7 +20,7 @@ export function ProductThumbnail({ src, alt }: { src?: string | null; alt: strin
   }
 
   return (
-    <span className="size-14 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-subtle">
+    <span className="size-12 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-subtle">
       <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} className="size-full object-cover" />
     </span>
   );

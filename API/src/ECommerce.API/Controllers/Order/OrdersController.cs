@@ -2,12 +2,14 @@ using ECommerce.Application.Orders.Commands.CreateOrder;
 using ECommerce.Application.Orders.Commands.CreatePayment;
 using ECommerce.Application.Orders.Commands.CancelOrder;
 using ECommerce.Application.Orders.Commands.ChangeOrderStatus;
+using ECommerce.Application.Orders.Commands.ImportOrders;
 using ECommerce.Application.Orders.Dtos;
 using ECommerce.Application.Orders.Queries.GetMyOrders;
 using ECommerce.Application.Orders.Queries.GetOrderById;
 using ECommerce.Application.Orders.Queries.GetOrderByIdForAdmin;
 using ECommerce.Application.Orders.Queries.GetOrders;
 using ECommerce.API.Security;
+using ECommerce.API.Routing;
 using ECommerce.Application.Common.Models;
 using ECommerce.Domain.Enums;
 using MediatR;
@@ -47,7 +49,34 @@ public sealed class OrdersController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, order);
     }
 
+    // Burada dış sistemden tek siparişi admin yetkisiyle, sipariş numarasını idempotency anahtarı kabul ederek içe aktarıyorum.
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [HttpPost("import")]
+    public async Task<ActionResult<OrderImportResultDto>> Import(
+        ImportOrderRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new ImportOrderCommand(request.ToInput()), cancellationToken);
+        return result.WasImported
+            ? StatusCode(StatusCodes.Status201Created, result)
+            : Ok(result);
+    }
+
+    // Burada dış sistemden gelen siparişleri tek transaction içinde atomik ve tekrar güvenli olarak topluca içe aktarıyorum.
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [HttpPost("import/bulk")]
+    public async Task<ActionResult<IReadOnlyList<OrderImportResultDto>>> BulkImport(
+        BulkImportOrdersRequest request,
+        CancellationToken cancellationToken)
+    {
+        var results = await _sender.Send(
+            new BulkImportOrdersCommand(request.Orders.Select(order => order.ToInput()).ToList()),
+            cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, results);
+    }
+
     // Burada oturumdaki kullanıcının kendi sipariş özetlerini sayfalı olarak getiriyorum.
+    [DisableRateLimiting]
     [HttpGet("mine")]
     public async Task<ActionResult<PagedResult<OrderSummaryDto>>> GetMine(
         [FromQuery] GetMyOrdersQuery query,
@@ -81,6 +110,7 @@ public sealed class OrdersController : ControllerBase
 
     // Burada yöneticinin tüm siparişleri güvenli filtrelerle sayfalı olarak görmesini sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [DisableRateLimiting]
     [HttpGet]
     public async Task<ActionResult<PagedResult<OrderSummaryDto>>> GetList(
         [FromQuery] GetOrdersQuery query,
@@ -106,12 +136,74 @@ public sealed class OrdersController : ControllerBase
 // Burada checkout isteğinin concurrency, isteğe bağlı teslimat adresi ve kupon alanlarını tanımlıyorum.
 public sealed record CreateOrderRequest(
     Guid ExpectedCartConcurrencyToken,
-    Guid? ShippingAddressId = null,
-    string? CouponCode = null,
-    Guid? ShippingMethodId = null);
+    Guid ShippingAddressId,
+    Guid ShippingMethodId,
+    string? CouponCode = null);
 
 // Burada ödeme başlatma gövdesinden kabul edilen tek sağlayıcı seçimini tanımlıyorum.
 public sealed record CreatePaymentRequest(PaymentProvider Provider);
 
 // Burada yönetim sipariş yaşam döngüsü güncellemesi için hedef durumu tanımlıyorum.
 public sealed record ChangeOrderStatusRequest(OrderStatus Status);
+
+public sealed record BulkImportOrdersRequest(IReadOnlyList<ImportOrderRequest> Orders);
+
+public sealed record ImportOrderRequest(
+    string OrderNumber,
+    long UserId,
+    decimal SubTotal,
+    decimal DiscountTotal,
+    decimal ShippingTotal,
+    decimal TaxTotal,
+    decimal GrandTotal,
+    OrderStatus Status,
+    IReadOnlyList<ImportOrderItemRequest> Items,
+    DateTime? CreatedAtUtc = null,
+    string? CouponCode = null,
+    Guid? ShippingMethodId = null,
+    string? ShippingMethodName = null,
+    PaymentProvider? PaymentProvider = null,
+    string? PaymentTransactionId = null,
+    bool ApplyInventoryAndMetrics = false)
+{
+    public ImportedOrderInput ToInput() => new(
+        OrderNumber,
+        UserId,
+        SubTotal,
+        DiscountTotal,
+        ShippingTotal,
+        TaxTotal,
+        GrandTotal,
+        Status,
+        Items.Select(item => item.ToInput()).ToList(),
+        CreatedAtUtc,
+        CouponCode,
+        ShippingMethodId,
+        ShippingMethodName,
+        PaymentProvider,
+        PaymentTransactionId,
+        ApplyInventoryAndMetrics);
+}
+
+public sealed record ImportOrderItemRequest(
+    string ProductId,
+    Guid ProductVariantId,
+    string ProductTitle,
+    string VariantSku,
+    decimal UnitPrice,
+    int Quantity,
+    decimal DiscountTotal = 0m,
+    decimal TaxRatePercentage = 0m,
+    decimal TaxTotal = 0m)
+{
+    public ImportedOrderItemInput ToInput() => new(
+        ApiPublicIdParser.ParseProductId(ProductId),
+        ProductVariantId,
+        ProductTitle,
+        VariantSku,
+        UnitPrice,
+        Quantity,
+        DiscountTotal,
+        TaxRatePercentage,
+        TaxTotal);
+}

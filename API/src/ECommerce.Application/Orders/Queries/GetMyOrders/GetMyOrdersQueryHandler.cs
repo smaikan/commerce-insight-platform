@@ -7,13 +7,13 @@ namespace ECommerce.Application.Orders.Queries.GetMyOrders;
 
 public sealed class GetMyOrdersQueryHandler : IRequestHandler<GetMyOrdersQuery, PagedResult<OrderSummaryDto>>
 {
-    private readonly IOrderRepository _orderRepository;
+    private readonly IOrderListReader _orderListReader;
     private readonly ICurrentUserService _currentUser;
 
     // Burada kullanıcının yalnız kendi siparişlerini çözümlemek için repository ve kimlik servisini hazırlıyorum.
-    public GetMyOrdersQueryHandler(IOrderRepository orderRepository, ICurrentUserService currentUser)
+    public GetMyOrdersQueryHandler(IOrderListReader orderListReader, ICurrentUserService currentUser)
     {
-        _orderRepository = orderRepository;
+        _orderListReader = orderListReader;
         _currentUser = currentUser;
     }
 
@@ -21,15 +21,15 @@ public sealed class GetMyOrdersQueryHandler : IRequestHandler<GetMyOrdersQuery, 
     public async Task<PagedResult<OrderSummaryDto>> Handle(GetMyOrdersQuery request, CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetRequiredUserId();
-        var orders = await _orderRepository.GetListForUserAsync(
+        return await _orderListReader.GetListAsync(
             new OrderListFilter(
                 request.PageNumber,
                 request.PageSize,
+                UserId: userId,
+                Search: null,
                 Status: request.Status,
                 CreatedFromUtc: request.CreatedFromUtc,
                 CreatedToUtc: request.CreatedToUtc),
-            userId,
             cancellationToken);
-        return orders.Map(order => order.ToSummaryDto());
     }
 }

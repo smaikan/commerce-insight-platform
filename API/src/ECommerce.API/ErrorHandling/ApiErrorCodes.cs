@@ -14,4 +14,10 @@ public static class ApiErrorCodes
     public const string RateLimitExceeded = "rate_limit_exceeded";
     public const string BadRequest = "bad_request";
     public const string Internal = "internal_error";
+    public const string CouponMembersOnly = "coupon_members_only";
+    public const string GuestCheckoutChallengeRequired = "guest_checkout_challenge_required";
+    public const string GuestCheckoutRateLimited = "guest_checkout_rate_limited";
+    public const string GuestCheckoutProtectionUnavailable = "guest_checkout_protection_unavailable";
+    public const string IdempotencyKeyReused = "idempotency_key_reused";
+    public const string InvalidGuestAccess = "invalid_guest_access";
 }

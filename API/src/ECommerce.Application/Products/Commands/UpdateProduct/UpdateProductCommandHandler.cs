@@ -14,6 +14,7 @@ public sealed class UpdateProductCommandHandler : IRequestHandler<UpdateProductC
     private readonly IBrandRepository _brandRepository;
     private readonly ITaxRateRepository _taxRateRepository;
     private readonly IProductTagResolver _productTagResolver;
+    private readonly IProductTypeNameResolver _productTypeNameResolver;
     private readonly IProductUrlGenerator _productUrlGenerator;
     private readonly IProductUrlResolver _productUrlResolver;
     private readonly IUnitOfWork _unitOfWork;
@@ -27,13 +28,15 @@ public sealed class UpdateProductCommandHandler : IRequestHandler<UpdateProductC
         IProductTagResolver productTagResolver,
         IProductUrlGenerator productUrlGenerator,
         IUnitOfWork unitOfWork,
-        IProductUrlResolver? productUrlResolver = null)
+        IProductUrlResolver? productUrlResolver = null,
+        IProductTypeNameResolver? productTypeNameResolver = null)
     {
         _productRepository = productRepository;
         _productTypeRepository = productTypeRepository;
         _brandRepository = brandRepository;
         _taxRateRepository = taxRateRepository;
         _productTagResolver = productTagResolver;
+        _productTypeNameResolver = productTypeNameResolver ?? new ProductTypeNameResolver(productTypeRepository);
         _productUrlGenerator = productUrlGenerator;
         _productUrlResolver = productUrlResolver ?? new ProductUrlResolver(productRepository, productUrlGenerator);
         _unitOfWork = unitOfWork;
@@ -60,11 +63,7 @@ public sealed class UpdateProductCommandHandler : IRequestHandler<UpdateProductC
             throw new ConflictException("Product main SKU already exists.");
         }
 
-        if (request.TypeId.HasValue &&
-            !await _productTypeRepository.ExistsAsync(request.TypeId.Value, cancellationToken))
-        {
-            throw new NotFoundException("Product type was not found.");
-        }
+        var typeId = await _productTypeNameResolver.ResolveAsync(request.Type, cancellationToken);
 
         if (request.BrandId.HasValue && !await _brandRepository.ExistsAsync(request.BrandId.Value, cancellationToken))
         {
@@ -95,7 +94,7 @@ public sealed class UpdateProductCommandHandler : IRequestHandler<UpdateProductC
             request.SeoDescription,
             normalizedMainSku);
 
-        product.ChangeType(request.TypeId);
+        product.ChangeType(typeId);
         product.ChangeBrand(request.BrandId);
         product.ChangeTaxRate(request.TaxRateId);
         foreach (var variant in product.Variants)

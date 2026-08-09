@@ -196,6 +196,7 @@ public sealed class CouponsControllerTests
                 DateTime.UtcNow,
                 DateTime.UtcNow.AddDays(7),
                 true,
+                false,
                 DateTime.UtcNow,
                 null);
         }

@@ -1,4 +1,5 @@
 using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.Dashboard;
 using ECommerce.Persistence.Context;
 using ECommerce.Persistence.Accounting;
 using ECommerce.Persistence.Repositories;
@@ -6,6 +7,7 @@ using ECommerce.Persistence.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace ECommerce.Persistence;
 
@@ -26,8 +28,28 @@ public static class PersistenceServiceRegistration
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlServer(connectionString));
 
+        var configuredLowStockThreshold = configuration[
+            $"{DashboardOptions.SectionName}:LowStockThreshold"];
+        var lowStockThreshold = string.IsNullOrWhiteSpace(configuredLowStockThreshold)
+            ? 10
+            : int.TryParse(configuredLowStockThreshold, out var parsedLowStockThreshold)
+                ? parsedLowStockThreshold
+                : throw new InvalidOperationException(
+                    "Dashboard:LowStockThreshold must be a whole number.");
+        var dashboardOptions = new DashboardOptions { LowStockThreshold = lowStockThreshold };
+        if (dashboardOptions.LowStockThreshold <= 0)
+        {
+            throw new InvalidOperationException("Dashboard:LowStockThreshold must be greater than zero.");
+        }
+
+        services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(dashboardOptions));
+
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IProductListReader, ProductListReader>();
+        services.AddScoped<IPublishedProductListReader, PublishedProductListReader>();
+        services.AddScoped<IOrderListReader, OrderListReader>();
+        services.AddScoped<IAdminDashboardReader, AdminDashboardReader>();
+        services.AddScoped<IProductAnalyticsReader, ProductAnalyticsReader>();
         services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
         services.AddScoped<IVariantOptionResolver, VariantOptionResolver>();
         services.AddScoped<IStockMovementRepository, StockMovementRepository>();
@@ -41,6 +63,7 @@ public static class PersistenceServiceRegistration
         services.AddScoped<IAddressRepository, AddressRepository>();
         services.AddScoped<ICouponRepository, CouponRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IGuestOrderRepository, GuestOrderRepository>();
         services.AddScoped<IReturnRequestRepository, ReturnRequestRepository>();
         services.AddScoped<IShippingMethodRepository, ShippingMethodRepository>();
         services.AddScoped<ITaxRateRepository, TaxRateRepository>();

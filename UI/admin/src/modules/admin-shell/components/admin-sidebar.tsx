@@ -2,8 +2,8 @@ import { AdminNavigation } from "@/modules/admin-shell/components/admin-navigati
 
 export function AdminSidebar({ siteName }: { siteName: string }) {
   return (
-    <aside className="fixed inset-y-0 left-0 z-20 hidden w-72 border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
-      <div className="flex h-16 shrink-0 items-center border-b border-sidebar-border px-5">
+    <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
+      <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border px-4">
         <div className="min-w-0">
           <span className="block truncate text-base font-semibold tracking-tight text-sidebar-foreground">
             {siteName}
@@ -11,11 +11,8 @@ export function AdminSidebar({ siteName }: { siteName: string }) {
           <span className="mt-0.5 block text-xs font-medium text-sidebar-muted">Yönetim Paneli</span>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto py-4">
+      <div className="flex-1 overflow-y-auto py-3">
         <AdminNavigation />
-      </div>
-      <div className="border-t border-sidebar-border bg-sidebar-elevated/60 px-5 py-3 text-xs leading-5 text-sidebar-muted">
-        Operasyon çalışma alanı
       </div>
     </aside>
   );

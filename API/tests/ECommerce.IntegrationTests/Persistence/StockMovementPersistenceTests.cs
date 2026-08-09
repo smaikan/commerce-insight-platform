@@ -56,7 +56,8 @@ public sealed class StockMovementPersistenceTests
             PageSize: 20,
             ProductVariantId: variantId,
             Direction: StockMovementDirection.Out,
-            Type: StockMovementType.AccountingSale));
+            Type: StockMovementType.AccountingSale,
+            Search: "LEDGER-STANDARD"));
         var balance = await repository.GetBalanceAsync(variantId);
 
         movements.Items.Should().ContainSingle();
@@ -65,6 +66,10 @@ public sealed class StockMovementPersistenceTests
         movements.Items.Single().StockBeforeMovement.Should().Be(5);
         movements.Items.Single().StockAfterMovement.Should().Be(3);
         movements.Items.Single().OrderId.Should().BeNull();
+        movements.Items.Single().ProductTitle.Should().Be("Ledger Product");
+        movements.Items.Single().VariantName.Should().Be("Standard");
+        movements.Items.Single().VariantValue.Should().Be("Standard");
+        movements.Items.Single().Sku.Should().Be("LEDGER-STANDARD");
         balance.Should().NotBeNull();
         balance!.PersistedStock.Should().Be(3);
         balance.MovementBalance.Should().Be(3);

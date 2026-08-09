@@ -6,7 +6,7 @@ using MediatR;
 namespace ECommerce.Application.StockMovements.Queries.GetStockMovements;
 
 public sealed class GetStockMovementsQueryHandler
-    : IRequestHandler<GetStockMovementsQuery, PagedResult<StockMovementDto>>
+    : IRequestHandler<GetStockMovementsQuery, PagedResult<StockMovementListItemDto>>
 {
     private readonly IStockMovementRepository _stockMovementRepository;
 
@@ -16,12 +16,12 @@ public sealed class GetStockMovementsQueryHandler
         _stockMovementRepository = stockMovementRepository;
     }
 
-    // Burada filtrelenmiş stok hareketlerini kararlı sıralı ve sayfalı DTO listesine dönüştürüyorum.
-    public async Task<PagedResult<StockMovementDto>> Handle(
+    // Burada filtrelenmiş stok hareketlerini ürün bağlamıyla kararlı sıralı ve sayfalı döndürüyorum.
+    public Task<PagedResult<StockMovementListItemDto>> Handle(
         GetStockMovementsQuery request,
         CancellationToken cancellationToken)
     {
-        var movements = await _stockMovementRepository.GetListAsync(
+        return _stockMovementRepository.GetListAsync(
             new StockMovementListFilter(
                 request.PageNumber,
                 request.PageSize,
@@ -29,9 +29,8 @@ public sealed class GetStockMovementsQueryHandler
                 request.Direction,
                 request.Type,
                 request.CreatedFromUtc,
-                request.CreatedToUtc),
+                request.CreatedToUtc,
+                request.Search),
             cancellationToken);
-
-        return movements.Map(movement => movement.ToDto());
     }
 }

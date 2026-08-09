@@ -3582,6 +3582,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dashboard/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["DashboardOverviewDto"];
+                        "application/json": components["schemas"]["DashboardOverviewDto"];
+                        "text/json": components["schemas"]["DashboardOverviewDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dashboard/product-analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description AdminOnly authorization required. */
+        get: {
+            parameters: {
+                query: {
+                    from: string;
+                    to: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DashboardProductAnalyticsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/guest-orders": {
         parameters: {
             query?: never;
@@ -3991,6 +4067,7 @@ export interface paths {
                 query?: {
                     PageNumber?: number;
                     PageSize?: number;
+                    Search?: string;
                     Status?: components["schemas"]["OrderStatus"];
                     CreatedFromUtc?: string;
                     CreatedToUtc?: string;
@@ -4150,6 +4227,7 @@ export interface paths {
                     Status?: components["schemas"]["OrderStatus"];
                     CreatedFromUtc?: string;
                     CreatedToUtc?: string;
+                    Search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -4782,11 +4860,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description AdminOnly authorization required. */
         get: {
             parameters: {
-                query?: {
-                    from?: string;
-                    to?: string;
+                query: {
+                    from: string;
+                    to: string;
                 };
                 header?: never;
                 path: {
@@ -4801,7 +4880,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ProductMetricDto"][];
+                    };
                 };
             };
         };
@@ -5024,7 +5105,6 @@ export interface paths {
                     TypeId?: string;
                     BrandId?: string;
                     Status?: components["schemas"]["ProductStatus"];
-                    IsActive?: boolean;
                     IsFeatured?: boolean;
                     SortBy?: components["schemas"]["ProductSortBy"];
                     Descending?: boolean;
@@ -5040,7 +5120,11 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": components["schemas"]["ProductDtoPagedResult"];
+                        "application/json": components["schemas"]["ProductDtoPagedResult"];
+                        "text/json": components["schemas"]["ProductDtoPagedResult"];
+                    };
                 };
             };
         };
@@ -5143,6 +5227,46 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/products/published": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    PageNumber?: number;
+                    PageSize?: number;
+                    SortBy?: components["schemas"]["PublishedProductSortBy"];
+                    Descending?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublishedProductListItemDtoPagedResult"];
+                    };
                 };
             };
         };
@@ -5335,51 +5459,6 @@ export interface paths {
                     "application/json": components["schemas"]["ChangeProductStatusRequest"];
                     "text/json": components["schemas"]["ChangeProductStatusRequest"];
                     "application/*+json": components["schemas"]["ChangeProductStatusRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ProductDto"];
-                        "application/json": components["schemas"]["ProductDto"];
-                        "text/json": components["schemas"]["ProductDto"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/api/products/{id}/activation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["SetActivationRequest"];
-                    "text/json": components["schemas"]["SetActivationRequest"];
-                    "application/*+json": components["schemas"]["SetActivationRequest"];
                 };
             };
             responses: {
@@ -7538,6 +7617,7 @@ export interface paths {
                     Type?: components["schemas"]["StockMovementType"];
                     CreatedFromUtc?: string;
                     CreatedToUtc?: string;
+                    Search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -7551,9 +7631,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["StockMovementDtoPagedResult"];
-                        "application/json": components["schemas"]["StockMovementDtoPagedResult"];
-                        "text/json": components["schemas"]["StockMovementDtoPagedResult"];
+                        "text/plain": components["schemas"]["StockMovementListItemDtoPagedResult"];
+                        "application/json": components["schemas"]["StockMovementListItemDtoPagedResult"];
+                        "text/json": components["schemas"]["StockMovementListItemDtoPagedResult"];
                     };
                 };
             };
@@ -8875,6 +8955,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** Format: int32 */
+            orderCount: number;
         };
         AuthResultDto: {
             user: components["schemas"]["UserDto"];
@@ -8963,7 +9045,6 @@ export interface components {
             name: string;
             url?: string | null;
             description?: string | null;
-            isActive: boolean;
             isFeatured: boolean;
             /** Format: int32 */
             displayOrder: number;
@@ -8988,7 +9069,6 @@ export interface components {
             brandId?: string | null;
             description?: string | null;
             status: components["schemas"]["ProductStatus"];
-            isActive: boolean;
             isFeatured: boolean;
             /** Format: int32 */
             displayOrder: number;
@@ -9335,7 +9415,6 @@ export interface components {
             brandId?: string | null;
             description?: string | null;
             status: components["schemas"]["ProductStatus"];
-            isActive: boolean;
             isFeatured: boolean;
             /** Format: int32 */
             displayOrder: number;
@@ -9430,6 +9509,71 @@ export interface components {
             /** Format: double */
             rate: number;
             isActive: boolean;
+        };
+        DashboardOverviewDto: {
+            /** Format: int32 */
+            totalOrderCount: number;
+            /** Format: int32 */
+            pendingOrderCount: number;
+            /** Format: int32 */
+            paidOrderCount: number;
+            /** Format: double */
+            paidRevenue: number;
+            /** Format: int32 */
+            activeProductCount: number;
+            /** Format: int32 */
+            lowStockVariantCount: number;
+            /** Format: date-time */
+            generatedAtUtc: string;
+        };
+        DashboardProductAnalyticsDto: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: int64 */
+            clickCount: number;
+            /** Format: int64 */
+            addToCartCount: number;
+            /** Format: int64 */
+            purchaseCount: number;
+            /** Format: int64 */
+            favoriteCount: number;
+            /** Format: int64 */
+            ratingCount: number;
+            /** Format: int64 */
+            reviewCount: number;
+            dailyMetrics: components["schemas"]["ProductMetricDto"][];
+            topProducts: components["schemas"]["DashboardTopProductDto"][];
+            /** Format: date-time */
+            generatedAtUtc: string;
+        };
+        DashboardTopProductDto: {
+            productId: string;
+            title: string;
+            mainSku: string;
+            /** Format: int64 */
+            clickCount: number;
+            /** Format: int64 */
+            addToCartCount: number;
+            /** Format: int64 */
+            purchaseCount: number;
+        };
+        ProductMetricDto: {
+            /** Format: date */
+            date: string;
+            /** Format: int64 */
+            clickCount: number;
+            /** Format: int64 */
+            addToCartCount: number;
+            /** Format: int64 */
+            purchaseCount: number;
+            /** Format: int64 */
+            favoriteCount: number;
+            /** Format: int64 */
+            ratingCount: number;
+            /** Format: int64 */
+            reviewCount: number;
         };
         CurrentAccountDto: {
             /** Format: uuid */
@@ -9906,6 +10050,7 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             paidAt?: string | null;
+            customerName?: string | null;
         };
         OrderSummaryDtoPagedResult: {
             items: components["schemas"]["OrderSummaryDto"][];
@@ -10015,7 +10160,6 @@ export interface components {
             /** Format: double */
             taxRatePercentage?: number | null;
             status: components["schemas"]["ProductStatus"];
-            isActive: boolean;
             isFeatured: boolean;
             hasVariants: boolean;
             /** Format: int32 */
@@ -10040,6 +10184,10 @@ export interface components {
             reviewCount: number;
             variants: components["schemas"]["ProductVariantDto"][];
             tags: components["schemas"]["TagDto"][];
+            collections: components["schemas"]["CollectionDto"][];
+            images: components["schemas"]["ProductImageDto"][];
+            summary?: string | null;
+            mainImage?: components["schemas"]["ProductImageDto"] | null;
         };
         ProductImageDto: {
             /** Format: uuid */
@@ -10086,6 +10234,53 @@ export interface components {
          * @enum {integer}
          */
         ProductSortBy: 0 | 1 | 2 | 3;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        PublishedProductSortBy: 0 | 1 | 2 | 3;
+        PublishedProductListItemDto: {
+            id: string;
+            title: string;
+            url: string;
+            summary?: string | null;
+            brandName?: string | null;
+            /** Format: double */
+            price?: number | null;
+            /** Format: double */
+            compareAtPrice?: number | null;
+            /** Format: double */
+            averageRating: number;
+            /** Format: int64 */
+            ratingCount: number;
+            mainImage?: components["schemas"]["ProductImageDto"] | null;
+        };
+        ProductDtoPagedResult: {
+            items: components["schemas"]["ProductDto"][];
+            /** Format: int32 */
+            pageNumber: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            readonly totalPages: number;
+            readonly hasPreviousPage: boolean;
+            readonly hasNextPage: boolean;
+        };
+        PublishedProductListItemDtoPagedResult: {
+            items: components["schemas"]["PublishedProductListItemDto"][];
+            /** Format: int32 */
+            pageNumber: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            readonly totalPages: number;
+            readonly hasPreviousPage: boolean;
+            readonly hasNextPage: boolean;
+        };
         /**
          * Format: int32
          * @enum {integer}
@@ -10801,6 +10996,44 @@ export interface components {
         };
         StockMovementDtoPagedResult: {
             items: components["schemas"]["StockMovementDto"][];
+            /** Format: int32 */
+            pageNumber: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            readonly totalPages: number;
+            readonly hasPreviousPage: boolean;
+            readonly hasNextPage: boolean;
+        };
+        StockMovementListItemDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            productVariantId: string;
+            productTitle: string;
+            variantName: string;
+            variantValue: string;
+            sku: string;
+            direction: components["schemas"]["StockMovementDirection"];
+            type: components["schemas"]["StockMovementType"];
+            /** Format: int32 */
+            quantityDelta: number;
+            /** Format: int32 */
+            stockBeforeMovement: number;
+            /** Format: int32 */
+            stockAfterMovement: number;
+            reason?: string | null;
+            /** Format: uuid */
+            orderId?: string | null;
+            /** Format: uuid */
+            returnRequestId?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        StockMovementListItemDtoPagedResult: {
+            items: components["schemas"]["StockMovementListItemDto"][];
             /** Format: int32 */
             pageNumber: number;
             /** Format: int32 */

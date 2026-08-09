@@ -200,6 +200,23 @@ describe("product form data", () => {
     }
   });
 
+  // Burada taslaktan aktife alınan ürünün sayısal durum niyetini ayrı status işlemi için koruyorum.
+  it("preserves an active status change while editing", () => {
+    const form = validProductForm();
+    form.set("productId", "P00004");
+    form.set("originalStatus", "0");
+    form.set("status", "1");
+
+    const result = parseProductForm(form, "edit");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.originalStatus).toBe(0);
+      expect(result.value.status).toBe(1);
+      expect(result.value.base).not.toHaveProperty("status");
+    }
+  });
+
   // Burada kullanıcı satış alanına dokunduğunda kayıtlı varyantın update listesine alındığını doğruluyorum.
   it("includes a changed persisted variant while editing", () => {
     const form = validProductForm();

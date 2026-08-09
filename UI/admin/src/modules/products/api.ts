@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/api/client";
 import type { AdminSession } from "@/lib/auth/contracts";
 import type {
   Brand,
+  Collection,
   PagedResult,
   Product,
   ProductFormOptions,
@@ -97,40 +98,20 @@ export function getProductImages(productId: string, session: AdminSession): Prom
   return apiRequest(`/api/product-images/by-product/${encodeURIComponent(productId)}?pageNumber=1&pageSize=100`, { accessToken: session.accessToken });
 }
 
-// Burada liste DTO'sunda görsel bulunmadığı için mevcut sayfadaki ürün görsellerini API'yi yormayan sınırlı işçilerle topluyorum.
-export async function getProductMainImages(productIds: string[], session: AdminSession): Promise<Record<string, ProductImage | null>> {
-  const result: Record<string, ProductImage | null> = {};
-  let cursor = 0;
-
-  // Burada aynı anda en fazla altı ürün görseli isteği çalıştırarak yüksek sayfa boyutlarında ani istek yükünü sınırlıyorum.
-  const worker = async () => {
-    while (cursor < productIds.length) {
-      const productId = productIds[cursor];
-      cursor += 1;
-      try {
-        const page = await getProductImages(productId, session);
-        result[productId] = page.items.find((image) => image.isMain) || page.items[0] || null;
-      } catch {
-        result[productId] = null;
-      }
-    }
-  };
-
-  await Promise.all(Array.from({ length: Math.min(6, productIds.length) }, () => worker()));
-  return result;
-}
-
 // Burada form seçeneklerini ve anonim okunabilen aktif vergi oranlarını birbirinden bağımsız yüklüyorum.
 export async function getProductFormOptions(session: AdminSession): Promise<ProductFormOptions> {
-  const [brandsResult, taxRatesResult] = await Promise.allSettled([
+  const [brandsResult, taxRatesResult, collectionsResult] = await Promise.allSettled([
     apiRequest<PagedResult<Brand>>("/api/brands?PageNumber=1&PageSize=100", { accessToken: session.accessToken }),
     apiRequest<PagedResult<TaxRate>>("/api/tax-rates/active?pageNumber=1&pageSize=100", { accessToken: session.accessToken }),
+    apiRequest<PagedResult<Collection>>("/api/collections?PageNumber=1&PageSize=100", { accessToken: session.accessToken }),
   ]);
 
   return {
     brands: brandsResult.status === "fulfilled" ? brandsResult.value.items : [],
     taxRates: taxRatesResult.status === "fulfilled" ? taxRatesResult.value.items : [],
+    collections: collectionsResult.status === "fulfilled" ? collectionsResult.value.items : [],
     taxRatesUnavailable: taxRatesResult.status === "rejected",
+    collectionsUnavailable: collectionsResult.status === "rejected",
   };
 }
 
@@ -207,6 +188,15 @@ export function createProductVariant(productId: string, variant: ProductVariantI
 export function createProductImage(productId: string, input: ProductImageInput, session: AdminSession): Promise<ProductImage> {
   return apiRequest(`/api/product-images/by-product/${encodeURIComponent(productId)}`, {
     method: "POST",
+    body: input,
+    accessToken: session.accessToken,
+  });
+}
+
+// Burada yalnız seçilen kayıtlı görseli ana yapmak için mevcut görsel DTO'sunu güncelliyorum.
+export function updateProductImage(imageId: string, input: ProductImageInput, session: AdminSession): Promise<ProductImage> {
+  return apiRequest(`/api/product-images/${encodeURIComponent(imageId)}`, {
+    method: "PUT",
     body: input,
     accessToken: session.accessToken,
   });

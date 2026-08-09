@@ -9,6 +9,7 @@ public sealed class GetStockMovementsQueryValidator : AbstractValidator<GetStock
     {
         RuleFor(query => query.PageNumber).InclusiveBetween(1, 10_000);
         RuleFor(query => query.PageSize).InclusiveBetween(1, 100);
+        RuleFor(query => query.Search).MaximumLength(250);
         RuleFor(query => query.ProductVariantId)
             .NotEqual(Guid.Empty)
             .When(query => query.ProductVariantId.HasValue);

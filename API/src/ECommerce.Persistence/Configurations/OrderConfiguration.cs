@@ -55,9 +55,14 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasForeignKey(payment => payment.OrderId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(order => order.ShippingAddressSnapshot)
+        builder.HasMany(order => order.AddressSnapshots)
             .WithOne(snapshot => snapshot.Order)
-            .HasForeignKey<OrderAddressSnapshot>(snapshot => snapshot.OrderId)
+            .HasForeignKey(snapshot => snapshot.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(order => order.CustomerSnapshot)
+            .WithOne(snapshot => snapshot.Order)
+            .HasForeignKey<OrderCustomerSnapshot>(snapshot => snapshot.OrderId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(order => order.OrderNumber)

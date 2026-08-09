@@ -1,0 +1,1 @@
+export default function CouponsLoading() { return <div className="mx-auto w-full max-w-screen-2xl animate-pulse space-y-4"><div className="h-16 rounded-xl bg-surface-subtle" /><div className="h-[28rem] rounded-xl border border-border bg-surface" /></div>; }

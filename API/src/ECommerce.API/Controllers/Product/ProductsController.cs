@@ -5,10 +5,13 @@ using ECommerce.Application.Products.Commands.ChangeProductStatus;
 using ECommerce.Application.Products.Commands.CreateProduct;
 using ECommerce.Application.Products.Commands.SetProductActivation;
 using ECommerce.Application.Products.Commands.SetProductFeatured;
+using ECommerce.Application.Products.Commands.SetProductHasVariants;
+using ECommerce.Application.Products.Commands.ReplaceProductPerformanceMetrics;
 using ECommerce.Application.Products.Commands.UpdateProduct;
 using ECommerce.Application.Products.Dtos;
 using ECommerce.Application.Products.Queries.GetProductById;
 using ECommerce.Application.Products.Queries.GetProducts;
+using ECommerce.Application.Products.Queries.GetPublishedProducts;
 using ECommerce.Application.Products.Queries.GetPublishedProductByUrl;
 using ECommerce.Application.Products.Queries.GetProductSeoIndex;
 using ECommerce.Application.Products.Relations.Commands.UpdateProductRelations;
@@ -17,6 +20,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace ECommerce.API.Controllers.Product;
 
@@ -34,11 +38,21 @@ public sealed class ProductsController : ControllerBase
         _outputCacheStore = outputCacheStore;
     }
 
-    // Burada anonim ürün listeleme isteğini sorgu handler'ına iletiyorum.
-    [AllowAnonymous]
+    // Burada yöneticinin operasyonel ürün listesini sorgu handler'ına iletiyorum.
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [DisableRateLimiting]
     [HttpGet]
     [OutputCache(PolicyName = "public-products")]
     public async Task<ActionResult> GetList([FromQuery] GetProductsQuery query, CancellationToken cancellationToken) =>
+        Ok(await _sender.Send(query, cancellationToken));
+
+    // Burada storefront için yalnız yayımlanmış ürün kartlarını anonim olarak getiriyorum.
+    [AllowAnonymous]
+    [HttpGet("published")]
+    [OutputCache(PolicyName = "public-products")]
+    public async Task<ActionResult> GetPublishedList(
+        [FromQuery] GetPublishedProductsQuery query,
+        CancellationToken cancellationToken) =>
         Ok(await _sender.Send(query, cancellationToken));
 
     [AllowAnonymous]
@@ -58,7 +72,7 @@ public sealed class ProductsController : ControllerBase
         Ok(await _sender.Send(query, cancellationToken));
 
     // Burada public ürün kimliğiyle anonim ürün detayı getiriyorum.
-    [AllowAnonymous]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpGet("{id}")]
     [OutputCache(PolicyName = "public-products")]
     public async Task<ActionResult<ProductDto>> GetById(string id, CancellationToken cancellationToken) =>
@@ -86,6 +100,27 @@ public sealed class ProductsController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, products);
     }
 
+    // Burada harici katalogdaki ürün performans özetlerini admin yetkisiyle topluca eşitliyorum.
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [HttpPut("performance-metrics")]
+    public async Task<ActionResult<IReadOnlyList<ProductDto>>> ReplacePerformanceMetrics(
+        BulkReplaceProductPerformanceMetricsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var products = await _sender.Send(new ReplaceProductPerformanceMetricsCommand(
+            request.Items.Select(item => new ProductPerformanceMetricsItem(
+                ApiPublicIdParser.ParseProductId(item.ProductId),
+                item.ClickCount,
+                item.TotalAddToCartCount,
+                item.TotalPurchaseCount,
+                item.FavoriteCount,
+                item.AverageRating,
+                item.RatingCount,
+                item.ReviewCount)).ToList()), cancellationToken);
+        await EvictProductCacheAsync(cancellationToken);
+        return Ok(products);
+    }
+
     // Burada adminin ürün temel bilgilerini, ana SKU değerini ve etiketlerini güncellemesini sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpPut("{id}")]
@@ -94,7 +129,7 @@ public sealed class ProductsController : ControllerBase
         UpdateProductRequest request,
         CancellationToken cancellationToken) =>
         await EvictProductCacheAfterAsync(new UpdateProductCommand(
-            ApiPublicIdParser.ParseProductId(id), request.Title, request.MainSku, request.TypeId, request.Url, request.BrandId, request.Description,
+            ApiPublicIdParser.ParseProductId(id), request.Title, request.MainSku, request.Type, request.Url, request.BrandId, request.Description,
             request.DisplayOrder, request.SeoTitle, request.SeoDescription, request.Tags, request.TaxRateId), cancellationToken);
 
     // Burada adminin ürün yayın durumunu değiştirmesini sağlıyorum.
@@ -124,6 +159,15 @@ public sealed class ProductsController : ControllerBase
         CancellationToken cancellationToken) =>
         await EvictProductCacheAfterAsync(new SetProductFeaturedCommand(ApiPublicIdParser.ParseProductId(id), request.IsFeatured), cancellationToken);
 
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [HttpPatch("{id}/has-variants")]
+    public Task<ActionResult<ProductDto>> SetHasVariants(
+        string id,
+        SetHasVariantsRequest request,
+        CancellationToken cancellationToken) =>
+        EvictProductCacheAfterAsync(new SetProductHasVariantsCommand(
+            ApiPublicIdParser.ParseProductId(id), request.HasVariants), cancellationToken);
+
     // Burada adminin ürün koleksiyon, etiket ve bundle ilişkilerini güncellemesini sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpPut("{id}/relations")]
@@ -134,8 +178,7 @@ public sealed class ProductsController : ControllerBase
     {
         await _sender.Send(new UpdateProductRelationsCommand(
             ApiPublicIdParser.ParseProductId(id),
-            request.CollectionIds,
-            request.TagIds ?? [],
+            request.Collections,
             request.BundleItems.Select(item => new ProductBundleItemInput(
                 ApiPublicIdParser.ParseProductId(item.ProductId), item.Quantity)).ToList(),
             request.Tags), cancellationToken);
@@ -163,7 +206,7 @@ public sealed class ProductsController : ControllerBase
 public sealed record UpdateProductRequest(
     string Title,
     string MainSku,
-    Guid? TypeId = null,
+    string? Type = null,
     string? Url = null,
     Guid? BrandId = null,
     string? Description = null,
@@ -182,12 +225,26 @@ public sealed record SetActivationRequest(bool IsActive);
 // Burada ürün öne çıkarma isteğini taşıyorum.
 public sealed record SetFeaturedRequest(bool IsFeatured);
 
+public sealed record SetHasVariantsRequest(bool HasVariants);
+
 // Burada ürünün tüm ilişki güncelleme isteğini taşıyorum.
 public sealed record UpdateProductRelationsRequest(
-    IReadOnlyList<Guid> CollectionIds,
-    IReadOnlyList<Guid>? TagIds,
+    IReadOnlyList<string> Collections,
     IReadOnlyList<ProductBundleItemRequest> BundleItems,
     IReadOnlyList<string>? Tags = null);
+
+public sealed record BulkReplaceProductPerformanceMetricsRequest(
+    IReadOnlyList<ProductPerformanceMetricsRequest> Items);
+
+public sealed record ProductPerformanceMetricsRequest(
+    string ProductId,
+    long ClickCount,
+    long TotalAddToCartCount,
+    long TotalPurchaseCount,
+    long FavoriteCount,
+    decimal AverageRating,
+    long RatingCount,
+    long ReviewCount);
 
 // Burada bundle içine eklenecek ürün ve adet bilgisini taşıyorum.
 public sealed record ProductBundleItemRequest(string ProductId, int Quantity);

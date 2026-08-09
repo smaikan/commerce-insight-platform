@@ -29,7 +29,7 @@ type DraftField = keyof Pick<
 >;
 
 const inputClass =
-  "min-h-10 w-full rounded-lg border border-border-strong bg-surface-strong px-3 text-sm text-foreground outline-none focus:border-primary";
+  "min-h-11 w-full rounded-lg border border-border-strong bg-surface-strong px-3 text-sm text-foreground outline-none focus:border-primary sm:min-h-9";
 
 // Burada API varyantını belirli bir çapraz kombinasyonun satış detaylarına dönüştürüyorum.
 function toDraft(variant: ProductVariant, key: string): DraftVariant {
@@ -284,14 +284,14 @@ export function VariantEditor({
 
   return (
     <section aria-labelledby="variants-title" className="rounded-xl border border-border bg-surface-strong">
-      <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 id="variants-title" className="text-base font-semibold text-foreground">Fiyatlandırma ve varyantlar</h2>
-          <p className="mt-1 text-sm leading-5 text-muted">
+          <p className="mt-0.5 text-xs leading-5 text-muted">
             Tek ürün bilgilerini girin veya seçenek değerlerini çaprazlayarak varyantlar oluşturun.
           </p>
         </div>
-        <label className="inline-flex min-h-10 shrink-0 items-center gap-3 rounded-lg border border-border bg-surface-subtle px-3 text-sm font-semibold text-foreground">
+        <label className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-border bg-surface-subtle px-3 text-sm font-semibold text-foreground sm:min-h-9">
           <input
             type="checkbox"
             name="hasVariants"
@@ -305,7 +305,7 @@ export function VariantEditor({
         {preventsDisabling ? <input type="hidden" name="hasVariants" value="on" /> : null}
       </div>
 
-      <div className="p-4 sm:p-5">
+      <div className="p-4">
         <Field
           label={hasVariants ? "Ana SKU" : "SKU"}
           name="mainSku"
@@ -373,7 +373,7 @@ function SimpleProductFields({
   const prefix = "variants.0";
 
   return (
-    <div className="mt-5 border-t border-border pt-5">
+    <div className="mt-4 border-t border-border pt-4">
       <input type="hidden" name="variantCount" value="1" />
       <input type="hidden" name={`${prefix}.name`} value="Varsayılan" />
       <input type="hidden" name={`${prefix}.value`} value="Standart" />
@@ -382,7 +382,7 @@ function SimpleProductFields({
       {draft.id && draft.changed ? <input type="hidden" name={`${prefix}.changed`} value="on" /> : null}
       {draft.isActive ? <input type="hidden" name={`${prefix}.isActive`} value="on" /> : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <Field label="Barkod" name={`${prefix}.barcode`} value={draft.barcode} onChange={(value) => update("barcode", value)} maxLength={100} error={fieldErrors?.[`${prefix}.barcode`]} />
         <Field label="Fiyat" name={`${prefix}.price`} value={draft.price} onChange={(value) => update("price", value)} type="number" step="0.01" min="0.01" required error={fieldErrors?.[`${prefix}.price`]} />
         <Field label="Karşılaştırma fiyatı" name={`${prefix}.compareAtPrice`} value={draft.compareAtPrice} onChange={(value) => update("compareAtPrice", value)} type="number" step="0.01" min="0" error={fieldErrors?.[`${prefix}.compareAtPrice`]} />
@@ -421,7 +421,7 @@ function VariantOptions({
 }) {
   if (groups.length === 0) {
     return (
-      <div className="mt-5 rounded-xl border border-dashed border-border-strong bg-surface-subtle/50 px-4 py-8 text-center">
+      <div className="mt-4 rounded-lg border border-dashed border-border-strong bg-surface-subtle/50 px-4 py-6 text-center">
         <p className="text-sm font-semibold text-foreground">Henüz varyant seçeneği eklenmedi</p>
         <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-muted">Renk, cins veya beden gibi ilk seçeneği ekleyin; değerleriniz otomatik olarak çaprazlanacak.</p>
         <button type="button" onClick={addGroup} className="mt-4 min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover">
@@ -436,15 +436,15 @@ function VariantOptions({
     .filter((name, index, all) => name && all.indexOf(name) !== index);
 
   return (
-    <div className="mt-5 space-y-5 border-t border-border pt-5">
-      <div className="space-y-4">
+    <div className="mt-4 space-y-4 border-t border-border pt-4">
+      <div className="space-y-3">
         {groups.map((group, groupIndex) => {
           const canAddValue = projectedCombinationCount(groups, group.key) <= 50;
           const duplicateValues = group.values
             .map((optionValue) => optionValue.value.trim())
             .filter((value, index, all) => value && all.indexOf(value) !== index);
           return (
-            <fieldset key={group.key} className="rounded-xl border border-border bg-surface-subtle/45 p-4">
+            <fieldset key={group.key} className="rounded-lg border border-border bg-surface-subtle/45 p-3">
               <legend className="px-1 text-sm font-semibold text-foreground">Seçenek {groupIndex + 1}</legend>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                 <div className="min-w-0 flex-1">
@@ -468,7 +468,7 @@ function VariantOptions({
                 )}
               </div>
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-3 space-y-2">
                 <p className="text-sm font-medium text-foreground">Seçenek değerleri</p>
                 {group.values.map((optionValue, valueIndex) => {
                   const hasPersistedDetail = valueOwnsPersistedDetail(combinations, details, group.key, optionValue.key);
@@ -533,14 +533,14 @@ function VariantOptions({
 
         <input type="hidden" name="variantCount" value={combinations.length} />
         {combinations.length > 0 ? (
-          <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
             {combinations.map((combination, index) => {
               const prefix = `variants.${index}`;
               const detail = details[combination.key] || emptyDraft(combination.key);
               const requiresSalesDetails = Boolean(detail.id) || !isBlankDraft(detail);
               return (
-                <section key={combination.key} aria-labelledby={`variant-detail-${index}`} className="bg-surface-strong px-4 pb-4 pt-2.5">
-                  <div id={`variant-detail-${index}`} className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-normal leading-6 text-foreground">
+                <section key={combination.key} aria-labelledby={`variant-detail-${index}`} className="bg-surface-strong p-3">
+                  <div id={`variant-detail-${index}`} className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-normal leading-5 text-foreground">
                     {formatCombinationParts(combination).map((part, partIndex) => (
                       <span key={`${combination.key}-${part.name}`} className="inline-flex items-baseline gap-1">
                         {partIndex > 0 ? <span className="mr-1 text-border-strong" aria-hidden="true">·</span> : null}
@@ -556,7 +556,7 @@ function VariantOptions({
                   {detail.isActive ? <input type="hidden" name={`${prefix}.isActive`} value="on" /> : null}
                   <FieldError messages={mergeErrors(fieldErrors?.[`${prefix}.name`], fieldErrors?.[`${prefix}.value`])} />
 
-                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     <Field label="SKU" name={`${prefix}.sku`} value={detail.sku} onChange={(value) => updateDetail(combination.key, "sku", value)} maxLength={100} required={requiresSalesDetails} error={fieldErrors?.[`${prefix}.sku`]} />
                     <Field label="Barkod" name={`${prefix}.barcode`} value={detail.barcode} onChange={(value) => updateDetail(combination.key, "barcode", value)} maxLength={100} error={fieldErrors?.[`${prefix}.barcode`]} />
                     <Field label="Fiyat" name={`${prefix}.price`} value={detail.price} onChange={(value) => updateDetail(combination.key, "price", value)} type="number" step="0.01" min="0.01" required={requiresSalesDetails} error={fieldErrors?.[`${prefix}.price`]} />

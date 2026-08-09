@@ -16,8 +16,9 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
     private readonly IBrandRepository _brandRepository;
     private readonly ITaxRateRepository _taxRateRepository;
     private readonly ICollectionRepository _collectionRepository;
-    private readonly ITagRepository _tagRepository;
     private readonly IProductTagResolver _productTagResolver;
+    private readonly IProductTypeNameResolver _productTypeNameResolver;
+    private readonly IProductCollectionNameResolver _productCollectionNameResolver;
     private readonly IProductUrlGenerator _productUrlGenerator;
 
     private readonly IProductUrlResolver _productUrlResolver;
@@ -32,25 +33,30 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
         IBrandRepository brandRepository,
         ITaxRateRepository taxRateRepository,
         ICollectionRepository collectionRepository,
-        ITagRepository tagRepository,
         IProductTagResolver productTagResolver,
         IProductUrlGenerator productUrlGenerator,
 
         IOpeningBalanceCostLayerWriter openingBalanceCostLayerWriter,
         IUnitOfWork unitOfWork,
         IVariantOptionResolver? variantOptionResolver = null,
-        IProductUrlResolver? productUrlResolver = null)
+        IProductUrlResolver? productUrlResolver = null,
+        IProductTypeNameResolver? productTypeNameResolver = null,
+        IProductCollectionNameResolver? productCollectionNameResolver = null)
     {
         _productRepository = productRepository;
         _productTypeRepository = productTypeRepository;
         _brandRepository = brandRepository;
         _taxRateRepository = taxRateRepository;
         _collectionRepository = collectionRepository;
-        _tagRepository = tagRepository;
         _productTagResolver = productTagResolver;
         _productUrlGenerator = productUrlGenerator;
 
         _productUrlResolver = productUrlResolver ?? new ProductUrlResolver(productRepository, productUrlGenerator);
+        _productTypeNameResolver = productTypeNameResolver ?? new ProductTypeNameResolver(productTypeRepository);
+        _productCollectionNameResolver = productCollectionNameResolver ?? new ProductCollectionNameResolver(
+            collectionRepository,
+            productUrlGenerator as IUrlGenerator ?? throw new InvalidOperationException(
+                "Product URL generator must also implement IUrlGenerator."));
         _openingBalanceCostLayerWriter = openingBalanceCostLayerWriter;
         _variantOptionResolver = variantOptionResolver;
         _unitOfWork = unitOfWork;
@@ -77,16 +83,20 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
 
         await EnsureMainSkusAreUniqueAsync(preparedItems, cancellationToken);
 
-        await EnsureProductTypesExistAsync(preparedItems, cancellationToken);
         await EnsureBrandsExistAsync(preparedItems, cancellationToken);
         var taxRatesById = await GetActiveTaxRatesAsync(preparedItems, cancellationToken);
-        await EnsureCollectionsExistAsync(preparedItems, cancellationToken);
-        await EnsureTagsExistAsync(preparedItems, cancellationToken);
         var resolvedTags = await ResolveTagsAsync(preparedItems, cancellationToken);
+        var typeIds = new List<Guid?>(preparedItems.Count);
+        var collectionIds = new List<IReadOnlyList<Guid>>(preparedItems.Count);
+        foreach (var item in preparedItems)
+        {
+            typeIds.Add(await _productTypeNameResolver.ResolveAsync(item.Item.Type, cancellationToken));
+            collectionIds.Add(await _productCollectionNameResolver.ResolveAsync(item.Item.Collections, cancellationToken));
+        }
         await EnsureVariantSkusAreUniqueAsync(preparedItems, cancellationToken);
 
         var products = preparedItems
-            .Select(item => CreateProduct(item, resolvedTags, taxRatesById))
+            .Select((item, index) => CreateProduct(item, typeIds[index], collectionIds[index], resolvedTags, taxRatesById))
             .ToList();
         if (_variantOptionResolver is not null)
         {
@@ -121,33 +131,6 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
     }
 
     // Burada toplu istekte kullanılan ürün türlerinin veritabanında bulunduğunu doğruluyorum.
-    private async Task EnsureProductTypesExistAsync(
-        IReadOnlyCollection<PreparedProductItem> preparedItems,
-        CancellationToken cancellationToken)
-    {
-        var typeIds = preparedItems
-            .Select(item => item.Item.TypeId)
-            .Where(typeId => typeId.HasValue)
-            .Select(typeId => typeId!.Value)
-            .Distinct()
-            .ToList();
-
-        if (typeIds.Count == 0)
-        {
-            return;
-        }
-
-        var existingTypeIds = await _productTypeRepository.GetExistingIdsAsync(typeIds, cancellationToken);
-        var missingTypeIds = typeIds
-            .Where(typeId => !existingTypeIds.Contains(typeId))
-            .ToList();
-
-        if (missingTypeIds.Count > 0)
-        {
-            throw new NotFoundException($"Product type was not found: {string.Join(", ", missingTypeIds)}.");
-        }
-    }
-
     // Burada toplu istekte kullanılan markaların veritabanında bulunduğunu doğruluyorum.
     private async Task EnsureBrandsExistAsync(
         IReadOnlyCollection<PreparedProductItem> preparedItems,
@@ -207,57 +190,7 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
     }
 
     // Burada toplu istekte kullanılan koleksiyonların veritabanında bulunduğunu doğruluyorum.
-    private async Task EnsureCollectionsExistAsync(
-        IReadOnlyCollection<PreparedProductItem> preparedItems,
-        CancellationToken cancellationToken)
-    {
-        var collectionIds = preparedItems
-            .SelectMany(item => item.Item.CollectionIds ?? Array.Empty<Guid>())
-            .Distinct()
-            .ToList();
-
-        if (collectionIds.Count == 0)
-        {
-            return;
-        }
-
-        var existingCollectionIds = await _collectionRepository.GetExistingIdsAsync(collectionIds, cancellationToken);
-        var missingCollectionIds = collectionIds
-            .Where(collectionId => !existingCollectionIds.Contains(collectionId))
-            .ToList();
-
-        if (missingCollectionIds.Count > 0)
-        {
-            throw new NotFoundException($"Collection was not found: {string.Join(", ", missingCollectionIds)}.");
-        }
-    }
-
     // Burada toplu istekte kullanılan etiketlerin veritabanında bulunduğunu doğruluyorum.
-    private async Task EnsureTagsExistAsync(
-        IReadOnlyCollection<PreparedProductItem> preparedItems,
-        CancellationToken cancellationToken)
-    {
-        var tagIds = preparedItems
-            .SelectMany(item => item.Item.TagIds ?? Array.Empty<Guid>())
-            .Distinct()
-            .ToList();
-
-        if (tagIds.Count == 0)
-        {
-            return;
-        }
-
-        var existingTagIds = await _tagRepository.GetExistingIdsAsync(tagIds, cancellationToken);
-        var missingTagIds = tagIds
-            .Where(tagId => !existingTagIds.Contains(tagId))
-            .ToList();
-
-        if (missingTagIds.Count > 0)
-        {
-            throw new NotFoundException($"Tag was not found: {string.Join(", ", missingTagIds)}.");
-        }
-    }
-
     // Burada toplu istekteki ana SKU değerlerinin istek içinde ve veritabanında benzersiz olduğunu doğruluyorum.
     private async Task EnsureMainSkusAreUniqueAsync(
         IReadOnlyCollection<PreparedProductItem> preparedItems,
@@ -314,6 +247,8 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
     // Burada hazırlanmış toplu istek satırından ilişkileriyle birlikte ürün aggregate'ı oluşturuyorum.
     private static Product CreateProduct(
         PreparedProductItem preparedItem,
+        Guid? typeId,
+        IReadOnlyList<Guid> collectionIds,
         ProductTagResolution resolvedTags,
         IReadOnlyDictionary<Guid, TaxRate> taxRatesById)
     {
@@ -323,7 +258,7 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
             item.Title,
             preparedItem.Url,
             preparedItem.MainSku,
-            item.TypeId,
+            typeId,
             item.BrandId,
             item.Description,
             item.Status,
@@ -332,7 +267,8 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
             item.DisplayOrder,
             item.SeoTitle,
             item.SeoDescription,
-            item.TaxRateId);
+            item.TaxRateId,
+            item.HasVariants);
 
         foreach (var variant in item.Variants ?? Array.Empty<BulkCreateProductVariantItem>())
         {
@@ -362,14 +298,12 @@ public sealed class BulkCreateProductsCommandHandler : IRequestHandler<BulkCreat
                 image.AltText));
         }
 
-        foreach (var collectionId in item.CollectionIds?.Distinct() ?? Array.Empty<Guid>())
+        foreach (var collectionId in collectionIds)
         {
             product.ProductCollections.Add(new ProductCollection(product, collectionId));
         }
 
-        var tagIds = (item.TagIds ?? Array.Empty<Guid>())
-            .Concat(resolvedTags.GetIds(item.Tags))
-            .Distinct();
+        var tagIds = resolvedTags.GetIds(item.Tags).Distinct();
         foreach (var tagId in tagIds)
         {
             product.ProductTags.Add(new ProductTag(product, tagId));

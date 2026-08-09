@@ -32,13 +32,20 @@ public sealed class OrdersControllerTests
             }
         };
         var token = Guid.NewGuid();
+        var shippingAddressId = Guid.NewGuid();
+        var shippingMethodId = Guid.NewGuid();
 
-        var result = await controller.Create(new CreateOrderRequest(token), CancellationToken.None);
+        var result = await controller.Create(
+            new CreateOrderRequest(token, shippingAddressId, shippingMethodId),
+            CancellationToken.None);
 
         result.Result.Should().BeOfType<CreatedAtActionResult>()
             .Which.StatusCode.Should().Be(StatusCodes.Status201Created);
         sender.LastRequest.Should().BeOfType<CreateOrderCommand>()
-            .Which.ExpectedCartConcurrencyToken.Should().Be(token);
+            .Which.Should().Match<CreateOrderCommand>(command =>
+                command.ExpectedCartConcurrencyToken == token &&
+                command.ShippingAddressId == shippingAddressId &&
+                command.ShippingMethodId == shippingMethodId);
     }
 
     // Burada ödeme endpointinin idempotency header değerini istemci gövdesinden bağımsız olarak güvenli komuta taşıdığını doğruluyorum.

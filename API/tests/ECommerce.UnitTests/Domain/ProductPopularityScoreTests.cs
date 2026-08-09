@@ -35,4 +35,31 @@ public sealed class ProductPopularityScoreTests
         product.PopularityScore.Should().Be(0);
         product.FavoriteCount.Should().Be(0);
     }
+
+    [Fact]
+    public void ReplacePerformanceMetrics_Should_Replace_All_Product_Metrics_And_Recalculate_Popularity()
+    {
+        var product = new Product("Product", "product", "PRODUCT-MAIN");
+
+        product.ReplacePerformanceMetrics(10, 5, 3, 2, 4.25m, 8, 6);
+
+        product.ClickCount.Should().Be(10);
+        product.TotalAddToCartCount.Should().Be(5);
+        product.TotalPurchaseCount.Should().Be(3);
+        product.FavoriteCount.Should().Be(2);
+        product.AverageRating.Should().Be(4.25m);
+        product.RatingCount.Should().Be(8);
+        product.ReviewCount.Should().Be(6);
+        product.PopularityScore.Should().Be(118);
+    }
+
+    [Fact]
+    public void ReplacePerformanceMetrics_Should_Reject_Average_When_No_Ratings_Exist()
+    {
+        var product = new Product("Product", "product", "PRODUCT-MAIN");
+
+        Action act = () => product.ReplacePerformanceMetrics(0, 0, 0, 0, 1m, 0, 0);
+
+        act.Should().Throw<ECommerce.Domain.Common.DomainException>();
+    }
 }

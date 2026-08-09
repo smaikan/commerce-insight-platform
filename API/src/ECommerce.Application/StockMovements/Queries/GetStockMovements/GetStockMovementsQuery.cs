@@ -13,4 +13,5 @@ public sealed record GetStockMovementsQuery(
     StockMovementDirection? Direction = null,
     StockMovementType? Type = null,
     DateTime? CreatedFromUtc = null,
-    DateTime? CreatedToUtc = null) : IRequest<PagedResult<StockMovementDto>>;
+    DateTime? CreatedToUtc = null,
+    string? Search = null) : IRequest<PagedResult<StockMovementListItemDto>>;

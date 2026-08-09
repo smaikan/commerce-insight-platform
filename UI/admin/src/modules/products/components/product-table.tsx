@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { hasProductFilters, productStatusOptions } from "@/modules/products/query";
 import { ProductThumbnail } from "@/modules/products/components/product-thumbnail";
-import type { PagedResult, Product, ProductImage, ProductListQuery } from "@/modules/products/types";
+import type { PagedResult, Product, ProductListQuery } from "@/modules/products/types";
 
 const statusClasses: Record<number, string> = {
   0: "border-blue-200 bg-blue-50 text-blue-800",
@@ -10,15 +10,19 @@ const statusClasses: Record<number, string> = {
   3: "border-slate-300 bg-slate-100 text-slate-700",
 };
 
+const currencyFormatter = new Intl.NumberFormat("tr-TR", {
+  style: "currency",
+  currency: "TRY",
+  maximumFractionDigits: 2,
+});
+
 // Burada ürün satırını görsel, durum, envanter ve organizasyon hiyerarşisi güçlü bir yönetim tablosunda gösteriyorum.
 export function ProductTable({
   page,
   query,
-  mainImages,
 }: {
   page: PagedResult<Product>;
   query: ProductListQuery;
-  mainImages: Record<string, ProductImage | null>;
 }) {
   if (page.items.length === 0) {
     return (
@@ -37,15 +41,23 @@ export function ProductTable({
 
   return (
     <div className="overflow-x-auto bg-surface-strong">
-      <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
+      <table className="w-full min-w-[940px] table-fixed border-collapse text-left text-sm">
+        <colgroup>
+          <col className="w-[36%]" />
+          <col className="w-[12%]" />
+          <col className="w-[17%]" />
+          <col className="w-[14%]" />
+          <col className="w-[16%]" />
+          <col className="w-[5%]" />
+        </colgroup>
         <thead className="border-b border-border bg-surface-subtle/80 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
           <tr>
-            <th scope="col" className="w-[34%] px-5 py-3.5">Ürün</th>
-            <th scope="col" className="px-4 py-3.5">Durum</th>
-            <th scope="col" className="px-4 py-3.5">Envanter</th>
-            <th scope="col" className="px-4 py-3.5">Organizasyon</th>
-            <th scope="col" className="px-4 py-3.5">Etiketler</th>
-            <th scope="col" className="w-12 px-4 py-3.5"><span className="sr-only">İşlem</span></th>
+            <th scope="col" className="px-4 py-2.5">Ürün</th>
+            <th scope="col" className="px-3 py-2.5">Durum</th>
+            <th scope="col" className="px-3 py-2.5 text-right">Fiyat</th>
+            <th scope="col" className="px-3 py-2.5">Toplam stok</th>
+            <th scope="col" className="px-3 py-2.5">Organizasyon</th>
+            <th scope="col" aria-label="Ürün işlemleri" className="px-1.5 py-2.5" />
           </tr>
         </thead>
         <tbody className="divide-y divide-border/80">
@@ -53,15 +65,16 @@ export function ProductTable({
             const status = productStatusOptions.find((option) => option.value === product.status);
             const totalStock = product.variants.reduce((sum, variant) => sum + variant.stock, 0);
             const productHref = `/products/${encodeURIComponent(product.id)}`;
-            const mainImage = mainImages[product.id];
+            // Burada liste DTO'sunun tek sorguda döndürdüğü ana görseli kullanarak ürün başına ek API isteğini önlüyorum.
+            const mainImage = product.mainImage;
 
             return (
               <tr key={product.id} className="group bg-surface-strong align-middle transition-colors hover:bg-primary-soft/30">
-                <td className="px-5 py-3">
-                  <Link href={productHref} className="flex min-w-0 items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
+                <td className="px-4 py-2.5">
+                  <Link href={productHref} className="flex min-w-0 items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
                     <ProductThumbnail src={mainImage?.imageUrl} alt={mainImage?.altText || product.title} />
                     <span className="min-w-0">
-                      <span className="block truncate text-[15px] font-bold leading-5 text-foreground transition-colors group-hover:text-primary">
+                      <span className="block truncate text-sm font-bold leading-5 text-foreground transition-colors group-hover:text-primary">
                         {product.title}
                       </span>
                       <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
@@ -75,12 +88,17 @@ export function ProductTable({
                     </span>
                   </Link>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-2.5">
                   <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-bold ${statusClasses[product.status] || statusClasses[3]}`}>
                     {status?.label || "Bilinmiyor"}
                   </span>
                 </td>
-                <td className="px-4 py-3">
+                {/* Burada belgeli varyant satış fiyatlarından yalnız gösterim amaçlı fiyat aralığını sunuyorum. */}
+                <td className="px-3 py-2.5 text-right">
+                  <p className="whitespace-nowrap font-bold tabular-nums text-foreground">{formatPriceRange(product)}</p>
+                  <CompareAtPrice product={product} />
+                </td>
+                <td className="px-3 py-2.5">
                   <p className={`font-bold tabular-nums ${stockTextClass(totalStock)}`}>{totalStock} adet</p>
                   <p className="mt-1 text-xs text-muted">
                     {product.variants.length > 0
@@ -88,27 +106,15 @@ export function ProductTable({
                       : "Varyant yok"}
                   </p>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-2.5">
                   <p className="font-semibold text-foreground">{product.typeName || "Tür atanmamış"}</p>
                   <p className="mt-1 text-xs text-muted">{product.brandName || "Marka atanmamış"}</p>
                 </td>
-                <td className="max-w-56 px-4 py-3">
-                  {product.tags.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {product.tags.slice(0, 2).map((tag) => (
-                        <span key={tag.id} className="max-w-28 truncate rounded-md border border-border bg-surface-subtle px-1.5 py-0.5 text-xs font-medium text-muted">
-                          {tag.name}
-                        </span>
-                      ))}
-                      {product.tags.length > 2 ? <span className="self-center text-xs font-semibold text-muted">+{product.tags.length - 2}</span> : null}
-                    </div>
-                  ) : <span className="text-xs text-muted">Etiket yok</span>}
-                </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-1.5 py-2.5 text-right">
                   <Link
                     href={productHref}
                     aria-label={`${product.title} ürününü düzenle`}
-                    className="inline-flex size-9 items-center justify-center rounded-lg border border-transparent text-muted transition-colors hover:border-border hover:bg-surface-strong hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    className="inline-flex size-8 items-center justify-center rounded-lg border border-transparent text-muted transition-colors hover:border-border hover:bg-surface-strong hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   >
                     <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4 fill-none stroke-current stroke-2">
                       <path d="m7 4 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
@@ -129,4 +135,30 @@ function stockTextClass(totalStock: number): string {
   if (totalStock === 0) return "text-danger";
   if (totalStock < 10) return "text-warning";
   return "text-success";
+}
+
+// Burada varyant fiyatlarının eksik olduğu üründe yanıltıcı fiyat yerine açık bir durum metni gösteriyorum.
+function formatPriceRange(product: Product): string {
+  return formatCurrencyRange(product.variants.map((variant) => variant.price)) ?? "Fiyat yok";
+}
+
+// Burada karşılaştırma fiyatını yalnız geçerli satış fiyatından yüksek olan varyantlar için gösteriyorum.
+function CompareAtPrice({ product }: { product: Product }) {
+  const compareAtPrices = product.variants
+    .filter((variant) => variant.compareAtPrice != null && variant.compareAtPrice > variant.price)
+    .map((variant) => variant.compareAtPrice as number);
+  const formattedRange = formatCurrencyRange(compareAtPrices);
+
+  if (!formattedRange) return null;
+
+  return <p className="mt-1 whitespace-nowrap text-xs text-muted"><span>Eski: </span><s className="tabular-nums">{formattedRange}</s></p>;
+}
+
+// Burada tek ve çok varyantlı ürünlerde para aralığını aynı biçimde gösteriyorum.
+function formatCurrencyRange(prices: number[]): string | null {
+  if (prices.length === 0) return null;
+
+  const minimum = Math.min(...prices);
+  const maximum = Math.max(...prices);
+  return minimum === maximum ? currencyFormatter.format(minimum) : `${currencyFormatter.format(minimum)} – ${currencyFormatter.format(maximum)}`;
 }

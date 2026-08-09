@@ -42,6 +42,10 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(product => product.SeoDescription)
             .HasMaxLength(500);
 
+        builder.Property(product => product.HasVariants)
+            .HasDefaultValue(false)
+            .IsRequired();
+
         builder.Property(product => product.AverageRating)
             .HasPrecision(3, 2);
 

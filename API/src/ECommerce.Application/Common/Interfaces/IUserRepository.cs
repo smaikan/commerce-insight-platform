@@ -1,6 +1,7 @@
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using ECommerce.Application.Common.Models;
+using ECommerce.Application.Users.Dtos;
 
 namespace ECommerce.Application.Common.Interfaces;
 
@@ -12,7 +13,7 @@ public interface IUserRepository
     Task<User?> GetByIdForUpdateAsync(long id, CancellationToken cancellationToken = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
     Task<User?> GetByEmailForUpdateAsync(string email, CancellationToken cancellationToken = default);
-    Task<PagedResult<User>> GetListAsync(UserListFilter filter, CancellationToken cancellationToken = default);
+    Task<PagedResult<AdminUserDto>> GetListAsync(UserListFilter filter, CancellationToken cancellationToken = default);
     Task<User?> GetByRefreshTokenHashForUpdateAsync(string refreshTokenHash, CancellationToken cancellationToken = default);
     Task<UserSecurityToken?> GetSecurityTokenForUpdateAsync(
         UserSecurityTokenType type,

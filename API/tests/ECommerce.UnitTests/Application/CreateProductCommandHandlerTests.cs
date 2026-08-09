@@ -160,7 +160,7 @@ public sealed class CreateProductCommandHandlerTests
         var result = await handler.Handle(new CreateProductCommand(
             "Basic T-Shirt",
             "  tshirt-main  ",
-            typeId,
+            Type: "Apparel",
             Variants:
             [
                 new CreateProductVariantItem(
@@ -177,7 +177,7 @@ public sealed class CreateProductCommandHandlerTests
         result.Title.Should().Be("Basic T-Shirt");
         result.MainSku.Should().Be("TSHIRT-MAIN");
         result.Url.Should().Be("basic-t-shirt");
-        result.TypeId.Should().Be(typeId);
+        result.TypeId.Should().NotBeEmpty();
         result.TaxRateId.Should().Be(taxRateId);
         result.Variants.Should().ContainSingle(variant =>
             variant.Name == "Standard" && variant.Sku == "TSHIRT-STD");
@@ -201,7 +201,7 @@ public sealed class CreateProductCommandHandlerTests
 
     // Burada bulunmayan ürün türüyle ürün oluşturulmasını engelliyorum.
     [Fact]
-    public async Task Handle_Should_Throw_NotFoundException_When_Product_Type_Does_Not_Exist()
+    public async Task Handle_Should_Create_Product_Type_When_It_Does_Not_Exist()
     {
         var productRepository = new Mock<IProductRepository>();
         var productTypeRepository = new Mock<IProductTypeRepository>();
@@ -211,9 +211,27 @@ public sealed class CreateProductCommandHandlerTests
         var unitOfWork = new Mock<IUnitOfWork>();
         var typeId = Guid.NewGuid();
 
-        productTypeRepository
-            .Setup(repository => repository.ExistsAsync(typeId, It.IsAny<CancellationToken>()))
+        productTypeRepository.Setup(repository => repository.GetByNamesAsync(
+                It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        productTypeRepository.Setup(repository => repository.AddAsync(
+                It.IsAny<ProductType>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        productRepository.Setup(repository => repository.MainSkuExistsAsync(
+                "TSHIRT-MAIN", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+        productRepository.Setup(repository => repository.GetExistingVariantSkusAsync(
+                It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+        productRepository.Setup(repository => repository.UrlExistsAsync(
+                "basic-t-shirt", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        productRepository.Setup(repository => repository.AddAsync(
+                It.IsAny<Product>(), It.IsAny<CancellationToken>()))
+            .Callback<Product, CancellationToken>((product, _) => product.WithId(1))
+            .Returns(Task.CompletedTask);
+        unitOfWork.Setup(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
 
         var handler = new CreateProductCommandHandler(
             productRepository.Object,
@@ -229,11 +247,12 @@ public sealed class CreateProductCommandHandlerTests
         Func<Task> act = () => handler.Handle(new CreateProductCommand(
             "Basic T-Shirt",
             "TSHIRT-MAIN",
-            typeId,
+            Type: "Apparel",
             Variants: [new CreateProductVariantItem("Standard", "TSHIRT-STD", 100, 10)]), CancellationToken.None);
 
-        await act.Should().ThrowAsync<NotFoundException>();
-        productRepository.Verify(repository => repository.AddAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()), Times.Never);
+        await act.Should().NotThrowAsync();
+        productTypeRepository.Verify(repository => repository.AddAsync(
+            It.Is<ProductType>(type => type.Name == "Apparel"), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // Burada türü olmayan ürünün koleksiyon ve varyant ilişkileriyle oluşturulduğunu doğruluyorum.
@@ -246,13 +265,12 @@ public sealed class CreateProductCommandHandlerTests
         var taxRateRepository = new Mock<ITaxRateRepository>();
         var collectionRepository = new Mock<ICollectionRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var collectionId = Guid.NewGuid();
         Product? createdProduct = null;
 
         collectionRepository
-            .Setup(repository => repository.GetExistingIdsAsync(
-                It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new HashSet<Guid> { collectionId });
+            .Setup(repository => repository.GetByNamesOrUrlsAsync(
+                It.IsAny<IEnumerable<string>>(), It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new Collection("Summer Collection", "summer-collection")]);
 
         productRepository
             .Setup(repository => repository.UrlExistsAsync("type-free-product", null, It.IsAny<CancellationToken>()))
@@ -287,13 +305,13 @@ public sealed class CreateProductCommandHandlerTests
             new CreateProductCommand(
                 "Type Free Product",
                 "TYPE-FREE-MAIN",
-                CollectionIds: [collectionId],
+                Collections: ["Summer Collection"],
                 Variants: [new CreateProductVariantItem("Standard", "TYPE-FREE-STD", 100, 0)]),
             CancellationToken.None);
 
         result.TypeId.Should().BeNull();
         createdProduct.Should().NotBeNull();
-        createdProduct!.ProductCollections.Should().ContainSingle(relation => relation.CollectionId == collectionId);
+        createdProduct!.ProductCollections.Should().ContainSingle();
         createdProduct.Variants.Should().ContainSingle();
         productTypeRepository.Verify(
             repository => repository.ExistsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),

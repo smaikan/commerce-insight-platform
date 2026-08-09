@@ -1,6 +1,6 @@
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Models;
-using ECommerce.Domain.Entities;
+using ECommerce.Application.StockMovements.Dtos;
 using ECommerce.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,17 +16,63 @@ public sealed class StockMovementRepository : IStockMovementRepository
         _context = context;
     }
 
-    // Burada stok hareketlerini takip kapalı, filtreli ve kararlı sıralı biçimde sayfalıyorum.
-    public async Task<PagedResult<StockMovement>> GetListAsync(
+    // Burada stok defteri satırlarını ürün bağlamıyla filtreli, kararlı sıralı ve sayfalı okuyorum.
+    public async Task<PagedResult<StockMovementListItemDto>> GetListAsync(
         StockMovementListFilter filter,
         CancellationToken cancellationToken = default)
     {
-        IQueryable<StockMovement> query = _context.StockMovements.AsNoTracking();
+        var query = ApplyFilter(_context.StockMovements.AsNoTracking(), filter);
+        var totalCount = await query.CountAsync(cancellationToken);
+        var skip = checked((filter.PageNumber - 1) * filter.PageSize);
+        var movements = await query
+            .OrderByDescending(movement => movement.CreatedAt)
+            .ThenByDescending(movement => movement.Id)
+            .Skip(skip)
+            .Take(filter.PageSize)
+            .Select(movement => new StockMovementListItemDto(
+                movement.Id,
+                movement.ProductVariantId,
+                movement.ProductVariant.Product.Title,
+                movement.ProductVariant.Name,
+                movement.ProductVariant.Value,
+                movement.ProductVariant.Sku,
+                movement.Direction,
+                movement.Type,
+                movement.QuantityDelta,
+                movement.StockBeforeMovement,
+                movement.StockAfterMovement,
+                movement.Reason,
+                movement.OrderId,
+                movement.ReturnRequestId,
+                movement.CreatedAt))
+            .ToListAsync(cancellationToken);
 
+        return new PagedResult<StockMovementListItemDto>(
+            movements,
+            filter.PageNumber,
+            filter.PageSize,
+            totalCount);
+    }
+
+    // Burada ürün, varyant ve SKU aramasını da içeren stok defteri filtrelerini tek sorguda uyguluyorum.
+    private static IQueryable<ECommerce.Domain.Entities.StockMovement> ApplyFilter(
+        IQueryable<ECommerce.Domain.Entities.StockMovement> query,
+        StockMovementListFilter filter)
+    {
         if (filter.ProductVariantId.HasValue)
         {
+            query = query.Where(movement => movement.ProductVariantId == filter.ProductVariantId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            var normalizedSkuSearch = search.ToUpperInvariant();
             query = query.Where(movement =>
-                movement.ProductVariantId == filter.ProductVariantId.Value);
+                movement.ProductVariant.Product.Title.Contains(search) ||
+                movement.ProductVariant.Name.Contains(search) ||
+                movement.ProductVariant.Value.Contains(search) ||
+                movement.ProductVariant.Sku.Contains(normalizedSkuSearch));
         }
 
         if (filter.Direction.HasValue)
@@ -49,20 +95,7 @@ public sealed class StockMovementRepository : IStockMovementRepository
             query = query.Where(movement => movement.CreatedAt <= filter.CreatedToUtc.Value);
         }
 
-        var totalCount = await query.CountAsync(cancellationToken);
-        var skip = checked((filter.PageNumber - 1) * filter.PageSize);
-        var movements = await query
-            .OrderByDescending(movement => movement.CreatedAt)
-            .ThenByDescending(movement => movement.Id)
-            .Skip(skip)
-            .Take(filter.PageSize)
-            .ToListAsync(cancellationToken);
-
-        return new PagedResult<StockMovement>(
-            movements,
-            filter.PageNumber,
-            filter.PageSize,
-            totalCount);
+        return query;
     }
 
     // Burada varyantın kayıtlı stok bakiyesiyle taşma güvenli hareket toplamını mutabakat için okuyorum.

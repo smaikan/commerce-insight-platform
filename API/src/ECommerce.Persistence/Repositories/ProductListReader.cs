@@ -26,8 +26,10 @@ public sealed class ProductListReader : IProductListReader
     {
         var query = ApplyFilter(_context.Products.AsNoTracking(), filter);
         var totalCount = await query.CountAsync(cancellationToken);
-        var items = await CreateOrderedQuery(query, filter)
-            .ThenBy(product => product.Id)
+        var orderedQuery = CreateOrderedQuery(query, filter);
+        var items = await (filter.SortBy == ProductSortBy.CreatedAt && filter.Descending
+                ? orderedQuery.ThenByDescending(product => product.Id)
+                : orderedQuery.ThenBy(product => product.Id))
             .Skip((filter.PageNumber - 1) * filter.PageSize)
             .Take(filter.PageSize)
             .AsSplitQuery()
@@ -87,7 +89,18 @@ public sealed class ProductListReader : IProductListReader
                         productTag.Tag.Name,
                         productTag.Tag.Url,
                         productTag.Tag.IsActive))
-                    .ToList()))
+                    .ToList(),
+                product.Images
+                    .OrderByDescending(image => image.IsMain)
+                    .ThenBy(image => image.DisplayOrder)
+                    .ThenBy(image => image.Id)
+                    .Select(image => new ProductImageProjection(
+                        image.Id,
+                        image.ImageUrl,
+                        image.AltText,
+                        image.DisplayOrder,
+                        image.IsMain))
+                    .FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<ProductDto>(
@@ -176,7 +189,19 @@ public sealed class ProductListReader : IProductListReader
                 variant.VariantOptionNameId, variant.VariantOptionValueId, variant.Sku,
                 variant.Barcode, variant.Material, variant.Price, variant.NetPrice, variant.CompareAtPrice,
                 variant.Stock, variant.AddToCartCount, variant.PurchaseCount, variant.IsActive)).ToList(),
-            product.Tags.Select(tag => new TagDto(tag.Id, tag.Name, tag.Url, tag.IsActive)).ToList());
+            product.Tags.Select(tag => new TagDto(tag.Id, tag.Name, tag.Url, tag.IsActive)).ToList(),
+            [],
+            [],
+            product.Description,
+            product.MainImage is null
+                ? null
+                : new ProductImageDto(
+                    product.MainImage.Id,
+                    PublicIdCodec.EncodeProductId(product.Id),
+                    product.MainImage.ImageUrl,
+                    product.MainImage.AltText,
+                    product.MainImage.DisplayOrder,
+                    product.MainImage.IsMain));
     }
 
     private sealed record ProductListProjection(long Id, string Title, string MainSku, string? Description,
@@ -185,7 +210,8 @@ public sealed class ProductListReader : IProductListReader
         bool IsActive, bool IsFeatured, int DisplayOrder, string? SeoTitle, string? SeoDescription,
         long ClickCount, long TotalAddToCartCount, long TotalPurchaseCount, long FavoriteCount,
         long PopularityScore, decimal AverageRating, long RatingCount, long ReviewCount,
-        IReadOnlyList<ProductVariantProjection> Variants, IReadOnlyList<TagProjection> Tags);
+        IReadOnlyList<ProductVariantProjection> Variants, IReadOnlyList<TagProjection> Tags,
+        ProductImageProjection? MainImage);
 
     private sealed record ProductVariantProjection(Guid Id, long ProductId, string Name, string Value,
         Guid? VariantOptionNameId, Guid? VariantOptionValueId, string Sku,
@@ -193,4 +219,11 @@ public sealed class ProductListReader : IProductListReader
         int Stock, long AddToCartCount, long PurchaseCount, bool IsActive);
 
     private sealed record TagProjection(Guid Id, string Name, string Url, bool IsActive);
+
+    private sealed record ProductImageProjection(
+        Guid Id,
+        string ImageUrl,
+        string? AltText,
+        int DisplayOrder,
+        bool IsMain);
 }

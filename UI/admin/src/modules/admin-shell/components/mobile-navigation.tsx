@@ -27,7 +27,7 @@ export function MobileNavigation({ siteName }: { siteName: string }) {
         ref={triggerRef}
         type="button"
         onClick={openNavigation}
-        className="inline-flex size-11 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-hover lg:hidden"
+        className="inline-flex size-11 items-center justify-center rounded-lg border border-border-strong bg-surface-strong text-foreground hover:bg-surface-subtle lg:hidden"
         aria-label="Ana menüyü aç"
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 fill-none stroke-current stroke-2">

@@ -35,7 +35,7 @@ export function parseProductForm(formData: FormData, mode: "create" | "edit"): P
   const isFeatured = checkbox(formData, "isFeatured");
   const hasVariants = checkbox(formData, "hasVariants");
   const tags = repeatedValues(formData, "tags", 20, 150, fieldErrors);
-  const collections = commaSeparated(formData, "collections", 100, 150, fieldErrors);
+  const collections = repeatedValues(formData, "collections", 100, 150, fieldErrors);
   const parsedVariants = parseVariants(formData, fieldErrors);
   const variants = mode === "edit"
     ? parsedVariants.filter((variant) => !variant.id || variant.changed).map(withoutChangedFlag)
@@ -216,7 +216,7 @@ function parseImage(formData: FormData, errors: Record<string, string[]>): Produ
 }
 
 // Burada virgülle ayrılan organizasyon alanlarını tekrar etmeyen temiz adlara dönüştürüyorum.
-function commaSeparated(
+export function commaSeparated(
   formData: FormData,
   name: string,
   maxItems: number,

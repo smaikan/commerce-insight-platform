@@ -1,0 +1,23 @@
+﻿# POST /api/product-engagement/products/{productId}/favorites
+
+- İşlev alanı: **03 Katalog ve ürün etkileşimi**
+- İşlev: Yeni kaynak veya iş akışı adımı oluşturur/başlatır.
+- Operation ID: `POST-/api/product-engagement/products/{productId}/favorites`
+- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Content-Type: request body varsa `application/json` gönderin.
+- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
+
+## Parametreler
+
+| Ad | Konum | Zorunlu | Şema |
+| --- | --- | --- | --- |
+| `productId` | path | Evet | string |
+
+## Request body
+
+Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, query veya header parametreleriyle gönderin.
+
+## Başarılı response (200)
+
+Response body yoktur.
+

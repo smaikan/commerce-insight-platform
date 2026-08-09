@@ -39,6 +39,7 @@ public sealed class ProductVariantRepository : IProductVariantRepository
         return _context.ProductVariants
             .Include(variant => variant.Product)
                 .ThenInclude(product => product.TaxRate)
+            .Include(variant => variant.OptionValues)
             .FirstOrDefaultAsync(variant => variant.Id == id, cancellationToken);
     }
 

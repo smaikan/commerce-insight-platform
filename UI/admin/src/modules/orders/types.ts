@@ -51,6 +51,7 @@ export type OrderPreviewError = {
 export type OrderListQuery = {
   pageNumber: number;
   pageSize: number;
+  search?: string;
   status?: OrderStatus;
   createdFrom?: string;
   createdTo?: string;

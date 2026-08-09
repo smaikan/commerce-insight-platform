@@ -2,6 +2,8 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using ECommerce.Application.Common.Models;
+using ECommerce.Application.Common.Identifiers;
+using ECommerce.Application.Users.Dtos;
 using ECommerce.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -66,7 +68,7 @@ public sealed class UserRepository : IUserRepository
     }
 
     // Burada kullanıcıları yönetim ekranı için sayfalı ve takip edilmeden getiriyorum.
-    public async Task<PagedResult<User>> GetListAsync(
+    public async Task<PagedResult<AdminUserDto>> GetListAsync(
         UserListFilter filter,
         CancellationToken cancellationToken = default)
     {
@@ -97,9 +99,38 @@ public sealed class UserRepository : IUserRepository
             .ThenBy(user => user.Id)
             .Skip((filter.PageNumber - 1) * filter.PageSize)
             .Take(filter.PageSize)
+            .Select(user => new UserListProjection(
+                user.Id,
+                user.Email,
+                user.FirstName,
+                user.LastName,
+                user.PhoneNumber,
+                user.Role,
+                user.Status,
+                user.LastLoginAt,
+                user.PasswordChangedAt,
+                user.CreatedAt,
+                user.UpdatedAt,
+                _context.Orders.Count(order => order.UserId == user.Id)))
             .ToListAsync(cancellationToken);
 
-        return new PagedResult<User>(users, filter.PageNumber, filter.PageSize, totalCount);
+        return new PagedResult<AdminUserDto>(
+            users.Select(user => new AdminUserDto(
+                PublicIdCodec.EncodeUserId(user.Id),
+                user.Email,
+                user.FirstName,
+                user.LastName,
+                user.PhoneNumber,
+                user.Role,
+                user.Status,
+                user.LastLoginAt,
+                user.PasswordChangedAt,
+                user.CreatedAt,
+                user.UpdatedAt,
+                user.OrderCount)).ToList(),
+            filter.PageNumber,
+            filter.PageSize,
+            totalCount);
     }
 
     // Burada refresh token hash bilgisinden oturum sahibi kullanıcıyı takipli şekilde getiriyorum.
@@ -227,4 +258,18 @@ public sealed class UserRepository : IUserRepository
                 user.Status == UserStatus.Active,
             cancellationToken);
     }
+
+    private sealed record UserListProjection(
+        long Id,
+        string Email,
+        string FirstName,
+        string LastName,
+        string? PhoneNumber,
+        UserRole Role,
+        UserStatus Status,
+        DateTime? LastLoginAt,
+        DateTime? PasswordChangedAt,
+        DateTime CreatedAt,
+        DateTime? UpdatedAt,
+        int OrderCount);
 }

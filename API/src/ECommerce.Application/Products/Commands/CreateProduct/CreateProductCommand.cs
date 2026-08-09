@@ -1,6 +1,7 @@
 using ECommerce.Application.Products.Dtos;
 using ECommerce.Domain.Enums;
 using MediatR;
+using System.Text.Json.Serialization;
 
 namespace ECommerce.Application.Products.Commands.CreateProduct;
 
@@ -8,7 +9,8 @@ namespace ECommerce.Application.Products.Commands.CreateProduct;
 public sealed record CreateProductCommand(
     string Title,
     string MainSku,
-    Guid? TypeId = null,
+    bool HasVariants = false,
+    string? Type = null,
     string? Url = null,
     Guid? BrandId = null,
     string? Description = null,
@@ -18,12 +20,13 @@ public sealed record CreateProductCommand(
     int DisplayOrder = 0,
     string? SeoTitle = null,
     string? SeoDescription = null,
-    IReadOnlyList<Guid>? CollectionIds = null,
+    IReadOnlyList<string>? Collections = null,
     IReadOnlyList<CreateProductVariantItem>? Variants = null,
     IReadOnlyList<string>? Tags = null,
     Guid? TaxRateId = null) : IRequest<ProductDto>;
 
 // Burada ürünle birlikte oluşturulacak varyant bilgisini taşıyorum.
+[method: JsonConstructor]
 public sealed record CreateProductVariantItem(
     string Name,
     string Value,
@@ -37,7 +40,7 @@ public sealed record CreateProductVariantItem(
     decimal? OpeningUnitCostExcludingVat = null,
     decimal? OpeningUnitCostIncludingVat = null)
 {
-    // Burada eski tek metinli varyant çağrılarını aynı adı değer olarak kullanarak uyumlu tutuyorum.
+    // Burada eski uygulama çağrılarını tek seçenek değerine eşleyerek uyumlu tutuyorum.
     public CreateProductVariantItem(
         string Name,
         string Sku,

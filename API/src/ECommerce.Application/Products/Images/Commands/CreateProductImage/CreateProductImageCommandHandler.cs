@@ -32,7 +32,14 @@ public sealed class CreateProductImageCommandHandler : IRequestHandler<CreatePro
             throw new NotFoundException("Product was not found.");
         }
 
-        if (request.IsMain)
+        var imageCount = await _imageRepository.CountByProductIdAsync(request.ProductId, cancellationToken);
+        if (imageCount >= 10)
+        {
+            throw new ConflictException("A product can contain at most 10 images.");
+        }
+
+        var isMain = request.IsMain || imageCount == 0;
+        if (isMain)
         {
             var currentMainImage = await _imageRepository.GetMainByProductIdForUpdateAsync(
                 request.ProductId,
@@ -44,7 +51,7 @@ public sealed class CreateProductImageCommandHandler : IRequestHandler<CreatePro
             request.ProductId,
             request.ImageUrl,
             request.DisplayOrder,
-            request.IsMain,
+            isMain,
             string.IsNullOrWhiteSpace(request.AltText) ? product.Title : request.AltText,
             string.IsNullOrWhiteSpace(request.AltText));
 

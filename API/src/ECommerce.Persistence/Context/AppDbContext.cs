@@ -22,6 +22,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderAddressSnapshot> OrderAddressSnapshots => Set<OrderAddressSnapshot>();
+    public DbSet<OrderCustomerSnapshot> OrderCustomerSnapshots => Set<OrderCustomerSnapshot>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<EmailOutboxMessage> EmailOutbox => Set<EmailOutboxMessage>();
@@ -48,6 +49,10 @@ public sealed class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
     public DbSet<UserSecurityToken> UserSecurityTokens => Set<UserSecurityToken>();
+    public DbSet<GuestOrderSession> GuestOrderSessions => Set<GuestOrderSession>();
+    public DbSet<GuestOrderAccessGrant> GuestOrderAccessGrants => Set<GuestOrderAccessGrant>();
+    public DbSet<GuestOrderMagicLink> GuestOrderMagicLinks => Set<GuestOrderMagicLink>();
+    public DbSet<GuestCheckoutIdempotency> GuestCheckoutIdempotencies => Set<GuestCheckoutIdempotency>();
 
     // Burada entity configuration sınıflarını otomatik olarak modele uyguluyorum.
     protected override void OnModelCreating(ModelBuilder modelBuilder)

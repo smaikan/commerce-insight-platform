@@ -17,9 +17,8 @@ public sealed class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PagedR
     // Burada kullanıcı listesini yönetim bilgileriyle sayfalı olarak hazırlıyorum.
     public async Task<PagedResult<AdminUserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
     {
-        var users = await _userRepository.GetListAsync(
+        return await _userRepository.GetListAsync(
             new UserListFilter(request.PageNumber, request.PageSize, request.Search, request.Role, request.Status),
             cancellationToken);
-        return users.Map(user => user.ToAdminDto());
     }
 }

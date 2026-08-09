@@ -14,7 +14,7 @@ public sealed class ReturnRequest : AuditableEntity
 
     public Guid OrderId { get; private set; }
     public Order Order { get; private set; } = null!;
-    public long UserId { get; private set; }
+    public long? UserId { get; private set; }
     public string ReturnNumber { get; private set; } = null!;
     public ReturnType Type { get; private set; }
     public ReturnRequestStatus Status { get; private set; }
@@ -36,14 +36,14 @@ public sealed class ReturnRequest : AuditableEntity
     // Burada teslim edilmiş siparişe bağlı iade veya değişim talebinin temel kurallarını kuruyorum.
     public ReturnRequest(
         Guid orderId,
-        long userId,
+        long? userId,
         string returnNumber,
         ReturnType type,
         string? customerNote = null)
     {
-        if (orderId == Guid.Empty || userId <= 0)
+        if (orderId == Guid.Empty || (userId.HasValue && userId.Value <= 0))
         {
-            throw new DomainException("Order and user ids are required.");
+            throw new DomainException("Order id is required and user id must be positive when supplied.");
         }
 
         if (!Enum.IsDefined(type))
@@ -58,6 +58,23 @@ public sealed class ReturnRequest : AuditableEntity
         Status = ReturnRequestStatus.Requested;
         CustomerNote = NormalizeOptionalNote(customerNote, MaximumCustomerNoteLength, "Customer note");
         ConcurrencyToken = Guid.NewGuid();
+    }
+
+    // Burada guest sipariş claim edildiğinde iade talebini aynı kullanıcıya bağlıyorum.
+    public void AssignToUser(long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new DomainException("Return request user id must be positive.");
+        }
+
+        if (UserId.HasValue && UserId.Value != userId)
+        {
+            throw new DomainException("Return request is already owned by another user.");
+        }
+
+        UserId = userId;
+        MarkAsUpdated();
     }
 
     // Burada güvenilir sipariş snapshot'ından tekil bir iade kalemini talebe ekliyorum.

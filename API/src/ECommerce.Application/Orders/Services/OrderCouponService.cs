@@ -22,6 +22,7 @@ public sealed class OrderCouponService
     public async Task<CheckoutCoupon?> ResolveForCheckoutAsync(
         string? couponCode,
         decimal subTotal,
+        bool isGuest,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(couponCode))
@@ -31,6 +32,11 @@ public sealed class OrderCouponService
 
         var coupon = await _couponRepository.GetByCodeForUpdateAsync(couponCode, cancellationToken)
             ?? throw new ConflictException("Coupon was not found.");
+        if (isGuest && coupon.IsMemberOnly)
+        {
+            throw new CouponMembersOnlyException();
+        }
+
         try
         {
             return new CheckoutCoupon(coupon, coupon.CalculateDiscount(subTotal, _clock.UtcNow));
@@ -44,7 +50,7 @@ public sealed class OrderCouponService
     // Burada başarılı checkout sonrasında kupon sayacını ve siparişe bağlı kullanım kaydını aynı transaction içinde oluşturuyorum.
     public async Task ConsumeAsync(
         CheckoutCoupon? checkoutCoupon,
-        long userId,
+        long? userId,
         Order order,
         CancellationToken cancellationToken)
     {

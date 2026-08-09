@@ -1,12 +1,12 @@
 import type { ProductListQuery, ProductSortBy, ProductStatus } from "@/modules/products/types";
 
 export const productSortOptions = [
+  { value: "created-desc", label: "Oluşturma: yeniden eskiye", sortBy: 2, descending: true },
   { value: "popularity-desc", label: "Popülerlik: yüksekten düşüğe", sortBy: 3, descending: true },
   { value: "display-order-asc", label: "Görüntüleme sırası: artan", sortBy: 0, descending: false },
   { value: "display-order-desc", label: "Görüntüleme sırası: azalan", sortBy: 0, descending: true },
   { value: "title-asc", label: "Başlık: A-Z", sortBy: 1, descending: false },
   { value: "title-desc", label: "Başlık: Z-A", sortBy: 1, descending: true },
-  { value: "created-desc", label: "Oluşturma: yeniden eskiye", sortBy: 2, descending: true },
   { value: "created-asc", label: "Oluşturma: eskiden yeniye", sortBy: 2, descending: false },
 ] as const satisfies ReadonlyArray<{
   value: string;

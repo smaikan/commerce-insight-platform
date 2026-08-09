@@ -1,7 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api/problem";
 import { requireAdminActionSession } from "@/lib/auth/session";
 import {
@@ -9,11 +9,19 @@ import {
   createProductImage,
   createProductVariant,
   getProduct,
+  getProductImages,
   patchProductState,
   updateProduct,
+  updateProductImage,
   updateProductVariant,
 } from "@/modules/products/api";
 import { parseProductForm } from "@/modules/products/form-data";
+import {
+  isTrustedCloudinaryProductAsset,
+  MAX_PRODUCT_IMAGES,
+  type ProductMediaCommitInput,
+  type ProductMediaCommitResult,
+} from "@/modules/products/product-media";
 import type { ProductActionState } from "@/modules/products/types";
 
 // Burada yeni ürün, atomik varyantlar ve opsiyonel ayrı görsel işlemini güvenli sırada çalıştırıyorum.
@@ -49,7 +57,7 @@ export async function createProductAction(
   }
 
   revalidatePath("/products");
-  redirect(`/products/${encodeURIComponent(productId)}?created=1`);
+  return { status: "success", productId, completionToken: randomUUID() };
 }
 
 // Burada ürün düzenlemesini ayrı backend işlemlerine bölüp olası kısmi başarıyı açıkça koruyorum.
@@ -129,7 +137,111 @@ export async function updateProductAction(
 
   revalidatePath("/products");
   revalidatePath(`/products/${productId}`);
-  redirect(`/products/${encodeURIComponent(productId)}?saved=1`);
+  return { status: "success", productId, completionToken: randomUUID() };
+}
+
+// Burada Cloudinary'ye yüklenmiş görselleri yetkili API üzerinden ürüne bağlayıp tek ana görsel kuralını backend'e bırakarak uyguluyorum.
+export async function commitProductMediaAction(input: ProductMediaCommitInput): Promise<ProductMediaCommitResult> {
+  let session;
+  try {
+    session = await requireAdminActionSession();
+  } catch (error) {
+    const authorization = authorizationError(error);
+    return {
+      status: "error",
+      productId: input.productId,
+      message: authorization.message,
+      traceId: authorization.traceId,
+      committedClientKeys: [],
+      existingMainUpdated: false,
+    };
+  }
+
+  const validationMessage = validateMediaCommitInput(input);
+  if (validationMessage) {
+    return {
+      status: "error",
+      productId: input.productId,
+      message: validationMessage,
+      committedClientKeys: [],
+      existingMainUpdated: false,
+    };
+  }
+
+  const committedClientKeys: string[] = [];
+  let existingMainUpdated = false;
+  try {
+    const currentImages = await getProductImages(input.productId, session);
+    if (currentImages.items.length + input.newImages.length > MAX_PRODUCT_IMAGES) {
+      throw new Error(`Bir üründe en fazla ${MAX_PRODUCT_IMAGES} görsel bulunabilir.`);
+    }
+
+    // Burada kayıtlı bir görsel seçildiyse yalnız onu true yapıyor, diğer görselleri false olarak göndermiyorum.
+    if (input.mainExistingImageId) {
+      const selected = currentImages.items.find((image) => image.id === input.mainExistingImageId);
+      if (!selected) throw new Error("Ana görsel seçimi bu ürüne ait değil.");
+      if (!selected.isMain) {
+        await updateProductImage(selected.id, {
+          imageUrl: selected.imageUrl,
+          altText: selected.altText,
+          displayOrder: selected.displayOrder,
+          isMain: true,
+        }, session);
+      }
+      existingMainUpdated = true;
+    }
+
+    // Burada yeni seçilen ana görseli önce kaydederek sonraki başarısızlıklarda bile ana seçim niyetini koruyorum.
+    const orderedImages = [...input.newImages].sort((left, right) => Number(right.isMain) - Number(left.isMain) || left.displayOrder - right.displayOrder);
+    for (const image of orderedImages) {
+      await createProductImage(input.productId, {
+        imageUrl: image.imageUrl,
+        altText: null,
+        displayOrder: image.displayOrder,
+        isMain: image.isMain,
+      }, session);
+      committedClientKeys.push(image.clientKey);
+    }
+  } catch (error) {
+    const apiMessage = error instanceof ApiError
+      ? error.problem.detail || error.problem.title
+      : error instanceof Error ? error.message : "Görseller ürüne bağlanamadı.";
+    return {
+      status: committedClientKeys.length > 0 || existingMainUpdated ? "partial" : "error",
+      productId: input.productId,
+      message: apiMessage,
+      traceId: error instanceof ApiError ? error.problem.traceId : undefined,
+      committedClientKeys,
+      existingMainUpdated,
+    };
+  }
+
+  revalidatePath("/products");
+  revalidatePath(`/products/${input.productId}`);
+  return {
+    status: "success",
+    productId: input.productId,
+    committedClientKeys,
+    existingMainUpdated,
+  };
+}
+
+// Burada istemciden gelen medya kaydının sınırlarını, tek ana seçim kuralını ve Cloudinary kaynağını yeniden doğruluyorum.
+function validateMediaCommitInput(input: ProductMediaCommitInput): string | null {
+  if (!/^P[0-9A-Z]{5,7}$/.test(input.productId)) return "Geçerli bir ürün kimliği bulunamadı.";
+  if (input.newImages.length > MAX_PRODUCT_IMAGES) return `En fazla ${MAX_PRODUCT_IMAGES} görsel eklenebilir.`;
+  if (new Set(input.newImages.map((image) => image.clientKey)).size !== input.newImages.length) return "Tekrarlanan görsel kaydı gönderilemez.";
+  if (input.newImages.some((image) => !Number.isInteger(image.displayOrder) || image.displayOrder < 0)) return "Görsel sırası geçersiz.";
+
+  const newMainCount = input.newImages.filter((image) => image.isMain).length;
+  if (newMainCount > 1 || (newMainCount === 1 && input.mainExistingImageId)) return "Yalnızca bir ana görsel seçilebilir.";
+
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
+  if (input.newImages.length > 0 && !cloudName) return "Görsel yükleme hizmeti yapılandırılmamış.";
+  if (cloudName && input.newImages.some((image) => !isTrustedCloudinaryProductAsset(image, input.productId, cloudName))) {
+    return "Görsel kaynağı veya ürün klasörü doğrulanamadı.";
+  }
+  return null;
 }
 
 // Burada hata mesajını hangi işlemlerin tamamlandığı ve hangi aşamanın durduğu bilgisiyle taşıyorum.

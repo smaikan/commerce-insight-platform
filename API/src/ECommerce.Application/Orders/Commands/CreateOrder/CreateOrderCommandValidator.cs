@@ -12,18 +12,10 @@ public sealed class CreateOrderCommandValidator : AbstractValidator<CreateOrderC
             .NotEmpty();
         RuleFor(command => command.ShippingAddressId)
             .NotEmpty()
-            .When(command => command.ShippingAddressId.HasValue);
+            .WithMessage("A shipping address is required.");
         RuleFor(command => command.ShippingMethodId)
             .NotEmpty()
-            .When(command => command.ShippingMethodId.HasValue);
-        RuleFor(command => command.ShippingAddressId)
-            .NotEmpty()
-            .When(command => command.ShippingMethodId.HasValue)
-            .WithMessage("A shipping address is required when a shipping method is selected.");
-        RuleFor(command => command.ShippingMethodId)
-            .NotEmpty()
-            .When(command => command.ShippingAddressId.HasValue)
-            .WithMessage("A shipping method is required when a shipping address is selected.");
+            .WithMessage("An active shipping method is required.");
         RuleFor(command => command.CouponCode)
             .MaximumLength(Coupon.MaximumCodeLength)
             .Matches(Coupon.CodePattern)

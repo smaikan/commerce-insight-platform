@@ -10,7 +10,11 @@ const controlClass = "min-h-10 w-full rounded-lg border border-border-strong bg-
 export function OrderFilters({ query }: { query: OrderListQuery }) {
   return (
     <form action="/orders" method="get" className="border-b border-border bg-surface-subtle/60 p-4 sm:p-5">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(12rem,0.8fr)_repeat(2,minmax(11rem,0.7fr))_minmax(12rem,0.75fr)_auto_auto]">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(14rem,1fr)_minmax(12rem,0.8fr)_repeat(2,minmax(11rem,0.7fr))_minmax(12rem,0.75fr)_auto_auto]">
+        <label>
+          <span className="mb-1.5 block text-xs font-semibold text-muted">Sipariş veya müşteri ara</span>
+          <input name="search" type="search" defaultValue={query.search ?? ""} placeholder="Sipariş no, ad veya e-posta" className={controlClass} autoComplete="off" />
+        </label>
         <label>
           <span className="mb-1.5 block text-xs font-semibold text-muted">Sipariş durumu</span>
           <select name="status" defaultValue={query.status ?? ""} className={controlClass}>
@@ -51,7 +55,7 @@ export function OrderFilters({ query }: { query: OrderListQuery }) {
         ) : null}
       </div>
 
-      <p id="order-date-help" className="mt-3 text-xs leading-5 text-muted">Tarih filtreleri UTC gün sınırlarıyla API&apos;ye gönderilir.</p>
+      <p id="order-date-help" className="mt-3 text-xs leading-5 text-muted">Siparişleri oluşturulma tarihine göre filtreleyin.</p>
       {query.dateError ? <p id="order-date-error" className="mt-2 text-sm font-semibold text-danger" role="alert">{query.dateError}</p> : null}
     </form>
   );

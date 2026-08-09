@@ -4,9 +4,10 @@ namespace ECommerce.Application.Products.Engagement.Queries.GetProductMetrics;
 
 public sealed class GetProductMetricsQueryValidator : AbstractValidator<GetProductMetricsQuery>
 {
+    // Burada ürün metriği tarih aralığının zorunlu iş kurallarını uyguluyorum.
     public GetProductMetricsQueryValidator()
     {
         RuleFor(query => query.ProductId).NotEmpty();
-        RuleFor(query => query.To).GreaterThanOrEqualTo(query => query.From);
+        ProductAnalyticsDateRangeRules.Apply(this, query => query.From, query => query.To);
     }
 }

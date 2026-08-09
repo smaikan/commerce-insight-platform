@@ -14,6 +14,30 @@ namespace ECommerce.IntegrationTests.Persistence;
 
 public sealed class AuthPersistenceTests
 {
+    // Burada yönetim kullanıcı listesinin yalnız üyeye ait siparişlerin toplamını döndürdüğünü doğruluyorum.
+    [Fact]
+    public async Task UserList_Should_Return_Order_Count()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options;
+        await using var context = new AppDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        var user = new User("user@example.com", "password-hash", "User", "Test");
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        context.Orders.AddRange(
+            new Order(user.Id, "ORD-USER-001", 100m, 0m, 0m, 0m, 100m),
+            new Order(user.Id, "ORD-USER-002", 200m, 0m, 0m, 0m, 200m));
+        await context.SaveChangesAsync();
+
+        var result = await new UserRepository(context).GetListAsync(
+            new ECommerce.Application.Common.Models.UserListFilter(1, 20));
+
+        result.Items.Should().ContainSingle();
+        result.Items[0].OrderCount.Should().Be(2);
+    }
+
     // Burada parola sıfırlama mesajının yalnızca korumalı tokenla genel e-posta kuyruğunda saklandığını doğruluyorum.
     [Fact]
     public async Task PasswordResetOutbox_Should_Persist_Only_Protected_Token_And_Return_Pending_Message()

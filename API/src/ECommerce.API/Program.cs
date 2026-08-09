@@ -32,6 +32,17 @@ builder.Host.UseSerilog((context, configuration) =>
 });
 
 builder.Services.AddControllers();
+var corsOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy => policy
+        .WithOrigins(corsOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
+});
 builder.Services.AddResponseCompression(options =>
 {
     options.EnableForHttps = true;
@@ -310,23 +321,7 @@ builder.Services.AddRateLimiter(options =>
                 });
         }
 
-        var isAnonymousEndpoint = httpContext.GetEndpoint()?
-            .Metadata
-            .GetMetadata<AllowAnonymousAttribute>() is not null;
-        if (!isAnonymousEndpoint)
-        {
-            return RateLimitPartition.GetNoLimiter("authenticated-or-unmatched");
-        }
-
-        return RateLimitPartition.GetFixedWindowLimiter(
-            $"public:{clientKey}",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 120,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0,
-                AutoReplenishment = true
-            });
+        return RateLimitPartition.GetNoLimiter("non-sensitive-endpoint");
     });
 });
 
@@ -361,6 +356,7 @@ app.UseHttpsRedirection();
 
 app.UseResponseCompression();
 app.UseRouting();
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();

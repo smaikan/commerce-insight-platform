@@ -2,6 +2,7 @@ using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using ECommerce.Application.Common.Identifiers;
 using ECommerce.Application.Tags.Dtos;
+using ECommerce.Application.Collections.Dtos;
 
 namespace ECommerce.Application.Products.Dtos;
 
@@ -35,7 +36,11 @@ public sealed record ProductDto(
     long RatingCount,
     long ReviewCount,
     IReadOnlyList<ProductVariantDto> Variants,
-    IReadOnlyList<TagDto> Tags);
+    IReadOnlyList<TagDto> Tags,
+    IReadOnlyList<CollectionDto> Collections,
+    IReadOnlyList<ProductImageDto> Images,
+    string? Summary,
+    ProductImageDto? MainImage);
 
 public static class ProductDtoMapping
 {
@@ -81,6 +86,27 @@ public static class ProductDtoMapping
                 .DistinctBy(tag => tag.Id)
                 .OrderBy(tag => tag.Name)
                 .Select(tag => tag.ToDto())
-                .ToList());
+                .ToList(),
+            product.ProductCollections
+                .Where(productCollection => productCollection.Collection is not null)
+                .Select(productCollection => productCollection.Collection)
+                .DistinctBy(collection => collection.Id)
+                .OrderBy(collection => collection.DisplayOrder)
+                .ThenBy(collection => collection.Name)
+                .Select(collection => collection.ToDto())
+                .ToList(),
+            product.Images
+                .OrderByDescending(image => image.IsMain)
+                .ThenBy(image => image.DisplayOrder)
+                .ThenBy(image => image.Id)
+                .Select(image => image.ToDto())
+                .ToList(),
+            product.Description,
+            product.Images
+                .OrderByDescending(image => image.IsMain)
+                .ThenBy(image => image.DisplayOrder)
+                .ThenBy(image => image.Id)
+                .Select(image => image.ToDto())
+                .FirstOrDefault());
     }
 }

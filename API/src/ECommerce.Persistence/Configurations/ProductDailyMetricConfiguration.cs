@@ -20,5 +20,7 @@ public sealed class ProductDailyMetricConfiguration : IEntityTypeConfiguration<P
 
         builder.HasIndex(metric => new { metric.ProductId, metric.Date })
             .IsUnique();
+
+        builder.HasIndex(metric => new { metric.Date, metric.ProductId });
     }
 }

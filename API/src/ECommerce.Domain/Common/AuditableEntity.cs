@@ -2,7 +2,7 @@ namespace ECommerce.Domain.Common;
 
 public abstract class AuditableEntity<TId> : BaseEntity<TId>
 {
-    public DateTime CreatedAt { get; private set; }
+    public DateTime CreatedAt { get; protected set; }
     public DateTime? UpdatedAt { get; private set; }
 
     protected AuditableEntity()

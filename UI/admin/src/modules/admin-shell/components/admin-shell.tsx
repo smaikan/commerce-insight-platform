@@ -17,24 +17,24 @@ export function AdminShell({ children, user }: Readonly<{ children: React.ReactN
 
       <AdminSidebar siteName={siteConfig.name} />
 
-      <div className="min-h-dvh lg:pl-72">
-        <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b border-sidebar-border bg-sidebar-elevated px-4 text-sidebar-foreground sm:px-6 lg:px-8">
+      <div className="min-h-dvh lg:pl-64">
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-surface-strong px-4 text-foreground sm:px-5 lg:px-6">
           <MobileNavigation siteName={siteConfig.name} />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-sidebar-foreground">Yönetim Paneli</p>
-            <p className="hidden truncate text-xs text-sidebar-muted sm:block">{user.firstName} {user.lastName}</p>
+            <p className="truncate text-sm font-semibold text-foreground">{user.firstName} {user.lastName}</p>
+            <p className="hidden truncate text-xs text-muted sm:block">Yönetici hesabı</p>
           </div>
           <form action={logoutAction} className="ml-auto">
             <button
               type="submit"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar px-3 text-sm font-semibold text-sidebar-foreground transition-colors hover:bg-sidebar-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-border-strong bg-surface-strong px-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             >
               Çıkış yap
             </button>
           </form>
         </header>
 
-        <main id="main-content" className="min-h-[calc(100dvh-4rem)] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main id="main-content" className="min-h-[calc(100dvh-3.5rem)] px-4 py-5 sm:px-5 lg:px-6 lg:py-6">
           {children}
         </main>
       </div>

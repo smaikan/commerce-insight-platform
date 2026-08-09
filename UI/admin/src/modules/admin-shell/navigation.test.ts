@@ -2,16 +2,33 @@ import { describe, expect, it } from "vitest";
 import { navigationSections, navigationStatusLabel } from "./navigation";
 
 describe("admin navigation", () => {
-  it("keeps implemented phase-one routes enabled", () => {
+  // Burada kullanıma açılmış operasyon rotalarının navigasyonda etkin kaldığını doğruluyorum.
+  it("keeps implemented operation routes enabled", () => {
     const enabledItems = navigationSections
       .flatMap((section) => section.items)
       .filter((item) => item.href);
 
     expect(enabledItems).toEqual([
-      { label: "Dashboard", href: "/dashboard", status: "available" },
+      { label: "Genel Bakış", href: "/dashboard", status: "available" },
       { label: "Siparişler", href: "/orders", status: "available" },
+      { label: "Müşteriler", href: "/customers", status: "available" },
+      { label: "İndirimler", href: "/coupons", status: "available" },
       { label: "Ürünler", href: "/products", status: "available" },
+      { label: "Koleksiyonlar", href: "/collections", status: "available" },
+      { label: "Stok İşlemleri", href: "/inventory/stock-movements", status: "available" },
+      { label: "Yöneticiler", href: "/managers", status: "available" },
+      { label: "Ayarlar", href: "/settings", status: "available" },
     ]);
+  });
+
+  // Burada yalnız uzun ve henüz kullanıma açılmamış bölümlerin açılır tutulduğunu doğruluyorum.
+  it("keeps primary operations visible and future groups collapsible", () => {
+    expect(navigationSections.filter((section) => section.collapsible).map((section) => section.label)).toEqual([
+      "Muhasebe",
+      "Pazaryeri Entegrasyonları",
+    ]);
+    expect(navigationSections.find((section) => section.label === "Muhasebe")?.status).toBe("in-development");
+    expect(navigationSections.find((section) => section.label === "Pazaryeri Entegrasyonları")?.status).toBe("future");
   });
 
   it("labels unavailable navigation items without inventing routes", () => {
@@ -21,6 +38,18 @@ describe("admin navigation", () => {
 
     expect(unavailableItems.every((item) => item.href === undefined)).toBe(true);
     expect(unavailableItems.some((item) => item.label === "Ürün Ekle")).toBe(false);
+    expect(unavailableItems.filter((item) => item.status === "in-development").map((item) => item.label)).toEqual([
+      "Genel Bakış",
+      "Cari Hesaplar",
+      "Alış Faturaları",
+      "Muhasebe Satış Siparişleri",
+      "Satış Faturaları",
+      "Ödemeler ve Tahsilatlar",
+      "Kasa ve Banka",
+      "Giderler",
+      "Raporlar",
+    ]);
+    expect(navigationStatusLabel("in-development")).toBe("Geliştirme aşamasında");
     expect(navigationStatusLabel("next")).toBe("Sırada");
     expect(navigationStatusLabel("planned")).toBe("Planlı");
     expect(navigationStatusLabel("future")).toBe("Yakında");

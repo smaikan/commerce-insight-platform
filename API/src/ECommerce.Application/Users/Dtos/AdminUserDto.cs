@@ -15,11 +15,13 @@ public sealed record AdminUserDto(
     DateTime? LastLoginAt,
     DateTime? PasswordChangedAt,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    int OrderCount = 0);
 
 public static class AdminUserDtoMapping
 {
-    public static AdminUserDto ToAdminDto(this User user)
+    // Burada yönetim kullanıcı cevabını isteğe bağlı sipariş sayısıyla oluşturuyorum.
+    public static AdminUserDto ToAdminDto(this User user, int orderCount = 0)
     {
         return new AdminUserDto(
             PublicIdCodec.EncodeUserId(user.Id),
@@ -32,6 +34,7 @@ public static class AdminUserDtoMapping
             user.LastLoginAt,
             user.PasswordChangedAt,
             user.CreatedAt,
-            user.UpdatedAt);
+            user.UpdatedAt,
+            orderCount);
     }
 }

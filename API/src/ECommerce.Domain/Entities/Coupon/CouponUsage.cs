@@ -6,7 +6,7 @@ public sealed class CouponUsage : BaseEntity
 {
     public Guid CouponId { get; private set; }
     public Coupon Coupon { get; private set; } = null!;
-    public long UserId { get; private set; }
+    public long? UserId { get; private set; }
     public Guid? OrderId { get; private set; }
     public DateTime UsedAt { get; private set; }
 
@@ -18,13 +18,13 @@ public sealed class CouponUsage : BaseEntity
     // Burada kupon, kullanÄ±cÄ±, isteÄŸe baÄŸlÄ± sipariÅŸ ve UTC kullanÄ±m zamanÄ±yla kullanÄ±m kaydÄ±nÄ± oluÅŸturuyorum.
     public CouponUsage(
         Guid couponId,
-        long userId,
+        long? userId,
         Guid? orderId = null,
         DateTime? usedAt = null)
     {
-        if (couponId == Guid.Empty || userId <= 0)
+        if (couponId == Guid.Empty || (userId.HasValue && userId.Value <= 0))
         {
-            throw new DomainException("Coupon id and user id are required.");
+            throw new DomainException("Coupon id is required and user id must be positive when supplied.");
         }
 
         if (orderId == Guid.Empty)
@@ -58,5 +58,21 @@ public sealed class CouponUsage : BaseEntity
         }
 
         OrderId = orderId;
+    }
+
+    // Burada guest sipariş claim edildiğinde kupon kullanımını aynı kullanıcıya bağlıyorum.
+    public void AssignToUser(long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new DomainException("Coupon usage user id must be positive.");
+        }
+
+        if (UserId.HasValue && UserId.Value != userId)
+        {
+            throw new DomainException("Coupon usage is already owned by another user.");
+        }
+
+        UserId = userId;
     }
 }
