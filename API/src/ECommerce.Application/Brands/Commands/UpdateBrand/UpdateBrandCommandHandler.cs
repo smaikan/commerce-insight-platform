@@ -12,6 +12,7 @@ public sealed class UpdateBrandCommandHandler : IRequestHandler<UpdateBrandComma
     private readonly IUrlGenerator _urlGenerator;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada marka güncelleme bağımlılıklarını hazırlıyorum.
     public UpdateBrandCommandHandler(
         IBrandRepository brandRepository,
         IUrlGenerator urlGenerator,
@@ -44,6 +45,7 @@ public sealed class UpdateBrandCommandHandler : IRequestHandler<UpdateBrandComma
         brand.Rename(request.Name);
         brand.ChangeUrl(url);
         brand.SetDescription(request.Description);
+        brand.SetImageUrl(request.ImageUrl);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

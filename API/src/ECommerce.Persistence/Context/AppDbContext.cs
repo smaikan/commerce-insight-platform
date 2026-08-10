@@ -44,6 +44,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<ReturnItem> ReturnItems => Set<ReturnItem>();
     public DbSet<ReturnRequest> ReturnRequests => Set<ReturnRequest>();
     public DbSet<ShippingMethod> ShippingMethods => Set<ShippingMethod>();
+    public DbSet<StorefrontBanner> StorefrontBanners => Set<StorefrontBanner>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<TaxRate> TaxRates => Set<TaxRate>();
     public DbSet<User> Users => Set<User>();

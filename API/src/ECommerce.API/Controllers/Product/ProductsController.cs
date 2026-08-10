@@ -15,6 +15,7 @@ using ECommerce.Application.Products.Queries.GetPublishedProducts;
 using ECommerce.Application.Products.Queries.GetPublishedProductByUrl;
 using ECommerce.Application.Products.Queries.GetProductSeoIndex;
 using ECommerce.Application.Products.Relations.Commands.UpdateProductRelations;
+using ECommerce.Application.Common.Models;
 using ECommerce.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -43,18 +44,59 @@ public sealed class ProductsController : ControllerBase
     [DisableRateLimiting]
     [HttpGet]
     [OutputCache(PolicyName = "public-products")]
-    public async Task<ActionResult> GetList([FromQuery] GetProductsQuery query, CancellationToken cancellationToken) =>
+    public async Task<ActionResult<PagedResult<ProductDto>>> GetList([FromQuery] GetProductsQuery query, CancellationToken cancellationToken) =>
         Ok(await _sender.Send(query, cancellationToken));
 
     // Burada storefront için yalnız yayımlanmış ürün kartlarını anonim olarak getiriyorum.
     [AllowAnonymous]
     [HttpGet("published")]
     [OutputCache(PolicyName = "public-products")]
-    public async Task<ActionResult> GetPublishedList(
+    public async Task<ActionResult<PagedResult<PublishedProductListItemDto>>> GetPublishedList(
         [FromQuery] GetPublishedProductsQuery query,
         CancellationToken cancellationToken) =>
         Ok(await _sender.Send(query, cancellationToken));
 
+    // Burada koleksiyona bağlı yayındaki ürünleri storefront için listeliyorum.
+    [AllowAnonymous]
+    [HttpGet("by-collection/{collectionId:guid}")]
+    [OutputCache(PolicyName = "public-products")]
+    public Task<ActionResult<PagedResult<PublishedProductListItemDto>>> GetPublishedByCollection(
+        Guid collectionId,
+        [FromQuery] PublishedProductListRequest request,
+        CancellationToken cancellationToken) =>
+        GetPublishedByFilterAsync(request, collectionId: collectionId, cancellationToken: cancellationToken);
+
+    // Burada etikete bağlı yayındaki ürünleri storefront için listeliyorum.
+    [AllowAnonymous]
+    [HttpGet("by-tag/{tagId:guid}")]
+    [OutputCache(PolicyName = "public-products")]
+    public Task<ActionResult<PagedResult<PublishedProductListItemDto>>> GetPublishedByTag(
+        Guid tagId,
+        [FromQuery] PublishedProductListRequest request,
+        CancellationToken cancellationToken) =>
+        GetPublishedByFilterAsync(request, tagId: tagId, cancellationToken: cancellationToken);
+
+    // Burada türe bağlı yayındaki ürünleri storefront için listeliyorum.
+    [AllowAnonymous]
+    [HttpGet("by-type/{typeId:guid}")]
+    [OutputCache(PolicyName = "public-products")]
+    public Task<ActionResult<PagedResult<PublishedProductListItemDto>>> GetPublishedByType(
+        Guid typeId,
+        [FromQuery] PublishedProductListRequest request,
+        CancellationToken cancellationToken) =>
+        GetPublishedByFilterAsync(request, typeId: typeId, cancellationToken: cancellationToken);
+
+    // Burada markaya bağlı yayındaki ürünleri storefront için listeliyorum.
+    [AllowAnonymous]
+    [HttpGet("by-brand/{brandId:guid}")]
+    [OutputCache(PolicyName = "public-products")]
+    public Task<ActionResult<PagedResult<PublishedProductListItemDto>>> GetPublishedByBrand(
+        Guid brandId,
+        [FromQuery] PublishedProductListRequest request,
+        CancellationToken cancellationToken) =>
+        GetPublishedByFilterAsync(request, brandId: brandId, cancellationToken: cancellationToken);
+
+    // Burada ürün URL'siyle storefront detay sorgusunu çalıştırıyorum.
     [AllowAnonymous]
     [HttpGet("by-url/{url}")]
     [OutputCache(PolicyName = "public-products")]
@@ -63,6 +105,7 @@ public sealed class ProductsController : ControllerBase
         CancellationToken cancellationToken) =>
         Ok(await _sender.Send(new GetPublishedProductByUrlQuery(url), cancellationToken));
 
+    // Burada arama motorları için yayındaki ürün URL listesini getiriyorum.
     [AllowAnonymous]
     [HttpGet("seo-index")]
     [OutputCache(PolicyName = "public-products")]
@@ -159,6 +202,7 @@ public sealed class ProductsController : ControllerBase
         CancellationToken cancellationToken) =>
         await EvictProductCacheAfterAsync(new SetProductFeaturedCommand(ApiPublicIdParser.ParseProductId(id), request.IsFeatured), cancellationToken);
 
+    // Burada adminin ürünün varyantlı sunum tercihini değiştirmesini sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpPatch("{id}/has-variants")]
     public Task<ActionResult<ProductDto>> SetHasVariants(
@@ -200,7 +244,32 @@ public sealed class ProductsController : ControllerBase
     // Burada liste ve detay yanıtlarının güncel kalması için ürün cache etiketini temizliyorum.
     private ValueTask EvictProductCacheAsync(CancellationToken _) =>
         _outputCacheStore.EvictByTagAsync("products", CancellationToken.None);
+
+    // Burada ayrı storefront sınıflandırma rotalarını ortak sorgu sözleşmesine dönüştürüyorum.
+    private async Task<ActionResult<PagedResult<PublishedProductListItemDto>>> GetPublishedByFilterAsync(
+        PublishedProductListRequest request,
+        Guid? typeId = null,
+        Guid? brandId = null,
+        Guid? collectionId = null,
+        Guid? tagId = null,
+        CancellationToken cancellationToken = default) =>
+        Ok(await _sender.Send(new GetPublishedProductsQuery(
+            request.PageNumber,
+            request.PageSize,
+            typeId,
+            brandId,
+            collectionId,
+            tagId,
+            request.SortBy,
+            request.Descending), cancellationToken));
 }
+
+// Burada ayrı storefront listeleme rotalarının ortak sayfalama ve sıralama alanlarını taşıyorum.
+public sealed record PublishedProductListRequest(
+    int PageNumber = 1,
+    int PageSize = 24,
+    PublishedProductSortBy SortBy = PublishedProductSortBy.Newest,
+    bool Descending = true);
 
 // Burada ürün temel bilgilerini güncelleyen HTTP isteğini taşıyorum.
 public sealed record UpdateProductRequest(
@@ -225,6 +294,7 @@ public sealed record SetActivationRequest(bool IsActive);
 // Burada ürün öne çıkarma isteğini taşıyorum.
 public sealed record SetFeaturedRequest(bool IsFeatured);
 
+// Burada ürünün varyantlı sunum tercihini taşıyorum.
 public sealed record SetHasVariantsRequest(bool HasVariants);
 
 // Burada ürünün tüm ilişki güncelleme isteğini taşıyorum.
@@ -233,9 +303,11 @@ public sealed record UpdateProductRelationsRequest(
     IReadOnlyList<ProductBundleItemRequest> BundleItems,
     IReadOnlyList<string>? Tags = null);
 
+// Burada toplu performans metriği güncelleme isteğini taşıyorum.
 public sealed record BulkReplaceProductPerformanceMetricsRequest(
     IReadOnlyList<ProductPerformanceMetricsRequest> Items);
 
+// Burada tek ürünün dış kaynaklı performans sayaçlarını taşıyorum.
 public sealed record ProductPerformanceMetricsRequest(
     string ProductId,
     long ClickCount,

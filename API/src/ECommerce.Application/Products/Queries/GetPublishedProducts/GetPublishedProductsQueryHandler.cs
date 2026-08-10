@@ -24,6 +24,10 @@ public sealed class GetPublishedProductsQueryHandler
             new PublishedProductListFilter(
                 request.PageNumber,
                 request.PageSize,
+                request.TypeId,
+                request.BrandId,
+                request.CollectionId,
+                request.TagId,
                 request.SortBy,
                 request.Descending),
             cancellationToken);

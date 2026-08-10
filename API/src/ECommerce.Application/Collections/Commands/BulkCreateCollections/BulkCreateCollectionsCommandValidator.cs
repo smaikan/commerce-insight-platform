@@ -4,6 +4,7 @@ namespace ECommerce.Application.Collections.Commands.BulkCreateCollections;
 
 public sealed class BulkCreateCollectionsCommandValidator : AbstractValidator<BulkCreateCollectionsCommand>
 {
+    // Burada toplu koleksiyon isteğinin adet ve alan sınırlarını tanımlıyorum.
     public BulkCreateCollectionsCommandValidator()
     {
         RuleFor(command => command.Collections)
@@ -23,6 +24,9 @@ public sealed class BulkCreateCollectionsCommandValidator : AbstractValidator<Bu
 
                 collection.RuleFor(item => item.Description)
                     .MaximumLength(1000);
+
+                collection.RuleFor(item => item.ImageUrl)
+                    .MaximumLength(500);
 
                 collection.RuleFor(item => item.DisplayOrder)
                     .GreaterThanOrEqualTo(0);

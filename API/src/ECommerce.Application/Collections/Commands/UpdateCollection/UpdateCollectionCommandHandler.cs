@@ -12,6 +12,7 @@ public sealed class UpdateCollectionCommandHandler : IRequestHandler<UpdateColle
     private readonly IUrlGenerator _urlGenerator;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada koleksiyon güncelleme bağımlılıklarını hazırlıyorum.
     public UpdateCollectionCommandHandler(
         ICollectionRepository collectionRepository,
         IUrlGenerator urlGenerator,
@@ -44,6 +45,7 @@ public sealed class UpdateCollectionCommandHandler : IRequestHandler<UpdateColle
         collection.Rename(request.Name);
         collection.ChangeUrl(url);
         collection.SetDescription(request.Description);
+        collection.SetImageUrl(request.ImageUrl);
         collection.SetDisplayOrder(request.DisplayOrder);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);

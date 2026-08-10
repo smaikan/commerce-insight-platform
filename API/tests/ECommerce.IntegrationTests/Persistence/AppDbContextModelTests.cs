@@ -52,6 +52,7 @@ public sealed class AppDbContextModelTests
             typeof(ProductType),
             typeof(ProductVariant),
             typeof(ProductVariantDailyMetric),
+            typeof(StorefrontBanner),
             typeof(Tag),
             typeof(User),
             typeof(UserRefreshToken),

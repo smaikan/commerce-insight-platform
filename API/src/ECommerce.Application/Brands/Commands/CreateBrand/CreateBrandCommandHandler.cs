@@ -13,6 +13,7 @@ public sealed class CreateBrandCommandHandler : IRequestHandler<CreateBrandComma
     private readonly IUrlGenerator _urlGenerator;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada marka oluşturma bağımlılıklarını hazırlıyorum.
     public CreateBrandCommandHandler(
         IBrandRepository brandRepository,
         IUrlGenerator urlGenerator,
@@ -35,7 +36,7 @@ public sealed class CreateBrandCommandHandler : IRequestHandler<CreateBrandComma
             throw new ConflictException("Brand url already exists.");
         }
 
-        var brand = new Brand(request.Name, url, request.Description, request.IsActive);
+        var brand = new Brand(request.Name, url, request.Description, request.IsActive, request.ImageUrl);
 
         await _brandRepository.AddAsync(brand, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

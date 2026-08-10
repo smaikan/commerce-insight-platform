@@ -13,7 +13,7 @@ namespace ECommerce.Persistence.Migrations
     [DbContext(typeof(AppDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
     {
-        // Burada güncel model snapshot'ında tarih odaklı analitik indeksini koruyorum.
+        // Burada güncel veri tabanı modelinin EF Core anlık görüntüsünü tanımlıyorum.
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
@@ -2173,6 +2173,10 @@ namespace ECommerce.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -2295,6 +2299,10 @@ namespace ECommerce.Persistence.Migrations
 
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("int");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -3240,10 +3248,10 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Date", "ProductId");
+
                     b.HasIndex("ProductId", "Date")
                         .IsUnique();
-
-                    b.HasIndex("Date", "ProductId");
 
                     b.ToTable("ProductDailyMetrics", (string)null);
                 });
@@ -3867,6 +3875,34 @@ namespace ECommerce.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_StockMovements_Type_Valid", "[Type] IN (1, 10, 11, 20, 21, 22, 23, 30, 31, 40, 41, 42, 50, 51, 60)");
                         });
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.StorefrontBanner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Slot")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slot")
+                        .IsUnique();
+
+                    b.ToTable("StorefrontBanners", (string)null);
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Tag", b =>

@@ -45,6 +45,7 @@ public sealed class ApiPipelineTests
         swagger.Should().Contain("/api/stock-movements");
         swagger.Should().Contain("/api/stock-movements/bulk");
         swagger.Should().Contain("/api/product-variants/{id}/stock-movements");
+        swagger.Should().Contain("/api/storefront-banners");
 
         using var document = JsonDocument.Parse(swagger);
         var schemas = document.RootElement
@@ -103,6 +104,25 @@ public sealed class ApiPipelineTests
         tagDtoProperties.GetProperty("name").GetProperty("type").GetString().Should().Be("string");
         tagDtoProperties.GetProperty("url").GetProperty("type").GetString().Should().Be("string");
         tagDtoProperties.GetProperty("isActive").GetProperty("type").GetString().Should().Be("boolean");
+
+        var brandDtoProperties = schemas
+            .GetProperty("BrandDto")
+            .GetProperty("properties");
+        brandDtoProperties.GetProperty("imageUrl").GetProperty("type").GetString().Should().Be("string");
+        brandDtoProperties.GetProperty("imageUrl").GetProperty("nullable").GetBoolean().Should().BeTrue();
+
+        var collectionDtoProperties = schemas
+            .GetProperty("CollectionDto")
+            .GetProperty("properties");
+        collectionDtoProperties.GetProperty("imageUrl").GetProperty("type").GetString().Should().Be("string");
+        collectionDtoProperties.GetProperty("imageUrl").GetProperty("nullable").GetBoolean().Should().BeTrue();
+
+        var storefrontBannerProperties = schemas
+            .GetProperty("StorefrontBannersDto")
+            .GetProperty("properties");
+        storefrontBannerProperties.GetProperty("mainBannerImageUrl").GetProperty("nullable").GetBoolean().Should().BeTrue();
+        storefrontBannerProperties.GetProperty("altBannerImageUrls").GetProperty("type").GetString().Should().Be("array");
+        storefrontBannerProperties.GetProperty("altBannerImageUrls").GetProperty("items").GetProperty("type").GetString().Should().Be("string");
 
         var variantDtoProperties = schemas
             .GetProperty("ProductVariantDto")

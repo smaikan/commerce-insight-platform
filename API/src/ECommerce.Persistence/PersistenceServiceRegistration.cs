@@ -66,6 +66,7 @@ public static class PersistenceServiceRegistration
         services.AddScoped<IGuestOrderRepository, GuestOrderRepository>();
         services.AddScoped<IReturnRequestRepository, ReturnRequestRepository>();
         services.AddScoped<IShippingMethodRepository, ShippingMethodRepository>();
+        services.AddScoped<IStorefrontBannerRepository, StorefrontBannerRepository>();
         services.AddScoped<ITaxRateRepository, TaxRateRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();

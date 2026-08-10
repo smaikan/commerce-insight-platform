@@ -8,5 +8,9 @@ namespace ECommerce.Application.Products.Queries.GetPublishedProducts;
 public sealed record GetPublishedProductsQuery(
     int PageNumber = 1,
     int PageSize = 24,
+    Guid? TypeId = null,
+    Guid? BrandId = null,
+    Guid? CollectionId = null,
+    Guid? TagId = null,
     PublishedProductSortBy SortBy = PublishedProductSortBy.Newest,
     bool Descending = true) : IRequest<PagedResult<PublishedProductListItemDto>>;

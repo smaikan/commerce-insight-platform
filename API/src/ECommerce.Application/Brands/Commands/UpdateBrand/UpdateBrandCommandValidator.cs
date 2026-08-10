@@ -4,6 +4,7 @@ namespace ECommerce.Application.Brands.Commands.UpdateBrand;
 
 public sealed class UpdateBrandCommandValidator : AbstractValidator<UpdateBrandCommand>
 {
+    // Burada marka güncelleme sözleşmesinin alan sınırlarını tanımlıyorum.
     public UpdateBrandCommandValidator()
     {
         RuleFor(command => command.Id)
@@ -18,5 +19,8 @@ public sealed class UpdateBrandCommandValidator : AbstractValidator<UpdateBrandC
 
         RuleFor(command => command.Description)
             .MaximumLength(1000);
+
+        RuleFor(command => command.ImageUrl)
+            .MaximumLength(500);
     }
 }

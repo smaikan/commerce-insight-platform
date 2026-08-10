@@ -6,6 +6,7 @@ namespace ECommerce.Persistence.Configurations;
 
 public sealed class CollectionConfiguration : IEntityTypeConfiguration<Collection>
 {
+    // Burada koleksiyon tablosunun alan ve indeks kurallarını tanımlıyorum.
     public void Configure(EntityTypeBuilder<Collection> builder)
     {
         builder.ToTable("Collections");
@@ -18,6 +19,9 @@ public sealed class CollectionConfiguration : IEntityTypeConfiguration<Collectio
 
         builder.Property(collection => collection.Description)
             .HasMaxLength(1000);
+
+        builder.Property(collection => collection.ImageUrl)
+            .HasMaxLength(500);
 
         builder.Property(collection => collection.Url)
             .HasMaxLength(200)
