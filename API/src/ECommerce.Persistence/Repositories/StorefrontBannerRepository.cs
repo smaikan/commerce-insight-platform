@@ -1,5 +1,6 @@
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Domain.Entities;
+using ECommerce.Domain.Enums;
 using ECommerce.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,35 +10,58 @@ public sealed class StorefrontBannerRepository : IStorefrontBannerRepository
 {
     private readonly AppDbContext _context;
 
-    // Burada storefront banner sorguları için aynı istek kapsamındaki DbContext'i hazırlıyorum.
+    // Burada banner bölüm sorguları için aynı istek kapsamındaki DbContext'i hazırlıyorum.
     public StorefrontBannerRepository(AppDbContext context)
     {
         _context = context;
     }
 
-    // Burada banner setini sabit alan sırasıyla ve takip etmeden getiriyorum.
-    public async Task<IReadOnlyList<StorefrontBanner>> GetAllAsync(
+    // Burada tek bölümün banner kayıtlarını aktiflik filtresi ve görünüm sırasıyla getiriyorum.
+    public async Task<IReadOnlyList<StorefrontBanner>> GetSectionAsync(
+        StorefrontBannerSection section,
+        bool activeOnly,
         CancellationToken cancellationToken = default)
     {
-        return await _context.StorefrontBanners
+        var query = _context.StorefrontBanners
             .AsNoTracking()
-            .OrderBy(banner => banner.Slot)
+            .Where(banner => banner.Section == section);
+
+        if (activeOnly)
+        {
+            query = query.Where(banner => banner.IsActive);
+        }
+
+        return await query
+            .OrderByDescending(banner => banner.IsMain)
+            .ThenBy(banner => banner.DisplayOrder)
+            .ThenBy(banner => banner.Key)
             .ToListAsync(cancellationToken);
     }
 
-    // Burada mevcut banner satırlarını güncelleyip kaldırılan ve eklenen alanları aynı değişiklik setine alıyorum.
-    public async Task ReplaceAsync(
+    // Burada yalnız hedef bölümün kayıtlarını anahtar üzerinden güncelliyor, ekliyor veya kaldırıyorum.
+    public async Task ReplaceSectionAsync(
+        StorefrontBannerSection section,
         IReadOnlyCollection<StorefrontBanner> banners,
         CancellationToken cancellationToken = default)
     {
-        var desiredBySlot = banners.ToDictionary(banner => banner.Slot);
-        var existingBanners = await _context.StorefrontBanners.ToListAsync(cancellationToken);
+        var desiredByKey = banners.ToDictionary(banner => banner.Key, StringComparer.OrdinalIgnoreCase);
+        var existingBanners = await _context.StorefrontBanners
+            .Where(banner => banner.Section == section)
+            .ToListAsync(cancellationToken);
 
         foreach (var existingBanner in existingBanners)
         {
-            if (desiredBySlot.Remove(existingBanner.Slot, out var desiredBanner))
+            if (desiredByKey.Remove(existingBanner.Key, out var desiredBanner))
             {
-                existingBanner.UpdateImageUrl(desiredBanner.ImageUrl);
+                existingBanner.Update(
+                    desiredBanner.Name,
+                    desiredBanner.MediaUrl,
+                    desiredBanner.MediaType,
+                    desiredBanner.TargetUrl,
+                    desiredBanner.AltText,
+                    desiredBanner.DisplayOrder,
+                    desiredBanner.IsActive,
+                    desiredBanner.IsMain);
             }
             else
             {
@@ -45,9 +69,9 @@ public sealed class StorefrontBannerRepository : IStorefrontBannerRepository
             }
         }
 
-        if (desiredBySlot.Count > 0)
+        if (desiredByKey.Count > 0)
         {
-            await _context.StorefrontBanners.AddRangeAsync(desiredBySlot.Values, cancellationToken);
+            await _context.StorefrontBanners.AddRangeAsync(desiredByKey.Values, cancellationToken);
         }
     }
 }

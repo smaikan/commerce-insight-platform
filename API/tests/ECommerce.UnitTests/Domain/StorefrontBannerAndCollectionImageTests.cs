@@ -20,24 +20,60 @@ public sealed class StorefrontBannerAndCollectionImageTests
         collection.ImageUrl.Should().BeNull();
     }
 
-    // Burada banner görsel URL değerinin zorunlu olduğunu doğruluyorum.
+    // Burada banner medya URL değerinin zorunlu olduğunu doğruluyorum.
     [Fact]
-    public void StorefrontBanner_Should_Reject_Empty_Image_Url()
+    public void StorefrontBanner_Should_Reject_Empty_Media_Url()
     {
-        var act = () => new StorefrontBanner(StorefrontBannerSlot.Main, " ");
+        var act = () => CreateBanner(StorefrontBannerSection.Main, mediaUrl: " ", isMain: true);
 
         act.Should().Throw<DomainException>();
     }
 
-    // Burada banner alanı ve URL değerinin temizlenmiş biçimde saklandığını doğruluyorum.
+    // Burada banner metinlerinin kırpılıp anahtarın küçük harfe normalleştirildiğini doğruluyorum.
     [Fact]
-    public void StorefrontBanner_Should_Store_Slot_And_Trim_Image_Url()
+    public void StorefrontBanner_Should_Normalize_Fields()
     {
-        var banner = new StorefrontBanner(
-            StorefrontBannerSlot.Alternate1,
-            " https://cdn.example.com/alt-1.jpg ");
+        var banner = CreateBanner(
+            StorefrontBannerSection.Main,
+            name: " Main Hero ",
+            key: "SUMMER_HERO",
+            mediaUrl: " https://cdn.example.com/hero.mp4 ",
+            mediaType: BannerMediaType.Video,
+            isMain: true);
 
-        banner.Slot.Should().Be(StorefrontBannerSlot.Alternate1);
-        banner.ImageUrl.Should().Be("https://cdn.example.com/alt-1.jpg");
+        banner.Name.Should().Be("Main Hero");
+        banner.Key.Should().Be("summer_hero");
+        banner.MediaUrl.Should().Be("https://cdn.example.com/hero.mp4");
+        banner.MediaType.Should().Be(BannerMediaType.Video);
+        banner.IsMain.Should().BeTrue();
     }
+
+    // Burada alt banner bölümündeki bir kaydın ana banner seçilemediğini doğruluyorum.
+    [Fact]
+    public void StorefrontBanner_Should_Reject_Main_Flag_In_Alternate_Section()
+    {
+        var act = () => CreateBanner(StorefrontBannerSection.AltBanner1, isMain: true);
+
+        act.Should().Throw<DomainException>();
+    }
+
+    // Burada domain testleri için geçerli varsayılan alanlarla banner kaydı oluşturuyorum.
+    private static StorefrontBanner CreateBanner(
+        StorefrontBannerSection section,
+        string name = "Banner",
+        string key = "banner-key",
+        string mediaUrl = "https://cdn.example.com/banner.jpg",
+        BannerMediaType mediaType = BannerMediaType.Image,
+        bool isMain = false) =>
+        new(
+            section,
+            name,
+            key,
+            mediaUrl,
+            mediaType,
+            "/collections/summer",
+            "Banner alt text",
+            0,
+            true,
+            isMain);
 }

@@ -45,9 +45,54 @@ public sealed class ApiPipelineTests
         swagger.Should().Contain("/api/stock-movements");
         swagger.Should().Contain("/api/stock-movements/bulk");
         swagger.Should().Contain("/api/product-variants/{id}/stock-movements");
-        swagger.Should().Contain("/api/storefront-banners");
+        foreach (var bannerPath in new[]
+        {
+            "/api/main-banners",
+            "/api/alt-banner-1",
+            "/api/alt-banner-2",
+            "/api/alt-banner-3",
+            "/api/alt-banner-4",
+            "/api/alt-banner-5"
+        })
+        {
+            swagger.Should().Contain(bannerPath);
+        }
 
         using var document = JsonDocument.Parse(swagger);
+        var paths = document.RootElement.GetProperty("paths");
+        paths.TryGetProperty("/api/storefront-banners", out _).Should().BeFalse();
+        foreach (var bannerPath in new[]
+        {
+            "/api/main-banners",
+            "/api/alt-banner-1",
+            "/api/alt-banner-2",
+            "/api/alt-banner-3",
+            "/api/alt-banner-4",
+            "/api/alt-banner-5"
+        })
+        {
+            paths.GetProperty(bannerPath).TryGetProperty("get", out _).Should().BeTrue();
+            paths.GetProperty(bannerPath).TryGetProperty("put", out _).Should().BeTrue();
+            paths.GetProperty($"{bannerPath}/admin").TryGetProperty("get", out _).Should().BeTrue();
+        }
+
+        foreach (var path in new[]
+        {
+            "/api/products/{id}",
+            "/api/product-images/{id}",
+            "/api/brands/{id}",
+            "/api/collections/{id}",
+            "/api/product-types/{id}",
+            "/api/tags/{id}"
+        })
+        {
+            paths.GetProperty(path)
+                .GetProperty("delete")
+                .GetProperty("responses")
+                .TryGetProperty("204", out _)
+                .Should().BeTrue($"{path} DELETE işlemi 204 sözleşmesi yayınlamalıdır");
+        }
+
         var schemas = document.RootElement
             .GetProperty("components")
             .GetProperty("schemas");
@@ -117,12 +162,24 @@ public sealed class ApiPipelineTests
         collectionDtoProperties.GetProperty("imageUrl").GetProperty("type").GetString().Should().Be("string");
         collectionDtoProperties.GetProperty("imageUrl").GetProperty("nullable").GetBoolean().Should().BeTrue();
 
-        var storefrontBannerProperties = schemas
-            .GetProperty("StorefrontBannersDto")
+        var bannerSectionProperties = schemas
+            .GetProperty("BannerSectionDto")
             .GetProperty("properties");
-        storefrontBannerProperties.GetProperty("mainBannerImageUrl").GetProperty("nullable").GetBoolean().Should().BeTrue();
-        storefrontBannerProperties.GetProperty("altBannerImageUrls").GetProperty("type").GetString().Should().Be("array");
-        storefrontBannerProperties.GetProperty("altBannerImageUrls").GetProperty("items").GetProperty("type").GetString().Should().Be("string");
+        bannerSectionProperties.GetProperty("name").GetProperty("type").GetString().Should().Be("string");
+        bannerSectionProperties.GetProperty("key").GetProperty("type").GetString().Should().Be("string");
+        bannerSectionProperties.GetProperty("items").GetProperty("type").GetString().Should().Be("array");
+        var bannerItemProperties = schemas
+            .GetProperty("BannerItemDto")
+            .GetProperty("properties");
+        foreach (var property in new[]
+        {
+            "id", "name", "key", "mediaUrl", "mediaType", "targetUrl", "altText",
+            "displayOrder", "isActive", "isMain"
+        })
+        {
+            bannerItemProperties.TryGetProperty(property, out _)
+                .Should().BeTrue($"BannerItemDto {property} alanını yayınlamalıdır");
+        }
 
         var variantDtoProperties = schemas
             .GetProperty("ProductVariantDto")
@@ -164,19 +221,19 @@ public sealed class ApiPipelineTests
         AssertOptionalProperty(bulkStockMovementSchema, "reason");
     }
 
-    // Burada canonical olmayan ürün public kimliklerinin 400 ProblemDetails döndürdüğünü doğruluyorum.
+    // Burada AdminOnly ürün detayının anonim isteği kimlik doğrulamadan önce 401 ile reddettiğini doğruluyorum.
     [Theory]
     [InlineData("/api/products/00000000-0000-0000-0000-000000000001")]
     [InlineData("/api/products/p00001")]
     [InlineData("/api/products/U00001")]
-    public async Task Invalid_Product_Public_Id_Should_Return_Bad_Request(string path)
+    public async Task Admin_Product_Detail_Should_Reject_Anonymous_Request_Before_Id_Validation(string path)
     {
         await using var factory = new TestApiFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync(path);
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
     }
 

@@ -1,6 +1,7 @@
 using ECommerce.API.Security;
 using ECommerce.Application.Collections.Commands.BulkCreateCollections;
 using ECommerce.Application.Collections.Commands.CreateCollection;
+using ECommerce.Application.Collections.Commands.DeleteCollection;
 using ECommerce.Application.Collections.Commands.SetCollectionActivation;
 using ECommerce.Application.Collections.Commands.SetCollectionFeatured;
 using ECommerce.Application.Collections.Commands.UpdateCollection;
@@ -40,6 +41,15 @@ public sealed class CollectionsController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<CollectionDto>), StatusCodes.Status201Created)]
     [Authorize(Policy = AuthorizationPolicies.AdminOnly), HttpPost("bulk")]
     public async Task<ActionResult<IReadOnlyList<CollectionDto>>> BulkCreate(BulkCreateCollectionsCommand command, CancellationToken cancellationToken) => StatusCode(201, await _sender.Send(command, cancellationToken));
+
+    // Burada yalnız yöneticinin koleksiyonu ürünleri koruyup bağlantıları kaldırarak silmesine izin veriyorum.
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly), HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        await _sender.Send(new DeleteCollectionCommand(id), cancellationToken);
+        return NoContent();
+    }
 
     // Burada yalnız yöneticinin koleksiyon alanlarını güncellemesine izin veriyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly), HttpPut("{id:guid}")]

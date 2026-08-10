@@ -3067,6 +3067,9 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Description")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
@@ -3144,10 +3147,13 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasIndex("BrandId");
 
+                    b.HasIndex("DeletedAtUtc");
+
                     b.HasIndex("DisplayOrder");
 
                     b.HasIndex("MainSku")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[DeletedAtUtc] IS NULL");
 
                     b.HasIndex("PopularityScore");
 
@@ -3158,7 +3164,8 @@ namespace ECommerce.Persistence.Migrations
                     b.HasIndex("TypeId");
 
                     b.HasIndex("Url")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[DeletedAtUtc] IS NULL");
 
                     b.ToTable("Products", (string)null);
                 });
@@ -3883,26 +3890,65 @@ namespace ECommerce.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AltText")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("ImageUrl")
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsMain")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("MediaType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MediaUrl")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<int>("Slot")
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("Section")
                         .HasColumnType("int");
+
+                    b.Property<string>("TargetUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Slot")
+                    b.HasIndex("Section", "Key")
                         .IsUnique();
 
-                    b.ToTable("StorefrontBanners", (string)null);
+                    b.HasIndex("Section", "IsActive", "DisplayOrder");
+
+                    b.ToTable("StorefrontBanners", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_StorefrontBanners_DisplayOrder", "[DisplayOrder] >= 0");
+
+                            t.HasCheckConstraint("CK_StorefrontBanners_IsMainSection", "[IsMain] = 0 OR [Section] = 0");
+
+                            t.HasCheckConstraint("CK_StorefrontBanners_MediaType", "[MediaType] IN (1, 2)");
+                        });
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Tag", b =>
@@ -4857,7 +4903,7 @@ namespace ECommerce.Persistence.Migrations
                     b.HasOne("ECommerce.Domain.Entities.ProductType", "Type")
                         .WithMany("Products")
                         .HasForeignKey("TypeId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Brand");
 

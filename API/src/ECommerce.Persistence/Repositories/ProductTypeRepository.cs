@@ -10,6 +10,7 @@ public sealed class ProductTypeRepository : IProductTypeRepository
 {
     private readonly AppDbContext _context;
 
+    // Burada ürün türü repository'sini aynı istek kapsamındaki DbContext ile hazırlıyorum.
     public ProductTypeRepository(AppDbContext context)
     {
         _context = context;
@@ -48,6 +49,13 @@ public sealed class ProductTypeRepository : IProductTypeRepository
             .FirstOrDefaultAsync(type => type.Id == id, cancellationToken);
     }
 
+    // Burada takip edilen ürün türünü kalıcı depodan siliyorum.
+    public void Remove(ProductType productType)
+    {
+        _context.ProductTypes.Remove(productType);
+    }
+
+    // Burada adları eşleşen ürün türlerini takip etmeden getiriyorum.
     public async Task<IReadOnlyList<ProductType>> GetByNamesAsync(IEnumerable<string> names, CancellationToken cancellationToken = default)
     {
         var normalizedNames = names.Where(name => !string.IsNullOrWhiteSpace(name))

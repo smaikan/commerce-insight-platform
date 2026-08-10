@@ -10,6 +10,7 @@ public sealed class BrandRepository : IBrandRepository
 {
     private readonly AppDbContext _context;
 
+    // Burada marka repository'sini aynı istek kapsamındaki DbContext ile hazırlıyorum.
     public BrandRepository(AppDbContext context)
     {
         _context = context;
@@ -46,6 +47,12 @@ public sealed class BrandRepository : IBrandRepository
     {
         return _context.Brands
             .FirstOrDefaultAsync(brand => brand.Id == id, cancellationToken);
+    }
+
+    // Burada takip edilen markayı kalıcı depodan siliyorum.
+    public void Remove(Brand brand)
+    {
+        _context.Brands.Remove(brand);
     }
 
     // Burada markaları ada göre sıralı şekilde getiriyorum.

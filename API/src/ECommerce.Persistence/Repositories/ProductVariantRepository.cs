@@ -30,7 +30,10 @@ public sealed class ProductVariantRepository : IProductVariantRepository
     {
         return _context.ProductVariants
             .AsNoTracking()
-            .FirstOrDefaultAsync(variant => variant.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(
+                variant => variant.Id == id && _context.Products.Any(product =>
+                    product.Id == variant.ProductId && product.DeletedAtUtc == null),
+                cancellationToken);
     }
 
     // Burada ürün varyantını güncelleme için takipli şekilde getiriyorum.
@@ -40,7 +43,10 @@ public sealed class ProductVariantRepository : IProductVariantRepository
             .Include(variant => variant.Product)
                 .ThenInclude(product => product.TaxRate)
             .Include(variant => variant.OptionValues)
-            .FirstOrDefaultAsync(variant => variant.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(
+                variant => variant.Id == id && _context.Products.Any(product =>
+                    product.Id == variant.ProductId && product.DeletedAtUtc == null),
+                cancellationToken);
     }
 
     // Burada checkout işlemlerinde kilit alma sırasını tutarlı kılmak için varyantları artan kimlikle takipli getiriyorum.
@@ -50,7 +56,10 @@ public sealed class ProductVariantRepository : IProductVariantRepository
     {
         var variantIds = ids.Where(id => id != Guid.Empty).Distinct().OrderBy(id => id).ToList();
         return await _context.ProductVariants
-            .Where(variant => variantIds.Contains(variant.Id))
+            .Where(variant =>
+                variantIds.Contains(variant.Id) &&
+                _context.Products.Any(product =>
+                    product.Id == variant.ProductId && product.DeletedAtUtc == null))
             .OrderBy(variant => variant.Id)
             .ToListAsync(cancellationToken);
     }
@@ -64,7 +73,10 @@ public sealed class ProductVariantRepository : IProductVariantRepository
     {
         var query = _context.ProductVariants
             .AsNoTracking()
-            .Where(variant => variant.ProductId == productId);
+            .Where(variant =>
+                variant.ProductId == productId &&
+                _context.Products.Any(product =>
+                    product.Id == variant.ProductId && product.DeletedAtUtc == null));
 
         var totalCount = await query.CountAsync(cancellationToken);
         var variants = await query
@@ -78,7 +90,12 @@ public sealed class ProductVariantRepository : IProductVariantRepository
 
     // Burada son varyant koruması için ürüne bağlı varyant sayısını okuyorum.
     public Task<int> CountByProductIdAsync(long productId, CancellationToken cancellationToken = default) =>
-        _context.ProductVariants.CountAsync(variant => variant.ProductId == productId, cancellationToken);
+        _context.ProductVariants.CountAsync(
+            variant =>
+                variant.ProductId == productId &&
+                _context.Products.Any(product =>
+                    product.Id == variant.ProductId && product.DeletedAtUtc == null),
+            cancellationToken);
 
     // Burada audit geçmişini korumak için varyanta bağlı stok hareketi olup olmadığını kontrol ediyorum.
     public Task<bool> HasStockMovementsAsync(

@@ -1,6 +1,7 @@
 using ECommerce.API.Security;
 using ECommerce.Application.Brands.Commands.BulkCreateBrands;
 using ECommerce.Application.Brands.Commands.CreateBrand;
+using ECommerce.Application.Brands.Commands.DeleteBrand;
 using ECommerce.Application.Brands.Commands.SetBrandActivation;
 using ECommerce.Application.Brands.Commands.UpdateBrand;
 using ECommerce.Application.Brands.Dtos;
@@ -39,6 +40,15 @@ public sealed class BrandsController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<BrandDto>), StatusCodes.Status201Created)]
     [Authorize(Policy = AuthorizationPolicies.AdminOnly), HttpPost("bulk")]
     public async Task<ActionResult<IReadOnlyList<BrandDto>>> BulkCreate(BulkCreateBrandsCommand command, CancellationToken cancellationToken) => StatusCode(201, await _sender.Send(command, cancellationToken));
+
+    // Burada yalnız yöneticinin markayı bağlı ürünleri koruyarak silmesine izin veriyorum.
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly), HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        await _sender.Send(new DeleteBrandCommand(id), cancellationToken);
+        return NoContent();
+    }
 
     // Burada yalnız yöneticinin marka alanlarını güncellemesine izin veriyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly), HttpPut("{id:guid}")]

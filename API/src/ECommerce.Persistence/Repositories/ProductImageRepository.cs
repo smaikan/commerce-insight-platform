@@ -10,6 +10,7 @@ public sealed class ProductImageRepository : IProductImageRepository
 {
     private readonly AppDbContext _context;
 
+    // Burada ürün görseli repository'sini aynı istek kapsamındaki DbContext ile hazırlıyorum.
     public ProductImageRepository(AppDbContext context)
     {
         _context = context;
@@ -21,6 +22,7 @@ public sealed class ProductImageRepository : IProductImageRepository
         await _context.ProductImages.AddAsync(image, cancellationToken);
     }
 
+    // Burada takip edilen ürün görselini kalıcı depodan siliyorum.
     public void Remove(ProductImage image) => _context.ProductImages.Remove(image);
 
     // Burada ürün görselini okuma amaçlı takip etmeden getiriyorum.
@@ -28,11 +30,24 @@ public sealed class ProductImageRepository : IProductImageRepository
     {
         return _context.ProductImages
             .AsNoTracking()
-            .FirstOrDefaultAsync(image => image.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(
+                image => image.Id == id && _context.Products.Any(product =>
+                    product.Id == image.ProductId && product.DeletedAtUtc == null),
+                cancellationToken);
     }
 
     // Burada ürün görselini güncelleme için takipli şekilde getiriyorum.
     public Task<ProductImage?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return _context.ProductImages
+            .FirstOrDefaultAsync(
+                image => image.Id == id && _context.Products.Any(product =>
+                    product.Id == image.ProductId && product.DeletedAtUtc == null),
+                cancellationToken);
+    }
+
+    // Burada silinmiş ürünlere ait kayıtları da kapsayarak görseli bağımsız silme için takipli getiriyorum.
+    public Task<ProductImage?> GetByIdForDeletionAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return _context.ProductImages
             .FirstOrDefaultAsync(image => image.Id == id, cancellationToken);
@@ -76,7 +91,10 @@ public sealed class ProductImageRepository : IProductImageRepository
     {
         var query = _context.ProductImages
             .AsNoTracking()
-            .Where(image => image.ProductId == productId);
+            .Where(image =>
+                image.ProductId == productId &&
+                _context.Products.Any(product =>
+                    product.Id == image.ProductId && product.DeletedAtUtc == null));
 
         var totalCount = await query.CountAsync(cancellationToken);
         var images = await query
