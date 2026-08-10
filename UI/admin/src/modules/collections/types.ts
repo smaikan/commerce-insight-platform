@@ -12,3 +12,14 @@ export type CollectionListQuery = {
   pageNumber: number;
   pageSize: number;
 };
+
+// Burada koleksiyon formunun tam, kısmi ve hatalı kayıt sonuçlarını istemcide güvenle taşıyorum.
+export type CollectionActionState = {
+  status: "idle" | "success" | "partial" | "error";
+  message?: string;
+  fieldErrors?: Record<string, string[]>;
+  traceId?: string;
+  collectionId?: string;
+};
+
+export const initialCollectionActionState: CollectionActionState = { status: "idle" };

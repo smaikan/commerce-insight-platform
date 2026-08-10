@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api/problem";
 import { requireAdminPageSession } from "@/lib/auth/session";
 import { PageHeader } from "@/modules/admin-shell/components/page-header";
-import { updateManualCollectionAction } from "@/modules/collections/actions";
 import { getCollection } from "@/modules/collections/api";
 import { CollectionForm } from "@/modules/collections/components/collection-form";
 import { CollectionStatusPanel } from "@/modules/collections/components/collection-status-panel";
@@ -27,7 +26,7 @@ export default async function EditCollectionPage({ params, searchParams }: { par
     <div className="mx-auto w-full max-w-5xl">
       <PageHeader title="Koleksiyonu düzenle" description="Manuel koleksiyon bilgilerini ve yayın durumunu yönetin." backHref="/collections" />
       <CollectionEditNotice params={query} />
-      <CollectionForm action={updateManualCollectionAction.bind(null, collection.id)} collection={collection} mode="edit" />
+      <CollectionForm collection={collection} mode="edit" />
       <CollectionStatusPanel collection={collection} />
     </div>
   );
@@ -49,6 +48,7 @@ function CollectionEditNotice({ params }: { params: Record<string, string | stri
     return <p role="alert" className="mb-5 rounded-xl border border-danger/30 bg-red-50 px-4 py-3 text-sm text-red-900">{message}</p>;
   }
   if (params.updated === "1") return <p role="status" className="mb-5 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">Koleksiyon bilgileri güncellendi.</p>;
+  if (params.created === "1") return <p role="status" className="mb-5 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">Koleksiyon oluşturuldu.</p>;
   if (params.status === "activation") return <p role="status" className="mb-5 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">Koleksiyon aktiflik durumu güncellendi.</p>;
   if (params.status === "featured") return <p role="status" className="mb-5 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">Koleksiyon vitrin durumu güncellendi.</p>;
   return null;

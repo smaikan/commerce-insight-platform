@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { CatalogResource } from "@/modules/settings/catalog-resource";
 import type { CatalogItem, CatalogPage } from "@/modules/settings/catalog-types";
 import { CatalogActivationButton } from "@/modules/settings/components/catalog-activation-button";
+import { CatalogDeleteButton } from "@/modules/settings/components/catalog-delete-button";
 import { SettingsPagination } from "@/modules/settings/components/settings-pagination";
 import { SettingsStatusBadge } from "@/modules/settings/components/status-badge";
 import type { SettingsListQuery } from "@/modules/settings/types";
@@ -35,7 +36,7 @@ function CatalogRow({ resource, item }: { resource: CatalogResource; item: Catal
       <td className="px-5 py-3"><Link href={`/settings/catalog/${resource}/${item.id}`} className="font-semibold text-foreground hover:text-primary-hover">{item.name}</Link><p className="mt-0.5 font-mono text-[11px] text-muted">{item.id}</p></td>
       <td className="max-w-md px-3 py-3 text-xs leading-5 text-muted">{detail}</td>
       <td className="px-3 py-3"><SettingsStatusBadge active={item.isActive} /></td>
-      <td className="px-5 py-3"><div className="flex items-start justify-end gap-2"><Link href={`/settings/catalog/${resource}/${item.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-border-strong bg-surface-strong px-3 text-xs font-semibold text-foreground hover:bg-surface-subtle">Düzenle</Link><CatalogActivationButton resource={resource} id={item.id} isActive={item.isActive} name={item.name} /></div></td>
+      <td className="px-5 py-3"><div className="flex items-start justify-end gap-2"><Link href={`/settings/catalog/${resource}/${item.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-border-strong bg-surface-strong px-3 text-xs font-semibold text-foreground hover:bg-surface-subtle">Düzenle</Link><CatalogActivationButton resource={resource} id={item.id} isActive={item.isActive} name={item.name} /><CatalogDeleteButton resource={resource} id={item.id} name={item.name} /></div></td>
     </tr>
   );
 }

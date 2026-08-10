@@ -7,7 +7,8 @@ describe("settings catalog", () => {
     expect(availableSettingsOptions.map((option) => [option.title, option.href])).toEqual([
       ["Kargo yöntemleri", "/settings/shipping-methods"],
       ["Koleksiyonlar", "/collections"],
-      ["Katalog tanımları", "/settings/catalog/brands"],
+      ["Markalar", "/brands"],
+      ["Katalog tanımları", "/settings/catalog/product-types"],
       ["Vergi oranları", "/settings/tax-rates"],
       ["Hesabım", "/settings/account"],
       ["Yöneticiler", "/managers"],

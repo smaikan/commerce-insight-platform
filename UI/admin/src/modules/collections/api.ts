@@ -26,6 +26,11 @@ export function updateCollection(id: string, input: components["schemas"]["Colle
   return apiRequest(`/api/collections/${encodeURIComponent(id)}`, { method: "PUT", body: input, accessToken: session.accessToken });
 }
 
+// Burada hiçbir ürüne bağlı olmayan koleksiyonu güvenli silme endpoint'ine gönderiyorum.
+export function deleteCollection(id: string, session: AdminSession): Promise<void> {
+  return apiRequest(`/api/collections/${encodeURIComponent(id)}`, { method: "DELETE", accessToken: session.accessToken });
+}
+
 // Burada koleksiyonun satışta kullanılabilirlik durumunu özel endpoint üzerinden değiştiriyorum.
 export function setCollectionActivation(id: string, isActive: boolean, session: AdminSession): Promise<Collection> {
   return apiRequest(`/api/collections/${encodeURIComponent(id)}/activation`, { method: "PATCH", body: { isActive }, accessToken: session.accessToken });

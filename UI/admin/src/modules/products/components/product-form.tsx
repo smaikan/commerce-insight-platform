@@ -220,7 +220,8 @@ export function ProductForm({
           </FormSection>
 
           <ProductMediaEditor
-            key={mediaEditorRevision}
+            key={`${mediaEditorRevision}:${images.map((image) => image.id).join(",")}`}
+            productId={product?.id}
             images={images}
             disabled={mediaPhase === "uploading" || mediaPhase === "registering"}
             onDirty={() => setDirty(true)}

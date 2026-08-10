@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { hasProductFilters, productStatusOptions } from "@/modules/products/query";
 import { ProductThumbnail } from "@/modules/products/components/product-thumbnail";
+import { ProductRowActions } from "@/modules/products/components/product-row-actions";
 import type { PagedResult, Product, ProductListQuery } from "@/modules/products/types";
 
 const statusClasses: Record<number, string> = {
@@ -111,15 +112,7 @@ export function ProductTable({
                   <p className="mt-1 text-xs text-muted">{product.brandName || "Marka atanmamış"}</p>
                 </td>
                 <td className="px-1.5 py-2.5 text-right">
-                  <Link
-                    href={productHref}
-                    aria-label={`${product.title} ürününü düzenle`}
-                    className="inline-flex size-8 items-center justify-center rounded-lg border border-transparent text-muted transition-colors hover:border-border hover:bg-surface-strong hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                  >
-                    <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4 fill-none stroke-current stroke-2">
-                      <path d="m7 4 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </Link>
+                  <ProductRowActions id={product.id} title={product.title} status={product.status} />
                 </td>
               </tr>
             );

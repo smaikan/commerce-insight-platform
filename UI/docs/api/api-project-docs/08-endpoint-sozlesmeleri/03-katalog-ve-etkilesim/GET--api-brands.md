@@ -3,7 +3,7 @@
 - İşlev alanı: **03 Katalog ve ürün etkileşimi**
 - İşlev: Kaynağı veya filtrelenmiş kaynak listesini okur.
 - Operation ID: `GET-/api/brands`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Yetki: `AllowAnonymous` (Public).
 - Content-Type: request body varsa `application/json` gönderin.
 - Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
@@ -20,5 +20,26 @@ Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, 
 
 ## Başarılı response (200)
 
-Response body yoktur.
+`BrandDtoPagedResult` döner. `imageUrl` opsiyoneldir ve görsel atanmamışsa `null` olur.
+
+```json
+{
+  "items": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "name": "Örnek Marka",
+      "description": "Marka açıklaması",
+      "url": "ornek-marka",
+      "isActive": true,
+      "imageUrl": "https://cdn.example.com/brands/ornek-marka.png"
+    }
+  ],
+  "pageNumber": 1,
+  "pageSize": 20,
+  "totalCount": 1,
+  "totalPages": 1,
+  "hasPreviousPage": false,
+  "hasNextPage": false
+}
+```
 

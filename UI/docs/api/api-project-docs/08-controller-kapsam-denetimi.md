@@ -2,7 +2,7 @@
 
 ## 3 Ağustos 2026 guest checkout güncellemesi
 
-Güncel controller keşif testi **222 endpoint** bulur. Önceki sayımlara eklenen guest kapsamı 11 endpointtir:
+Güncel runtime Swagger keşfi **254 endpoint** bulur. Önceki sayımlara eklenen guest kapsamı 11 endpointtir:
 
 | Route | Yetki | Başarı/bağlam |
 | --- | --- | --- |
@@ -14,13 +14,13 @@ Güncel controller keşif testi **222 endpoint** bulur. Önceki sayımlara eklen
 | `GET/POST /api/guest-orders/{id}/returns`, `GET .../{returnId}` | Guest session | İade liste/create/detail |
 | `POST /api/guest-orders/claim` | JWT + verified guest session + CSRF + Origin | Aynı e-postadaki sahipsiz siparişleri bağlar |
 
-Bu bölümde aşağıda görünen eski 206/40 sayıları tarihsel envanterdir; güncel OpenAPI ve controller audit için 222 sayısı kullanılır.
+Bu bölümde aşağıda görünen eski 206/40 sayıları tarihsel envanterdir; güncel OpenAPI ve controller audit için 254 sayısı kullanılır.
 
 Bu denetim 29 Temmuz 2026'da `API/src/ECommerce.API/Controllers` altındaki 33 controller doğrudan okunarak yapıldı. Route, HTTP fiili ve yetki için controller attribute'ları kaynak kabul edilmiştir.
 
 ## Sonuç
 
-- Kaynak kodda **206 endpoint** bulunuyor: auth/kullanıcı 23, katalog 59, sepet-sipariş-iade-yönetim 40 ve muhasebe 84.
+- Güncel runtime Swagger sözleşmesinde **254 endpoint** bulunuyor; aşağıdaki alan tabloları yetki ve davranış denetimini özetler.
 - Eski fonksiyonel belgeler alanları anlatıyor; fakat her endpoint için ayrı request şeması ve başarılı JSON response örneği standardı yok. En büyük eksik muhasebe raporlarıdır: 28 route tek paragrafta özetlenmişti.
 - Bu belge route kaçırılmasını önleyen zorunlu kontrol listesidir. `Public`: token yok; `User`: JWT ve sahiplik; `Admin`: JWT + `AdminOnly`/Admin rolü. Sayfalı yanıt `PagedResult<T>`dir.
 
@@ -49,17 +49,19 @@ Bu denetim 29 Temmuz 2026'da `API/src/ECommerce.API/Controllers` altındaki 33 c
 
 `LoginRequest={email,password,deviceName?}`, `RefreshTokenRequest={refreshToken,deviceName?}`, `LogoutRequest={refreshToken}`. User ID raw sayısal değil, `U` prefixli public ID'dir.
 
-## Katalog (59)
+## Katalog
 
 | Kaynak | Yetki ve gerçek endpointler | Mantık / başarı |
 | --- | --- | --- |
-| Products (9) | Public: `GET /api/products`, `GET /api/products/{productId}`. Admin: `POST /api/products`, `POST /bulk`, `PUT /{productId}`, `PATCH /{productId}/status`, `/featured`, `/has-variants`, `PUT /{productId}/relations`. | Ürün satışa açıklığı yalnız `status=Active` ile belirlenir. `hasVariants` kalıcı seçimdir; tek varyantlı ürün false ile ana/tek ürün gibi listelenir, çok varyantlı ürün true olmalıdır. Create/bulk 201, relations 204 döner. `P…` public product ID kullanılır. |
+| Products (19) | Public: `GET /published`, `/by-url/{url}`, `/seo-index`, `/by-collection/{collectionId}`, `/by-tag/{tagId}`, `/by-type/{typeId}`, `/by-brand/{brandId}`. Admin: `GET /api/products`, `GET /{productId}`, `POST /`, `POST /bulk`, `DELETE /{productId}`, `PUT /performance-metrics`, `PUT /{productId}`, `PATCH /{productId}/status`, `/activation`, `/featured`, `/has-variants`, `PUT /{productId}/relations`. | Delete 204 ile idempotent soft-delete uygular; operasyon geçmişi korunur ve ürün katalog okumalarından gizlenir. Admin ve storefront listeleri tür, marka, koleksiyon ve etiket filtrelerini destekler. `P…` public product ID kullanılır. |
 | Product variants (8) | Public: `GET /api/product-variants/{id}`, `GET /by-product/{productId}`. Admin: `POST /by-product/{productId}`, `PUT /{id}`, `PATCH /{id}/price`, `POST /{id}/stock-movements`, `PATCH /{id}/activation`, `DELETE /{id}`. | Detay/mutasyon `ProductVariantDto`, create 201, delete 204. Stok doğrudan set edilmez; hareket yazılır. |
 | Images (5) | Public: `GET /api/product-images/{id}`, `GET /by-product/{productId}`. Admin: `POST /by-product/{productId}`, `PUT /{id}`, `DELETE /{id}`. | `ProductImageDto`/liste, create 201, delete 204. |
-| Brands (6) | Public: `GET /api/brands`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`. | Liste, detay, create, update ve aktiflik. |
-| Collections (7) | Public: `GET /api/collections`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `PATCH /{id}/featured`. | Liste, detay ve vitrin koleksiyonu yönetimi. |
-| Tags (6) | Public: `GET /api/tags`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`. | Liste, detay ve tag yönetimi. |
-| Product types (6) | Public: `GET /api/product-types`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`. | Liste, detay ve ürün tipi yönetimi. |
+| Brands (7) | Public: `GET /api/brands`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `DELETE /{id}`. | Delete 204; bağlı ürün korunur ve `brandId=null` olur. |
+| Collections (8) | Public: `GET /api/collections`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `PATCH /{id}/featured`, `DELETE /{id}`. | Delete 204; ürün korunur, yalnız koleksiyon bağlantısı kaldırılır. |
+| MainBanners (3) | Public: `GET /api/main-banners`. Admin: `GET /admin`, `PUT /api/main-banners`. | En fazla 5 resim/video; tek aktif main seçimi ilk sıraya normalize edilir. |
+| AltBanner1–5 (15) | Her bölümde Public `GET /api/alt-banner-{1..5}`. Admin: ilgili `/admin` GET ve kök PUT. | Beş bağımsız bölümün her biri en fazla 5 resim/video taşır; bölüm güncellemeleri birbirini etkilemez. |
+| Tags (7) | Public: `GET /api/tags`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `DELETE /{id}`. | Delete 204; ürün korunur, yalnız etiket bağlantısı kaldırılır. |
+| Product types (7) | Public: `GET /api/product-types`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `DELETE /{id}`. | Delete 204; bağlı ürün korunur ve `typeId=null` olur. |
 | Engagement (9) | User: `GET /api/product-engagement/favorites`, `POST/DELETE /products/{productId}/favorites`, `PUT /products/{productId}/rating`, `POST /products/{productId}/reviews`, `POST /products/{productId}/activities`. Public: `GET /products/{productId}/reviews`. Admin: `PATCH /reviews/{reviewId}/approval`, `GET /products/{productId}/metrics`. | Favori, puan, inceleme, aktivite ve analitik. Favori/rating/activity çoğunlukla 204; inceleme 201; reviews sayfalıdır. |
 | Stock movements (3) | Admin: `POST /api/stock-movements/bulk`, `GET /`, `GET /variants/{productVariantId}/balance`. | Atomik bulk hareket, defter `PagedResult<StockMovementDto>`, bakiye `StockBalanceDto`. |
 

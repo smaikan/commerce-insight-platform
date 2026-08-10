@@ -20,5 +20,5 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
   let item: CatalogItem;
   try { item = await getCatalogItem(resource, id, session); } catch (error) { if (error instanceof ApiError && error.problem.status === 404) notFound(); throw error; }
   const config = catalogResourceConfigs[resource];
-  return <div className="mx-auto w-full max-w-screen-2xl"><PageHeader title={`${config.singularTitle} düzenle`} description={item.name} backHref={`/settings/catalog/${resource}`} /><SettingsFrame activeHref="/settings/catalog/brands"><CatalogTabs activeResource={resource} /><CatalogForm resource={resource} item={item} /></SettingsFrame></div>;
+  return <div className="mx-auto w-full max-w-screen-2xl"><PageHeader title={`${config.singularTitle} düzenle`} description={item.name} backHref={`/settings/catalog/${resource}`} /><SettingsFrame activeHref="/settings/catalog/product-types"><CatalogTabs activeResource={resource} /><CatalogForm resource={resource} item={item} /></SettingsFrame></div>;
 }

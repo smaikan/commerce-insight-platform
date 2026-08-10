@@ -15,10 +15,21 @@ describe("admin navigation", () => {
       { label: "İndirimler", href: "/coupons", status: "available" },
       { label: "Ürünler", href: "/products", status: "available" },
       { label: "Koleksiyonlar", href: "/collections", status: "available" },
+      { label: "Markalar", href: "/brands", status: "available" },
       { label: "Stok İşlemleri", href: "/inventory/stock-movements", status: "available" },
+      { label: "Bannerlar", href: "/banners", status: "available" },
       { label: "Yöneticiler", href: "/managers", status: "available" },
       { label: "Ayarlar", href: "/settings", status: "available" },
     ]);
+  });
+
+  // Burada vitrin banner yönetiminin katalog ve stok grubundan hemen sonra bağımsız bir bölümde yer aldığını doğruluyorum.
+  it("places banners in the storefront section after catalog operations", () => {
+    const catalogIndex = navigationSections.findIndex((section) => section.label === "Katalog ve Stok");
+    expect(navigationSections[catalogIndex + 1]).toEqual({
+      label: "Vitrin",
+      items: [{ label: "Bannerlar", href: "/banners", status: "available" }],
+    });
   });
 
   // Burada yalnız uzun ve henüz kullanıma açılmamış bölümlerin açılır tutulduğunu doğruluyorum.

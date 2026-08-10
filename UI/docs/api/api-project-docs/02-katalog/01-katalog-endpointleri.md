@@ -6,11 +6,16 @@ Storefront katalog endpointleri Public; yönetim listesi ve yazma endpointleri A
 
 | Method | Endpoint | Yetki | Amaç |
 | --- | --- | --- | --- |
-| GET | `/api/products/published?pageNumber=1&pageSize=24&sortBy=0&descending=true` | Public | Storefront ürün kartları |
-| GET | `/api/products?pageNumber=1&pageSize=20&search=shirt&typeId=...&brandId=...&status=...&isFeatured=false&sortBy=0&descending=true` | Admin | Operasyon ürün listesi |
-| GET | `/api/products/{productPublicId}` | Public | Ürün detay |
+| GET | `/api/products/published?pageNumber=1&pageSize=24&typeId=...&brandId=...&collectionId=...&tagId=...&sortBy=0&descending=true` | Public | Filtrelenebilir storefront ürün kartları |
+| GET | `/api/products?pageNumber=1&pageSize=20&search=shirt&typeId=...&brandId=...&collectionId=...&tagId=...&status=...&isFeatured=false&sortBy=0&descending=true` | Admin | Filtrelenebilir operasyon ürün listesi |
+| GET | `/api/products/by-collection/{collectionId}` | Public | Koleksiyondaki yayındaki ürünler |
+| GET | `/api/products/by-tag/{tagId}` | Public | Etikete bağlı yayındaki ürünler |
+| GET | `/api/products/by-type/{typeId}` | Public | Türdeki yayındaki ürünler |
+| GET | `/api/products/by-brand/{brandId}` | Public | Markanın yayındaki ürünleri |
+| GET | `/api/products/{productPublicId}` | Admin | Yönetim ürün detayı; storefront detay için `/api/products/by-url/{url}` kullanılır |
 | POST | `/api/products` | Admin | Ürün ve opsiyonel varyantları atomik oluştur |
 | POST | `/api/products/bulk` | Admin | Toplu ürün oluştur |
+| DELETE | `/api/products/{productPublicId}` | Admin | Ürünü geçmişini koruyarak katalogdan kaldır (soft delete) |
 | PUT | `/api/products/{productPublicId}` | Admin | Ana ürün alanları/etiketler |
 | PATCH | `/api/products/{productPublicId}/status` | Admin | ProductStatus değiştir |
 | PATCH | `/api/products/{productPublicId}/featured` | Admin | `{isFeatured}` |
@@ -45,9 +50,9 @@ Storefront katalog endpointleri Public; yönetim listesi ve yazma endpointleri A
 
 `hasVariants`, ürünün kaç `variants` kaydı bulunduğundan türetilmez. Admin bu alanı ürün oluştururken `POST /api/products` veya `POST /api/products/bulk` gövdesinde belirler; gönderilmezse başlangıç değeri `false` olur. Tek varyantlı ürün `false` seçildiğinde ana/tek ürün olarak listelenir; tek varyantlı ürün için `true` seçmek de geçerlidir. Birden fazla varyant varsa `hasVariants` zorunlu olarak `true` olmalıdır; `false` ile create, bulk create veya PATCH isteği 400 hatası döner. Daha sonra görünüm tercihi yalnız `PATCH /api/products/{id}/has-variants` ile değiştirilir.
 
-Admin ürün listesi `Search`, `TypeId`, `BrandId`, `Status`, `IsFeatured`, `SortBy` ve `Descending` filtrelerini destekler. Varsayılan sıralama `CreatedAt descending`dir; son eklenen ürün ilk gelir.
+Admin ürün listesi `Search`, `TypeId`, `BrandId`, `CollectionId`, `TagId`, `Status`, `IsActive`, `IsFeatured`, `SortBy` ve `Descending` filtrelerini destekler. Varsayılan sıralama `CreatedAt descending`dir; son eklenen ürün ilk gelir.
 
-Storefront listesi yalnız `Status=Active` ürünleri döner. `SortBy` seçenekleri `Newest=0`, `Popularity=1`, `DisplayOrder=2` ve `Title=3` değerleridir. Varsayılan `Newest` + `Descending=true` olduğundan son eklenen ürün ilk gelir.
+Storefront listesi `TypeId`, `BrandId`, `CollectionId` ve `TagId` filtrelerini destekler ve mevcut runtime davranışında yalnız `Status=Active` ile `IsActive=true` olan ürünleri döner. Birden fazla sınıflandırma filtresi gönderildiğinde koşullar AND mantığıyla uygulanır. Ayrı `by-*` endpointleri aynı storefront kart sözleşmesini, sayfalama ve sıralama seçeneklerini kullanır. `SortBy` seçenekleri `Newest=0`, `Popularity=1`, `DisplayOrder=2` ve `Title=3` değerleridir. Varsayılan `Newest` + `Descending=true` olduğundan son eklenen ürün ilk gelir.
 
 ## Varyant
 
@@ -72,25 +77,52 @@ Her dört kaynakta ortak endpoint yapısı:
 GET    /api/brands                 GET /api/brands/{id}
 POST   /api/brands                 POST /api/brands/bulk
 PUT    /api/brands/{id}             PATCH /api/brands/{id}/activation
+DELETE /api/brands/{id}
 GET    /api/collections             GET /api/collections/{id}
 POST   /api/collections             POST /api/collections/bulk
 PUT    /api/collections/{id}        PATCH /api/collections/{id}/activation
 PATCH  /api/collections/{id}/featured
+DELETE /api/collections/{id}
 GET    /api/product-types           GET /api/product-types/{id}
 POST   /api/product-types           POST /api/product-types/bulk
 PUT    /api/product-types/{id}      PATCH /api/product-types/{id}/activation
+DELETE /api/product-types/{id}
 GET    /api/tags                    GET /api/tags/{id}
 POST   /api/tags                    POST /api/tags/bulk
 PUT    /api/tags/{id}               PATCH /api/tags/{id}/activation
+DELETE /api/tags/{id}
 ```
 
-Collection ayrıca `PATCH /api/collections/{id}/featured` kullanır. Create body örneği:
+Collection ayrıca `PATCH /api/collections/{id}/featured` kullanır. Her koleksiyon storefront kartı/başlığı için isteğe bağlı tek bir `imageUrl` taşır. Koleksiyon görseli zorunlu değildir; alan atlanır, `null` veya boş gönderilirse değer `null` olarak saklanır. Create body örneği:
 
 ```json
-{ "name": "Yaz Koleksiyonu", "url": "yaz-koleksiyonu", "description": "...", "displayOrder": 1 }
+{ "name": "Yaz Koleksiyonu", "url": "yaz-koleksiyonu", "description": "...", "displayOrder": 1, "imageUrl": "https://cdn.example.com/collections/yaz.jpg" }
 ```
 
-Brand body `{name,url,description}`, ProductType body `{name,description}`, Tag body `{name,url}`. GET listeleri paged DTO döner; yazma Admin'dir, okuma Public'dir.
+Brand body `{name,url,description,isActive,imageUrl}` biçimindedir. Marka `imageUrl` alanı da opsiyoneldir; alan atlanır, `null` veya boş gönderilirse değer `null` olarak saklanır. Marka ve koleksiyon görsel URL'leri en fazla 500 karakterdir. ProductType body `{name,description}`, Tag body `{name,url}`. GET listeleri paged DTO döner; yazma Admin'dir, okuma Public'dir.
+
+Marka, koleksiyon, ürün türü ve etiket silme işlemleri kullanım durumundan bağımsız olarak `204 No Content` döner. Marka ve ürün türü silindiğinde ürün korunur, sırasıyla `brandId` ve `typeId` alanı `null` olur. Koleksiyon ve etiket silindiğinde ürün korunur; yalnız `ProductCollection` veya `ProductTag` bağlantı kaydı cascade olarak kaldırılır.
+
+Ürün silme fiziksel değildir: ürün `Archived` ve pasif duruma alınır, katalog/admin/storefront okuma yollarından gizlenir. Sipariş, iade, stok, analitik ve muhasebe geçmişi korunur ve bu kayıtlar silmeyi engellemez. Tekrarlanan DELETE idempotenttir. Silinen ürünün ana SKU/URL değeri yeniden kullanılabilir; geçmiş varyantı korumak için varyant SKU değeri ayrılmış kalır.
+
+## Storefront banner bölümleri
+
+Bannerlar tek bir toplu kaynak değildir. Her biri en fazla 5 medya kaydı taşıyan altı bağımsız bölüm vardır:
+
+| Bölüm | Public | Admin liste | Admin güncelleme |
+| --- | --- | --- | --- |
+| Main Banner | `GET /api/main-banners` | `GET /api/main-banners/admin` | `PUT /api/main-banners` |
+| Alt Banner 1 | `GET /api/alt-banner-1` | `GET /api/alt-banner-1/admin` | `PUT /api/alt-banner-1` |
+| Alt Banner 2 | `GET /api/alt-banner-2` | `GET /api/alt-banner-2/admin` | `PUT /api/alt-banner-2` |
+| Alt Banner 3 | `GET /api/alt-banner-3` | `GET /api/alt-banner-3/admin` | `PUT /api/alt-banner-3` |
+| Alt Banner 4 | `GET /api/alt-banner-4` | `GET /api/alt-banner-4/admin` | `PUT /api/alt-banner-4` |
+| Alt Banner 5 | `GET /api/alt-banner-5` | `GET /api/alt-banner-5/admin` | `PUT /api/alt-banner-5` |
+
+Public GET yalnız `isActive=true` kayıtları döndürür. `/admin` GET aktif ve pasif kayıtların tamamını döndürür. PUT yalnız kendi bölümünü atomik olarak değiştirir; `items: []` bölümü temizler ve diğer beş bölüme dokunmaz.
+
+Her öğede `id`, `name`, `key`, `mediaUrl`, `mediaType`, `targetUrl`, `altText`, `displayOrder`, `isActive` ve `isMain` alanları bulunur. `mediaType`: `Image=1`, `Video=2`. `mediaUrl` mutlak HTTP/HTTPS adresidir; `targetUrl` uygulama içi `/...` yolu veya HTTP/HTTPS URL olabilir. `name` en fazla 150, `key` en fazla 100, URL ve alt metin alanları en fazla 500 karakterdir. Bölüm içinde `key` ve gönderilen `displayOrder` değerleri benzersiz olmalıdır.
+
+Main Banner bölümü boş değilse tam olarak bir aktif kayıt `isMain=true` olmalıdır. Backend seçili kaydı otomatik olarak `displayOrder=0` konumuna taşır, kalan kayıtları gönderilen sıraya göre 1’den itibaren normalize eder. Alt Banner 1–5 bölümlerinde `isMain=true` geçersizdir. Hiçbir bölümü veya beş hakkın tamamını kullanmak zorunlu değildir.
 
 ## Ürün görselleri
 

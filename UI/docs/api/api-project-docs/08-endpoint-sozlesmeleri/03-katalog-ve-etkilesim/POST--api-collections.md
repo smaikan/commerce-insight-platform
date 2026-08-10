@@ -23,6 +23,7 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
 | `isActive` | boolean | Evet |
 | `isFeatured` | boolean | Evet |
 | `displayOrder` | integer (int32) | Evet |
+| `imageUrl` | string | Hayır |
 
 ```json
 {
@@ -31,11 +32,12 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
     "description":  "string",
     "isActive":  true,
     "isFeatured":  true,
-    "displayOrder":  1
+    "displayOrder":  1,
+    "imageUrl":  "https://cdn.example.com/collections/yaz.jpg"
 }
 ```
 
-## Başarılı response (200)
+## Başarılı response (201)
 
 ```json
 {
@@ -45,7 +47,8 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
     "url":  "string",
     "isActive":  true,
     "isFeatured":  true,
-    "displayOrder":  1
+    "displayOrder":  1,
+    "imageUrl":  "https://cdn.example.com/collections/yaz.jpg"
 }
 ```
 

@@ -2953,6 +2953,526 @@
         }
       }
     },
+    "/api/alt-banner-1": {
+      "get": {
+        "tags": [
+          "AltBanner1"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AltBanner1"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alt-banner-1/admin": {
+      "get": {
+        "tags": [
+          "AltBanner1"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alt-banner-2": {
+      "get": {
+        "tags": [
+          "AltBanner2"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AltBanner2"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alt-banner-2/admin": {
+      "get": {
+        "tags": [
+          "AltBanner2"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alt-banner-3": {
+      "get": {
+        "tags": [
+          "AltBanner3"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AltBanner3"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alt-banner-3/admin": {
+      "get": {
+        "tags": [
+          "AltBanner3"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alt-banner-4": {
+      "get": {
+        "tags": [
+          "AltBanner4"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AltBanner4"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alt-banner-4/admin": {
+      "get": {
+        "tags": [
+          "AltBanner4"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alt-banner-5": {
+      "get": {
+        "tags": [
+          "AltBanner5"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AltBanner5"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alt-banner-5/admin": {
+      "get": {
+        "tags": [
+          "AltBanner5"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/register": {
       "post": {
         "tags": [
@@ -3348,7 +3868,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandDtoPagedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandDtoPagedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandDtoPagedResult"
+                }
+              }
+            }
           }
         }
       },
@@ -3376,8 +3913,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "201": {
+            "description": "Created",
             "content": {
               "text/plain": {
                 "schema": {
@@ -3435,6 +3972,27 @@
                 }
               }
             }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Brands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -3521,8 +4079,34 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BrandDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BrandDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BrandDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -4056,7 +4640,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDtoPagedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDtoPagedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDtoPagedResult"
+                }
+              }
+            }
           }
         }
       },
@@ -4084,8 +4685,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "201": {
+            "description": "Created",
             "content": {
               "text/plain": {
                 "schema": {
@@ -4143,6 +4744,27 @@
                 }
               }
             }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Collections"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -4229,8 +4851,34 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CollectionDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CollectionDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CollectionDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -4763,6 +5411,82 @@
         }
       }
     },
+    "/api/dashboard/overview": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardOverviewDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardOverviewDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardOverviewDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/product-analytics": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardProductAnalyticsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardProductAnalyticsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardProductAnalyticsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/accounting/expenses/categories": {
       "post": {
         "tags": [
@@ -5196,76 +5920,6 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GuestAccessExchangeResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/dashboard/overview": {
-      "get": {
-        "tags": [
-          "Dashboard"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/DashboardOverviewDto"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DashboardOverviewDto"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DashboardOverviewDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/dashboard/product-analytics": {
-      "get": {
-        "description": "AdminOnly authorization required.",
-        "x-authorization-policy": "AdminOnly",
-        "tags": [
-          "Dashboard"
-        ],
-        "parameters": [
-          {
-            "name": "from",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DashboardProductAnalyticsDto"
                 }
               }
             }
@@ -5760,6 +6414,110 @@
         }
       }
     },
+    "/api/main-banners": {
+      "get": {
+        "tags": [
+          "MainBanners"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "MainBanners"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/main-banners/admin": {
+      "get": {
+        "tags": [
+          "MainBanners"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/orders": {
       "post": {
         "tags": [
@@ -5832,8 +6590,7 @@
             "name": "Search",
             "in": "query",
             "schema": {
-              "type": "string",
-              "nullable": true
+              "type": "string"
             }
           },
           {
@@ -5857,13 +6614,6 @@
             "schema": {
               "type": "string",
               "format": "date-time"
-            }
-          },
-          {
-            "name": "Search",
-            "in": "query",
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -6039,14 +6789,6 @@
             "schema": {
               "type": "string",
               "format": "date-time"
-            }
-          },
-          {
-            "name": "Search",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "maxLength": 250
             }
           }
         ],
@@ -6758,8 +7500,6 @@
     },
     "/api/product-engagement/products/{productId}/metrics": {
       "get": {
-        "description": "AdminOnly authorization required.",
-        "x-authorization-policy": "AdminOnly",
         "tags": [
           "ProductEngagement"
         ],
@@ -6775,7 +7515,6 @@
           {
             "name": "from",
             "in": "query",
-            "required": true,
             "schema": {
               "type": "string",
               "format": "date"
@@ -6784,7 +7523,6 @@
           {
             "name": "to",
             "in": "query",
-            "required": true,
             "schema": {
               "type": "string",
               "format": "date"
@@ -6793,17 +7531,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProductMetricDto"
-                  }
-                }
-              }
-            }
+            "description": "OK"
           }
         }
       }
@@ -6961,8 +7689,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -7109,10 +7837,33 @@
             }
           },
           {
+            "name": "CollectionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "TagId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
             "name": "Status",
             "in": "query",
             "schema": {
               "$ref": "#/components/schemas/ProductStatus"
+            }
+          },
+          {
+            "name": "IsActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -7207,6 +7958,379 @@
         }
       }
     },
+    "/api/products/published": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "name": "PageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "TypeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "BrandId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "CollectionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "TagId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/PublishedProductSortBy"
+            }
+          },
+          {
+            "name": "Descending",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/by-collection/{collectionId}": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "PageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/PublishedProductSortBy"
+            }
+          },
+          {
+            "name": "Descending",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/by-tag/{tagId}": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "PageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/PublishedProductSortBy"
+            }
+          },
+          {
+            "name": "Descending",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/by-type/{typeId}": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "name": "typeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "PageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/PublishedProductSortBy"
+            }
+          },
+          {
+            "name": "Descending",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/by-brand/{brandId}": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "name": "brandId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "PageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/PublishedProductSortBy"
+            }
+          },
+          {
+            "name": "Descending",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/products/by-url/{url}": {
       "get": {
         "tags": [
@@ -7276,57 +8400,6 @@
         }
       }
     },
-    "/api/products/published": {
-      "get": {
-        "tags": [
-          "Products"
-        ],
-        "parameters": [
-          {
-            "name": "PageNumber",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "PageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "SortBy",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/PublishedProductSortBy"
-            }
-          },
-          {
-            "name": "Descending",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedProductListItemDtoPagedResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/products/{id}": {
       "get": {
         "tags": [
@@ -7362,6 +8435,26 @@
                 }
               }
             }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -7594,6 +8687,64 @@
         }
       }
     },
+    "/api/products/{id}/activation": {
+      "patch": {
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetActivationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetActivationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetActivationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/products/{id}/featured": {
       "patch": {
         "tags": [
@@ -7624,6 +8775,64 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/SetFeaturedRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/{id}/has-variants": {
+      "patch": {
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetHasVariantsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetHasVariantsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetHasVariantsRequest"
               }
             }
           }
@@ -7805,6 +9014,27 @@
                 }
               }
             }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ProductTypes"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -10526,8 +11756,7 @@
             "name": "Search",
             "in": "query",
             "schema": {
-              "type": "string",
-              "maxLength": 250
+              "type": "string"
             }
           }
         ],
@@ -10755,6 +11984,27 @@
                 }
               }
             }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Tags"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -11516,6 +12766,92 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/users/{id}/orders": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "UserId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "PageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/OrderStatus"
+            }
+          },
+          {
+            "name": "CreatedFromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "CreatedToUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderSummaryDtoPagedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderSummaryDtoPagedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderSummaryDtoPagedResult"
+                }
+              }
+            }
           }
         }
       }
@@ -12944,6 +14280,145 @@
         },
         "additionalProperties": false
       },
+      "BannerItemDto": {
+        "required": [
+          "displayOrder",
+          "id",
+          "isActive",
+          "isMain",
+          "key",
+          "mediaType",
+          "mediaUrl",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "mediaUrl": {
+            "type": "string"
+          },
+          "mediaType": {
+            "$ref": "#/components/schemas/BannerMediaType"
+          },
+          "targetUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "altText": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isMain": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BannerItemRequest": {
+        "required": [
+          "displayOrder",
+          "isActive",
+          "isMain",
+          "key",
+          "mediaType",
+          "mediaUrl",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "mediaUrl": {
+            "type": "string"
+          },
+          "mediaType": {
+            "$ref": "#/components/schemas/BannerMediaType"
+          },
+          "targetUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "altText": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isMain": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BannerMediaType": {
+        "enum": [
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "BannerSectionDto": {
+        "required": [
+          "items",
+          "key",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BannerItemDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "BannerSectionRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BannerItemRequest"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "BrandDto": {
         "required": [
           "id",
@@ -12969,6 +14444,56 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BrandDtoPagedResult": {
+        "required": [
+          "hasNextPage",
+          "hasPreviousPage",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrandDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -12987,6 +14512,10 @@
             "nullable": true
           },
           "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
             "type": "string",
             "nullable": true
           }
@@ -13013,6 +14542,10 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -13035,6 +14568,7 @@
       "BulkCreateCollectionItem": {
         "required": [
           "displayOrder",
+          "isActive",
           "isFeatured",
           "name"
         ],
@@ -13051,12 +14585,19 @@
             "type": "string",
             "nullable": true
           },
+          "isActive": {
+            "type": "boolean"
+          },
           "isFeatured": {
             "type": "boolean"
           },
           "displayOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -13104,6 +14645,8 @@
       "BulkCreateProductItem": {
         "required": [
           "displayOrder",
+          "hasVariants",
+          "isActive",
           "isFeatured",
           "mainSku",
           "status",
@@ -13117,9 +14660,11 @@
           "mainSku": {
             "type": "string"
           },
-          "typeId": {
+          "hasVariants": {
+            "type": "boolean"
+          },
+          "type": {
             "type": "string",
-            "format": "uuid",
             "nullable": true
           },
           "url": {
@@ -13137,6 +14682,9 @@
           },
           "status": {
             "$ref": "#/components/schemas/ProductStatus"
+          },
+          "isActive": {
+            "type": "boolean"
           },
           "isFeatured": {
             "type": "boolean"
@@ -13167,19 +14715,10 @@
             },
             "nullable": true
           },
-          "collectionIds": {
+          "collections": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "nullable": true
-          },
-          "tagIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
             "nullable": true
           },
@@ -13725,6 +15264,56 @@
           "displayOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CollectionDtoPagedResult": {
+        "required": [
+          "hasNextPage",
+          "hasPreviousPage",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectionDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -13750,6 +15339,10 @@
           "displayOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -14032,6 +15625,10 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -14065,6 +15662,10 @@
           "displayOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -14295,6 +15896,8 @@
       "CreateProductCommand": {
         "required": [
           "displayOrder",
+          "hasVariants",
+          "isActive",
           "isFeatured",
           "mainSku",
           "status",
@@ -14308,9 +15911,11 @@
           "mainSku": {
             "type": "string"
           },
-          "typeId": {
+          "hasVariants": {
+            "type": "boolean"
+          },
+          "type": {
             "type": "string",
-            "format": "uuid",
             "nullable": true
           },
           "url": {
@@ -14329,6 +15934,9 @@
           "status": {
             "$ref": "#/components/schemas/ProductStatus"
           },
+          "isActive": {
+            "type": "boolean"
+          },
           "isFeatured": {
             "type": "boolean"
           },
@@ -14344,11 +15952,10 @@
             "type": "string",
             "nullable": true
           },
-          "collectionIds": {
+          "collections": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
             "nullable": true
           },
@@ -14668,127 +16275,6 @@
         },
         "additionalProperties": false
       },
-      "DashboardOverviewDto": {
-        "required": [
-          "activeProductCount",
-          "generatedAtUtc",
-          "lowStockVariantCount",
-          "paidOrderCount",
-          "paidRevenue",
-          "pendingOrderCount",
-          "totalOrderCount"
-        ],
-        "type": "object",
-        "properties": {
-          "totalOrderCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pendingOrderCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "paidOrderCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "paidRevenue": {
-            "type": "number",
-            "format": "double"
-          },
-          "activeProductCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "lowStockVariantCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "generatedAtUtc": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "additionalProperties": false
-      },
-      "DashboardProductAnalyticsDto": {
-        "required": [
-          "from",
-          "to",
-          "clickCount",
-          "addToCartCount",
-          "purchaseCount",
-          "favoriteCount",
-          "ratingCount",
-          "reviewCount",
-          "dailyMetrics",
-          "topProducts",
-          "generatedAtUtc"
-        ],
-        "type": "object",
-        "properties": {
-          "from": { "type": "string", "format": "date" },
-          "to": { "type": "string", "format": "date" },
-          "clickCount": { "type": "integer", "format": "int64" },
-          "addToCartCount": { "type": "integer", "format": "int64" },
-          "purchaseCount": { "type": "integer", "format": "int64" },
-          "favoriteCount": { "type": "integer", "format": "int64" },
-          "ratingCount": { "type": "integer", "format": "int64" },
-          "reviewCount": { "type": "integer", "format": "int64" },
-          "dailyMetrics": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/ProductMetricDto" }
-          },
-          "topProducts": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/DashboardTopProductDto" }
-          },
-          "generatedAtUtc": { "type": "string", "format": "date-time" }
-        },
-        "additionalProperties": false
-      },
-      "DashboardTopProductDto": {
-        "required": [
-          "productId",
-          "title",
-          "mainSku",
-          "clickCount",
-          "addToCartCount",
-          "purchaseCount"
-        ],
-        "type": "object",
-        "properties": {
-          "productId": { "type": "string" },
-          "title": { "type": "string" },
-          "mainSku": { "type": "string" },
-          "clickCount": { "type": "integer", "format": "int64" },
-          "addToCartCount": { "type": "integer", "format": "int64" },
-          "purchaseCount": { "type": "integer", "format": "int64" }
-        },
-        "additionalProperties": false
-      },
-      "ProductMetricDto": {
-        "required": [
-          "date",
-          "clickCount",
-          "addToCartCount",
-          "purchaseCount",
-          "favoriteCount",
-          "ratingCount",
-          "reviewCount"
-        ],
-        "type": "object",
-        "properties": {
-          "date": { "type": "string", "format": "date" },
-          "clickCount": { "type": "integer", "format": "int64" },
-          "addToCartCount": { "type": "integer", "format": "int64" },
-          "purchaseCount": { "type": "integer", "format": "int64" },
-          "favoriteCount": { "type": "integer", "format": "int64" },
-          "ratingCount": { "type": "integer", "format": "int64" },
-          "reviewCount": { "type": "integer", "format": "int64" }
-        },
-        "additionalProperties": false
-      },
       "CurrentAccountDto": {
         "required": [
           "code",
@@ -14996,6 +16482,151 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "DashboardOverviewDto": {
+        "required": [
+          "activeProductCount",
+          "generatedAtUtc",
+          "lowStockVariantCount",
+          "paidOrderCount",
+          "paidRevenue",
+          "pendingOrderCount",
+          "totalOrderCount"
+        ],
+        "type": "object",
+        "properties": {
+          "totalOrderCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pendingOrderCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "paidOrderCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "paidRevenue": {
+            "type": "number",
+            "format": "double"
+          },
+          "activeProductCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lowStockVariantCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "generatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DashboardProductAnalyticsDto": {
+        "required": [
+          "addToCartCount",
+          "clickCount",
+          "dailyMetrics",
+          "favoriteCount",
+          "from",
+          "generatedAtUtc",
+          "purchaseCount",
+          "ratingCount",
+          "reviewCount",
+          "to",
+          "topProducts"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "clickCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "addToCartCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "purchaseCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "favoriteCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ratingCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reviewCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "dailyMetrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductMetricDto"
+            }
+          },
+          "topProducts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardTopProductDto"
+            }
+          },
+          "generatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DashboardTopProductDto": {
+        "required": [
+          "addToCartCount",
+          "clickCount",
+          "mainSku",
+          "productId",
+          "purchaseCount",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "mainSku": {
+            "type": "string"
+          },
+          "clickCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "addToCartCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "purchaseCount": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
       },
       "DiscountTaxBasis": {
         "enum": [
@@ -16551,8 +18182,9 @@
           "favoriteCount",
           "hasVariants",
           "id",
-          "isFeatured",
           "images",
+          "isActive",
+          "isFeatured",
           "mainSku",
           "popularityScore",
           "ratingCount",
@@ -16617,6 +18249,9 @@
           },
           "status": {
             "$ref": "#/components/schemas/ProductStatus"
+          },
+          "isActive": {
+            "type": "boolean"
           },
           "isFeatured": {
             "type": "boolean"
@@ -16697,12 +18332,53 @@
             "nullable": true
           },
           "mainImage": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ProductImageDto"
-              }
-            ],
-            "nullable": true
+            "$ref": "#/components/schemas/ProductImageDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductDtoPagedResult": {
+        "required": [
+          "hasNextPage",
+          "hasPreviousPage",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -16762,6 +18438,49 @@
           },
           "isMain": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductMetricDto": {
+        "required": [
+          "addToCartCount",
+          "clickCount",
+          "date",
+          "favoriteCount",
+          "purchaseCount",
+          "ratingCount",
+          "reviewCount"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "clickCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "addToCartCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "purchaseCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "favoriteCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ratingCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reviewCount": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false
@@ -16846,113 +18565,6 @@
         ],
         "type": "integer",
         "format": "int32"
-      },
-      "PublishedProductSortBy": {
-        "enum": [
-          0,
-          1,
-          2,
-          3
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "PublishedProductListItemDto": {
-        "required": [
-          "averageRating",
-          "id",
-          "ratingCount",
-          "title",
-          "url"
-        ],
-        "type": "object",
-        "properties": {
-          "id": { "type": "string" },
-          "title": { "type": "string" },
-          "url": { "type": "string" },
-          "summary": { "type": "string", "nullable": true },
-          "brandName": { "type": "string", "nullable": true },
-          "price": { "type": "number", "format": "double", "nullable": true },
-          "compareAtPrice": { "type": "number", "format": "double", "nullable": true },
-          "averageRating": { "type": "number", "format": "double" },
-          "ratingCount": { "type": "integer", "format": "int64" },
-          "mainImage": {
-            "allOf": [ { "$ref": "#/components/schemas/ProductImageDto" } ],
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "ProductDtoPagedResult": {
-        "required": [
-          "hasNextPage",
-          "hasPreviousPage",
-          "items",
-          "pageNumber",
-          "pageSize",
-          "totalCount",
-          "totalPages"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ProductDto"
-            }
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int32",
-            "readOnly": true
-          },
-          "hasPreviousPage": {
-            "type": "boolean",
-            "readOnly": true
-          },
-          "hasNextPage": {
-            "type": "boolean",
-            "readOnly": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "PublishedProductListItemDtoPagedResult": {
-        "required": [
-          "hasNextPage",
-          "hasPreviousPage",
-          "items",
-          "pageNumber",
-          "pageSize",
-          "totalCount",
-          "totalPages"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/PublishedProductListItemDto" }
-          },
-          "pageNumber": { "type": "integer", "format": "int32" },
-          "pageSize": { "type": "integer", "format": "int32" },
-          "totalCount": { "type": "integer", "format": "int32" },
-          "totalPages": { "type": "integer", "format": "int32", "readOnly": true },
-          "hasPreviousPage": { "type": "boolean", "readOnly": true },
-          "hasNextPage": { "type": "boolean", "readOnly": true }
-        },
-        "additionalProperties": false
       },
       "ProductStatus": {
         "enum": [
@@ -17165,6 +18777,113 @@
           }
         },
         "additionalProperties": false
+      },
+      "PublishedProductListItemDto": {
+        "required": [
+          "averageRating",
+          "id",
+          "ratingCount",
+          "title",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "brandName": {
+            "type": "string",
+            "nullable": true
+          },
+          "price": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "compareAtPrice": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "averageRating": {
+            "type": "number",
+            "format": "double"
+          },
+          "ratingCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "mainImage": {
+            "$ref": "#/components/schemas/ProductImageDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishedProductListItemDtoPagedResult": {
+        "required": [
+          "hasNextPage",
+          "hasPreviousPage",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishedProductListItemDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishedProductSortBy": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
       },
       "PurchaseExpenseAllocationMethod": {
         "enum": [
@@ -18845,6 +20564,18 @@
         },
         "additionalProperties": false
       },
+      "SetHasVariantsRequest": {
+        "required": [
+          "hasVariants"
+        ],
+        "type": "object",
+        "properties": {
+          "hasVariants": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "SetShippingMethodActivationRequest": {
         "required": [
           "isActive"
@@ -19080,52 +20811,6 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
-          }
-        },
-        "additionalProperties": false
-      },
-      "StockMovementDtoPagedResult": {
-        "required": [
-          "hasNextPage",
-          "hasPreviousPage",
-          "items",
-          "pageNumber",
-          "pageSize",
-          "totalCount",
-          "totalPages"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StockMovementDto"
-            }
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int32",
-            "readOnly": true
-          },
-          "hasPreviousPage": {
-            "type": "boolean",
-            "readOnly": true
-          },
-          "hasNextPage": {
-            "type": "boolean",
-            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -19498,24 +21183,15 @@
       "UpdateProductRelationsRequest": {
         "required": [
           "bundleItems",
-          "collectionIds"
+          "collections"
         ],
         "type": "object",
         "properties": {
-          "collectionIds": {
+          "collections": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             }
-          },
-          "tagIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "nullable": true
           },
           "bundleItems": {
             "type": "array",
@@ -19547,9 +21223,8 @@
           "mainSku": {
             "type": "string"
           },
-          "typeId": {
+          "type": {
             "type": "string",
-            "format": "uuid",
             "nullable": true
           },
           "url": {
@@ -19895,6 +21570,21 @@
       "name": "Addresses"
     },
     {
+      "name": "AltBanner1"
+    },
+    {
+      "name": "AltBanner2"
+    },
+    {
+      "name": "AltBanner3"
+    },
+    {
+      "name": "AltBanner4"
+    },
+    {
+      "name": "AltBanner5"
+    },
+    {
       "name": "Auth"
     },
     {
@@ -19919,6 +21609,9 @@
       "name": "CurrentAccounts"
     },
     {
+      "name": "Dashboard"
+    },
+    {
       "name": "Expenses"
     },
     {
@@ -19929,6 +21622,9 @@
     },
     {
       "name": "InventoryCostLayers"
+    },
+    {
+      "name": "MainBanners"
     },
     {
       "name": "Orders"

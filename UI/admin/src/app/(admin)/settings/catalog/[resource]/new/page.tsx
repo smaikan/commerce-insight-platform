@@ -15,5 +15,5 @@ export default async function NewCatalogItemPage({ params }: { params: Promise<{
   if (!isCatalogResource(resource)) notFound();
   const config = catalogResourceConfigs[resource];
   await requireAdminPageSession(`/settings/catalog/${resource}/new`);
-  return <div className="mx-auto w-full max-w-screen-2xl"><PageHeader title={`${config.singularTitle} ekle`} description={config.description} backHref={`/settings/catalog/${resource}`} /><SettingsFrame activeHref="/settings/catalog/brands"><CatalogTabs activeResource={resource} /><CatalogForm resource={resource} /></SettingsFrame></div>;
+  return <div className="mx-auto w-full max-w-screen-2xl"><PageHeader title={`${config.singularTitle} ekle`} description={config.description} backHref={`/settings/catalog/${resource}`} /><SettingsFrame activeHref="/settings/catalog/product-types"><CatalogTabs activeResource={resource} /><CatalogForm resource={resource} /></SettingsFrame></div>;
 }

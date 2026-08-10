@@ -34,6 +34,7 @@ export default async function CollectionsPage({ searchParams }: { searchParams: 
 
 // Burada kalıcı yönlendirme sonucunu sayfanın üstünde kısa ve erişilebilir bir bildirimle gösteriyorum.
 function CollectionNotice({ params }: { params: Record<string, string | string[] | undefined> }) {
+  if (params.deleted === "1") return <p className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900" role="status">Koleksiyon silindi.</p>;
   if (params.created !== "1") return null;
   return <p className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900" role="status">Koleksiyon oluşturuldu.</p>;
 }
