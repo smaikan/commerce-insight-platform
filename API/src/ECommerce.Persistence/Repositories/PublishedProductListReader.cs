@@ -28,6 +28,7 @@ public sealed class PublishedProductListReader : IPublishedProductListReader
         var query = _context.Products
             .AsNoTracking()
             .Where(product => product.IsActive && product.Status == ProductStatus.Active);
+        query = ApplyFilter(query, filter);
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await CreateOrderedQuery(query, filter)
             .ThenBy(product => product.Id)
@@ -65,6 +66,36 @@ public sealed class PublishedProductListReader : IPublishedProductListReader
             filter.PageNumber,
             filter.PageSize,
             totalCount);
+    }
+
+    // Burada storefront sınıflandırma filtrelerini veritabanı sorgusuna birlikte uyguluyorum.
+    private static IQueryable<Product> ApplyFilter(
+        IQueryable<Product> query,
+        PublishedProductListFilter filter)
+    {
+        if (filter.TypeId.HasValue)
+        {
+            query = query.Where(product => product.TypeId == filter.TypeId.Value);
+        }
+
+        if (filter.BrandId.HasValue)
+        {
+            query = query.Where(product => product.BrandId == filter.BrandId.Value);
+        }
+
+        if (filter.CollectionId.HasValue)
+        {
+            query = query.Where(product => product.ProductCollections.Any(
+                relation => relation.CollectionId == filter.CollectionId.Value));
+        }
+
+        if (filter.TagId.HasValue)
+        {
+            query = query.Where(product => product.ProductTags.Any(
+                relation => relation.TagId == filter.TagId.Value));
+        }
+
+        return query;
     }
 
     // Burada storefront sıralama seçeneğini güvenli ve kararlı EF sorgusuna çeviriyorum.
@@ -109,6 +140,7 @@ public sealed class PublishedProductListReader : IPublishedProductListReader
                     product.MainImage.DisplayOrder,
                     product.MainImage.IsMain));
 
+    // Burada storefront kartı için gereken ürün alanlarını taşıyorum.
     private sealed record PublishedProductProjection(
         long Id,
         string Title,
@@ -120,8 +152,10 @@ public sealed class PublishedProductListReader : IPublishedProductListReader
         ProductPriceProjection? Price,
         ProductImageProjection? MainImage);
 
+    // Burada storefront kartının fiyat özetini taşıyorum.
     private sealed record ProductPriceProjection(decimal Price, decimal? CompareAtPrice);
 
+    // Burada storefront kartının ana görsel alanlarını taşıyorum.
     private sealed record ProductImageProjection(
         Guid Id,
         string ImageUrl,

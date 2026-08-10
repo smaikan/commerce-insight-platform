@@ -13,6 +13,7 @@ public sealed class CreateCollectionCommandHandler : IRequestHandler<CreateColle
     private readonly IUrlGenerator _urlGenerator;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada koleksiyon oluşturma bağımlılıklarını hazırlıyorum.
     public CreateCollectionCommandHandler(
         ICollectionRepository collectionRepository,
         IUrlGenerator urlGenerator,
@@ -41,7 +42,8 @@ public sealed class CreateCollectionCommandHandler : IRequestHandler<CreateColle
             request.Description,
             request.IsActive,
             request.IsFeatured,
-            request.DisplayOrder);
+            request.DisplayOrder,
+            request.ImageUrl);
 
         await _collectionRepository.AddAsync(collection, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

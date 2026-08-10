@@ -14,6 +14,7 @@ public sealed class BulkCreateCollectionsCommandHandler
     private readonly IUrlGenerator _urlGenerator;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada toplu koleksiyon oluşturma bağımlılıklarını hazırlıyorum.
     public BulkCreateCollectionsCommandHandler(
         ICollectionRepository collectionRepository,
         IUrlGenerator urlGenerator,
@@ -53,7 +54,8 @@ public sealed class BulkCreateCollectionsCommandHandler
                 item.Item.Description,
                 item.Item.IsActive,
                 item.Item.IsFeatured,
-                item.Item.DisplayOrder))
+                item.Item.DisplayOrder,
+                item.Item.ImageUrl))
             .ToList();
 
         await _collectionRepository.AddRangeAsync(collections, cancellationToken);
@@ -62,6 +64,7 @@ public sealed class BulkCreateCollectionsCommandHandler
         return collections.Select(collection => collection.ToDto()).ToList();
     }
 
+    // Burada aynı istekte yinelenen koleksiyon URL değerlerini reddediyorum.
     private static void EnsureNoDuplicateUrls(IEnumerable<string> urls)
     {
         var duplicates = urls

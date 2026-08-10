@@ -4,6 +4,7 @@ namespace ECommerce.Application.Collections.Commands.UpdateCollection;
 
 public sealed class UpdateCollectionCommandValidator : AbstractValidator<UpdateCollectionCommand>
 {
+    // Burada koleksiyon güncelleme sözleşmesinin alan sınırlarını tanımlıyorum.
     public UpdateCollectionCommandValidator()
     {
         RuleFor(command => command.Id)
@@ -18,6 +19,9 @@ public sealed class UpdateCollectionCommandValidator : AbstractValidator<UpdateC
 
         RuleFor(command => command.Description)
             .MaximumLength(1000);
+
+        RuleFor(command => command.ImageUrl)
+            .MaximumLength(500);
 
         RuleFor(command => command.DisplayOrder)
             .GreaterThanOrEqualTo(0);

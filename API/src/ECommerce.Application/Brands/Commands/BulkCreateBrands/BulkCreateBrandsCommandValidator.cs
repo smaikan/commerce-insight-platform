@@ -4,6 +4,7 @@ namespace ECommerce.Application.Brands.Commands.BulkCreateBrands;
 
 public sealed class BulkCreateBrandsCommandValidator : AbstractValidator<BulkCreateBrandsCommand>
 {
+    // Burada toplu marka isteğinin adet ve alan sınırlarını tanımlıyorum.
     public BulkCreateBrandsCommandValidator()
     {
         RuleFor(command => command.Brands)
@@ -23,6 +24,9 @@ public sealed class BulkCreateBrandsCommandValidator : AbstractValidator<BulkCre
 
                 brand.RuleFor(item => item.Description)
                     .MaximumLength(1000);
+
+                brand.RuleFor(item => item.ImageUrl)
+                    .MaximumLength(500);
             });
     }
 }

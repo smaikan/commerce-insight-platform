@@ -133,6 +133,18 @@ public sealed class ProductListReader : IProductListReader
             query = query.Where(product => product.BrandId == filter.BrandId.Value);
         }
 
+        if (filter.CollectionId.HasValue)
+        {
+            query = query.Where(product => product.ProductCollections.Any(
+                relation => relation.CollectionId == filter.CollectionId.Value));
+        }
+
+        if (filter.TagId.HasValue)
+        {
+            query = query.Where(product => product.ProductTags.Any(
+                relation => relation.TagId == filter.TagId.Value));
+        }
+
         if (filter.Status.HasValue)
         {
             query = query.Where(product => product.Status == filter.Status.Value);
@@ -204,6 +216,7 @@ public sealed class ProductListReader : IProductListReader
                     product.MainImage.IsMain));
     }
 
+    // Burada veritabanından tek sorguyla okuduğum ürün liste görünümünü taşıyorum.
     private sealed record ProductListProjection(long Id, string Title, string MainSku, string? Description,
         string Url, Guid? TypeId, string? TypeName, Guid? BrandId, string? BrandName, Guid? TaxRateId,
         string? TaxRateName, decimal? TaxRatePercentage, ECommerce.Domain.Enums.ProductStatus Status,
@@ -213,13 +226,16 @@ public sealed class ProductListReader : IProductListReader
         IReadOnlyList<ProductVariantProjection> Variants, IReadOnlyList<TagProjection> Tags,
         ProductImageProjection? MainImage);
 
+    // Burada ürün liste görünümündeki varyant alanlarını taşıyorum.
     private sealed record ProductVariantProjection(Guid Id, long ProductId, string Name, string Value,
         Guid? VariantOptionNameId, Guid? VariantOptionValueId, string Sku,
         string? Barcode, string? Material, decimal Price, decimal NetPrice, decimal? CompareAtPrice,
         int Stock, long AddToCartCount, long PurchaseCount, bool IsActive);
 
+    // Burada ürün liste görünümündeki etiket alanlarını taşıyorum.
     private sealed record TagProjection(Guid Id, string Name, string Url, bool IsActive);
 
+    // Burada ürün liste görünümündeki ana görsel alanlarını taşıyorum.
     private sealed record ProductImageProjection(
         Guid Id,
         string ImageUrl,

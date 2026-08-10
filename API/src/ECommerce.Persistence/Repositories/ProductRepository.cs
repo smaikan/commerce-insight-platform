@@ -156,6 +156,18 @@ public sealed class ProductRepository : IProductRepository
             query = query.Where(product => product.BrandId == filter.BrandId.Value);
         }
 
+        if (filter.CollectionId.HasValue)
+        {
+            query = query.Where(product => product.ProductCollections.Any(
+                relation => relation.CollectionId == filter.CollectionId.Value));
+        }
+
+        if (filter.TagId.HasValue)
+        {
+            query = query.Where(product => product.ProductTags.Any(
+                relation => relation.TagId == filter.TagId.Value));
+        }
+
         if (filter.Status.HasValue)
         {
             query = query.Where(product => product.Status == filter.Status.Value);
@@ -205,6 +217,7 @@ public sealed class ProductRepository : IProductRepository
             cancellationToken);
     }
 
+    // Burada yayındaki ürünü güncel veya eski URL değeriyle salt okunur getiriyorum.
     public Task<Product?> GetPublishedByUrlAsync(string url, CancellationToken cancellationToken = default)
     {
         var normalizedUrl = url.Trim();
@@ -227,6 +240,7 @@ public sealed class ProductRepository : IProductRepository
                 cancellationToken);
     }
 
+    // Burada yayındaki ürünlerin SEO URL indeksini sayfalı olarak getiriyorum.
     public async Task<PagedResult<ProductSeoIndexItemDto>> GetPublishedSeoIndexAsync(
         int pageNumber,
         int pageSize,
@@ -249,6 +263,7 @@ public sealed class ProductRepository : IProductRepository
         return new PagedResult<ProductSeoIndexItemDto>(items, pageNumber, pageSize, totalCount);
     }
 
+    // Burada URL değerinin eski yönlendirmelerde ayrılmış olup olmadığını kontrol ediyorum.
     public async Task<bool> ReservedUrlExistsAsync(
         string url,
         long? excludedProductId = null,
@@ -260,6 +275,7 @@ public sealed class ProductRepository : IProductRepository
             cancellationToken);
     }
 
+    // Burada ürünün eski URL yönlendirmesini veritabanı takibine ekliyorum.
     public async Task AddUrlRedirectAsync(
         ProductUrlRedirect redirect,
         CancellationToken cancellationToken = default)

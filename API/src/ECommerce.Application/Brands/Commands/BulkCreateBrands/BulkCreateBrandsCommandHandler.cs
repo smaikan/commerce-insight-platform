@@ -13,6 +13,7 @@ public sealed class BulkCreateBrandsCommandHandler : IRequestHandler<BulkCreateB
     private readonly IUrlGenerator _urlGenerator;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada toplu marka oluşturma bağımlılıklarını hazırlıyorum.
     public BulkCreateBrandsCommandHandler(
         IBrandRepository brandRepository,
         IUrlGenerator urlGenerator,
@@ -44,7 +45,12 @@ public sealed class BulkCreateBrandsCommandHandler : IRequestHandler<BulkCreateB
         }
 
         var brands = preparedItems
-            .Select(item => new Brand(item.Item.Name, item.Url, item.Item.Description, item.Item.IsActive))
+            .Select(item => new Brand(
+                item.Item.Name,
+                item.Url,
+                item.Item.Description,
+                item.Item.IsActive,
+                item.Item.ImageUrl))
             .ToList();
 
         await _brandRepository.AddRangeAsync(brands, cancellationToken);
@@ -53,6 +59,7 @@ public sealed class BulkCreateBrandsCommandHandler : IRequestHandler<BulkCreateB
         return brands.Select(brand => brand.ToDto()).ToList();
     }
 
+    // Burada aynı istekte yinelenen marka URL değerlerini reddediyorum.
     private static void EnsureNoDuplicateUrls(IEnumerable<string> urls)
     {
         var duplicates = urls
@@ -67,5 +74,6 @@ public sealed class BulkCreateBrandsCommandHandler : IRequestHandler<BulkCreateB
         }
     }
 
+    // Burada toplu oluşturma öncesinde normalize ettiğim marka girdisini taşıyorum.
     private sealed record PreparedBrandItem(BulkCreateBrandItem Item, string Url);
 }
