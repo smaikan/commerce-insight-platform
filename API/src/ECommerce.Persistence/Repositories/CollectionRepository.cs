@@ -10,6 +10,7 @@ public sealed class CollectionRepository : ICollectionRepository
 {
     private readonly AppDbContext _context;
 
+    // Burada koleksiyon repository'sini aynı istek kapsamındaki DbContext ile hazırlıyorum.
     public CollectionRepository(AppDbContext context)
     {
         _context = context;
@@ -42,6 +43,13 @@ public sealed class CollectionRepository : ICollectionRepository
             .FirstOrDefaultAsync(collection => collection.Id == id, cancellationToken);
     }
 
+    // Burada takip edilen koleksiyonu kalıcı depodan siliyorum.
+    public void Remove(Collection collection)
+    {
+        _context.Collections.Remove(collection);
+    }
+
+    // Burada ad veya URL değerleriyle eşleşen koleksiyonları takip etmeden getiriyorum.
     public async Task<IReadOnlyList<Collection>> GetByNamesOrUrlsAsync(
         IEnumerable<string> names, IEnumerable<string> urls, CancellationToken cancellationToken = default)
     {

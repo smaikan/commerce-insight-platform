@@ -17,6 +17,9 @@ public interface ITagRepository
     // Burada etiketi güncelleme amacıyla takipli getirme sözleşmesini tanımlıyorum.
     Task<Tag?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken = default);
 
+    // Burada takip edilen etiketi kalıcı depodan silme sözleşmesini tanımlıyorum.
+    void Remove(Tag tag);
+
     // Burada etiketleri sayfalı getirme sözleşmesini tanımlıyorum.
     Task<PagedResult<Tag>> GetListAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default);
 

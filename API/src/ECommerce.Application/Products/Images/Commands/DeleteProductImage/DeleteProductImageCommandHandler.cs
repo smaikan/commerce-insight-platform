@@ -16,7 +16,7 @@ public sealed class DeleteProductImageCommandHandler : IRequestHandler<DeletePro
     // Burada ana görsel silindiğinde kalan ilk görseli ana görsele çevirerek ürün medya kuralını koruyorum.
     public async Task Handle(DeleteProductImageCommand request, CancellationToken cancellationToken)
     {
-        var image = await _repository.GetByIdForUpdateAsync(request.Id, cancellationToken)
+        var image = await _repository.GetByIdForDeletionAsync(request.Id, cancellationToken)
             ?? throw new NotFoundException("Product image was not found.");
         if (image.IsMain)
         {

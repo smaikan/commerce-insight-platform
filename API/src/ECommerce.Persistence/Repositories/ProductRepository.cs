@@ -45,7 +45,9 @@ public sealed class ProductRepository : IProductRepository
             .Include(product => product.ProductTags)
                 .ThenInclude(productTag => productTag.Tag)
             .AsSplitQuery()
-            .FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(
+                product => product.Id == id && product.DeletedAtUtc == null,
+                cancellationToken);
     }
 
     // Burada verilen ürün id listesindeki ürünleri topluca getiriyorum.
@@ -68,7 +70,7 @@ public sealed class ProductRepository : IProductRepository
             .Include(product => product.ProductTags)
                 .ThenInclude(productTag => productTag.Tag)
             .AsSplitQuery()
-            .Where(product => productIds.Contains(product.Id))
+            .Where(product => product.DeletedAtUtc == null && productIds.Contains(product.Id))
             .ToListAsync(cancellationToken);
     }
 
@@ -79,7 +81,9 @@ public sealed class ProductRepository : IProductRepository
             .Include(product => product.TaxRate)
             .Include(product => product.Variants)
             .Include(product => product.Images)
-            .FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(
+                product => product.Id == id && product.DeletedAtUtc == null,
+                cancellationToken);
     }
 
     // Burada checkout işlemlerinde kilit alma sırasını tutarlı kılmak için ürünleri artan kimlikle takipli getiriyorum.
@@ -90,7 +94,7 @@ public sealed class ProductRepository : IProductRepository
         var productIds = ids.Where(id => id > 0).Distinct().OrderBy(id => id).ToList();
         return await _context.Products
             .Include(product => product.TaxRate)
-            .Where(product => productIds.Contains(product.Id))
+            .Where(product => product.DeletedAtUtc == null && productIds.Contains(product.Id))
             .OrderBy(product => product.Id)
             .ToListAsync(cancellationToken);
     }
@@ -102,7 +106,7 @@ public sealed class ProductRepository : IProductRepository
     {
         return await _context.Products
             .Include(product => product.Variants)
-            .Where(product => product.TaxRateId == taxRateId)
+            .Where(product => product.DeletedAtUtc == null && product.TaxRateId == taxRateId)
             .OrderBy(product => product.Id)
             .ToListAsync(cancellationToken);
     }
@@ -118,6 +122,15 @@ public sealed class ProductRepository : IProductRepository
             .Include(product => product.BundleItems)
             .Include(product => product.TaxRate)
             .Include(product => product.Variants)
+            .FirstOrDefaultAsync(
+                product => product.Id == id && product.DeletedAtUtc == null,
+                cancellationToken);
+    }
+
+    // Burada silinmiş ürünleri de kapsayarak ürünü idempotent soft delete için takipli getiriyorum.
+    public Task<Product?> GetByIdForDeletionAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return _context.Products
             .FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
     }
 
@@ -128,6 +141,7 @@ public sealed class ProductRepository : IProductRepository
     {
         IQueryable<Product> query = _context.Products
             .AsNoTracking()
+            .Where(product => product.DeletedAtUtc == null)
             .Include(product => product.Type)
             .Include(product => product.Brand)
             .Include(product => product.TaxRate)
@@ -213,7 +227,10 @@ public sealed class ProductRepository : IProductRepository
     public Task<bool> UrlExistsAsync(string url, long? excludedProductId = null, CancellationToken cancellationToken = default)
     {
         return _context.Products.AnyAsync(
-            product => product.Url == url && (!excludedProductId.HasValue || product.Id != excludedProductId.Value),
+            product =>
+                product.DeletedAtUtc == null &&
+                product.Url == url &&
+                (!excludedProductId.HasValue || product.Id != excludedProductId.Value),
             cancellationToken);
     }
 
@@ -234,7 +251,8 @@ public sealed class ProductRepository : IProductRepository
                 .ThenInclude(productTag => productTag.Tag)
             .AsSplitQuery()
             .FirstOrDefaultAsync(
-                product => product.IsActive &&
+                product => product.DeletedAtUtc == null &&
+                    product.IsActive &&
                     product.Status == ProductStatus.Active &&
                     (product.Url == normalizedUrl || product.UrlRedirects.Any(redirect => redirect.Url == normalizedUrl)),
                 cancellationToken);
@@ -248,7 +266,10 @@ public sealed class ProductRepository : IProductRepository
     {
         var query = _context.Products
             .AsNoTracking()
-            .Where(product => product.IsActive && product.Status == ProductStatus.Active);
+            .Where(product =>
+                product.DeletedAtUtc == null &&
+                product.IsActive &&
+                product.Status == ProductStatus.Active);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
@@ -271,7 +292,11 @@ public sealed class ProductRepository : IProductRepository
     {
         var normalizedUrl = url.Trim();
         return await _context.ProductUrlRedirects.AnyAsync(
-            redirect => redirect.Url == normalizedUrl,
+            redirect =>
+                redirect.Url == normalizedUrl &&
+                (!excludedProductId.HasValue || redirect.ProductId != excludedProductId.Value) &&
+                _context.Products.Any(product =>
+                    product.Id == redirect.ProductId && product.DeletedAtUtc == null),
             cancellationToken);
     }
 
@@ -292,6 +317,7 @@ public sealed class ProductRepository : IProductRepository
         var normalizedMainSku = mainSku.Trim().ToUpperInvariant();
         return _context.Products.AnyAsync(
             product =>
+                product.DeletedAtUtc == null &&
                 product.MainSku == normalizedMainSku &&
                 (!excludedProductId.HasValue || product.Id != excludedProductId.Value),
             cancellationToken);
@@ -308,7 +334,7 @@ public sealed class ProductRepository : IProductRepository
 
         var existingUrls = await _context.Products
             .AsNoTracking()
-            .Where(product => normalizedUrls.Contains(product.Url))
+            .Where(product => product.DeletedAtUtc == null && normalizedUrls.Contains(product.Url))
             .Select(product => product.Url)
             .ToListAsync(cancellationToken);
 
@@ -328,7 +354,7 @@ public sealed class ProductRepository : IProductRepository
 
         var existingMainSkus = await _context.Products
             .AsNoTracking()
-            .Where(product => normalizedMainSkus.Contains(product.MainSku))
+            .Where(product => product.DeletedAtUtc == null && normalizedMainSkus.Contains(product.MainSku))
             .Select(product => product.MainSku)
             .ToListAsync(cancellationToken);
 

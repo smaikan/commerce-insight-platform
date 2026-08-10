@@ -43,6 +43,12 @@ public sealed class TagRepository : ITagRepository
             .FirstOrDefaultAsync(tag => tag.Id == id, cancellationToken);
     }
 
+    // Burada takip edilen etiketi kalıcı depodan siliyorum.
+    public void Remove(Tag tag)
+    {
+        _context.Tags.Remove(tag);
+    }
+
     // Burada etiketleri ada göre sıralı şekilde getiriyorum.
     public async Task<PagedResult<Tag>> GetListAsync(
         int pageNumber,

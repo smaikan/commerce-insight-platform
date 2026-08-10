@@ -24,7 +24,9 @@ public sealed class ProductListReader : IProductListReader
         ProductListFilter filter,
         CancellationToken cancellationToken = default)
     {
-        var query = ApplyFilter(_context.Products.AsNoTracking(), filter);
+        var query = ApplyFilter(
+            _context.Products.AsNoTracking().Where(product => product.DeletedAtUtc == null),
+            filter);
         var totalCount = await query.CountAsync(cancellationToken);
         var orderedQuery = CreateOrderedQuery(query, filter);
         var items = await (filter.SortBy == ProductSortBy.CreatedAt && filter.Descending

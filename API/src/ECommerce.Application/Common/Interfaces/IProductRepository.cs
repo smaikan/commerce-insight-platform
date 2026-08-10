@@ -24,6 +24,9 @@ public interface IProductRepository
     // Burada ürünü güncelleme için takipli getirme sözleşmesini tanımlıyorum.
     Task<Product?> GetByIdForUpdateAsync(long id, CancellationToken cancellationToken = default);
 
+    // Burada silinmiş kayıtlar dahil ürünü idempotent silme için takipli getirme sözleşmesini tanımlıyorum.
+    Task<Product?> GetByIdForDeletionAsync(long id, CancellationToken cancellationToken = default);
+
     // Burada checkout gibi toplu güncelleme işlemleri için ürünleri kararlı sırayla takipli getirme sözleşmesini tanımlıyorum.
     Task<IReadOnlyList<Product>> GetByIdsForUpdateAsync(
         IEnumerable<long> ids,
@@ -35,8 +38,10 @@ public interface IProductRepository
     // Burada filtrelenmiş ürün sayfasını getirme sözleşmesini tanımlıyorum.
     Task<PagedResult<Product>> GetListAsync(ProductListFilter filter, CancellationToken cancellationToken = default);
 
+    // Burada yayınlanmış ürünü URL değeriyle getirme sözleşmesini tanımlıyorum.
     Task<Product?> GetPublishedByUrlAsync(string url, CancellationToken cancellationToken = default);
 
+    // Burada yayınlanmış ürünlerin SEO dizin sayfasını getirme sözleşmesini tanımlıyorum.
     Task<PagedResult<ProductSeoIndexItemDto>> GetPublishedSeoIndexAsync(
         int pageNumber,
         int pageSize,
@@ -45,11 +50,13 @@ public interface IProductRepository
     // Burada URL değerinin başka üründe kullanılıp kullanılmadığını kontrol ediyorum.
     Task<bool> UrlExistsAsync(string url, long? excludedProductId = null, CancellationToken cancellationToken = default);
 
+    // Burada URL değerinin ürün veya yönlendirme geçmişinde ayrılmış olup olmadığını sorguluyorum.
     Task<bool> ReservedUrlExistsAsync(
         string url,
         long? excludedProductId = null,
         CancellationToken cancellationToken = default);
 
+    // Burada ürün URL yönlendirmesini kalıcı depoya ekleme sözleşmesini tanımlıyorum.
     Task AddUrlRedirectAsync(ProductUrlRedirect redirect, CancellationToken cancellationToken = default);
 
     // Burada ana SKU değerinin başka üründe kullanılıp kullanılmadığını kontrol ediyorum.

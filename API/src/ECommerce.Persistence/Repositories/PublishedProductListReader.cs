@@ -27,7 +27,10 @@ public sealed class PublishedProductListReader : IPublishedProductListReader
     {
         var query = _context.Products
             .AsNoTracking()
-            .Where(product => product.IsActive && product.Status == ProductStatus.Active);
+            .Where(product =>
+                product.DeletedAtUtc == null &&
+                product.IsActive &&
+                product.Status == ProductStatus.Active);
         query = ApplyFilter(query, filter);
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await CreateOrderedQuery(query, filter)

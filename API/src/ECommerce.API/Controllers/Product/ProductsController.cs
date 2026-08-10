@@ -3,6 +3,7 @@ using ECommerce.API.Routing;
 using ECommerce.Application.Products.Commands.BulkCreateProducts;
 using ECommerce.Application.Products.Commands.ChangeProductStatus;
 using ECommerce.Application.Products.Commands.CreateProduct;
+using ECommerce.Application.Products.Commands.DeleteProduct;
 using ECommerce.Application.Products.Commands.SetProductActivation;
 using ECommerce.Application.Products.Commands.SetProductFeatured;
 using ECommerce.Application.Products.Commands.SetProductHasVariants;
@@ -141,6 +142,17 @@ public sealed class ProductsController : ControllerBase
         var products = await _sender.Send(command, cancellationToken);
         await EvictProductCacheAsync(cancellationToken);
         return StatusCode(StatusCodes.Status201Created, products);
+    }
+
+    // Burada yalnız yöneticinin ürünü geçmişini koruyarak katalogdan kaldırmasına izin veriyorum.
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(string id, CancellationToken cancellationToken)
+    {
+        await _sender.Send(new DeleteProductCommand(ApiPublicIdParser.ParseProductId(id)), cancellationToken);
+        await EvictProductCacheAsync(cancellationToken);
+        return NoContent();
     }
 
     // Burada harici katalogdaki ürün performans özetlerini admin yetkisiyle topluca eşitliyorum.

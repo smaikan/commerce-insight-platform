@@ -188,7 +188,7 @@ public sealed class ProductImageCommandHandlerTests
         var replacement = new ProductImage(1, "https://cdn.test/replacement.jpg", 1, false);
 
         imageRepository
-            .Setup(repository => repository.GetByIdForUpdateAsync(mainImage.Id, It.IsAny<CancellationToken>()))
+            .Setup(repository => repository.GetByIdForDeletionAsync(mainImage.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(mainImage);
         imageRepository
             .Setup(repository => repository.GetFirstByProductIdForUpdateAsync(mainImage.ProductId, mainImage.Id, It.IsAny<CancellationToken>()))

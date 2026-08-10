@@ -51,8 +51,14 @@ public sealed class AdminDashboardReader : IAdminDashboardReader
                        AND [ReturnRequests].[Status] = @completedReturnStatus
                        AND [RefundOrders].[PaidAt] IS NOT NULL
                        AND [RefundOrders].[Status] <> @refundedStatus) AS PaidRevenue,
-                    (SELECT COUNT(*) FROM [Products] WHERE [IsActive] = 1) AS ActiveProductCount,
-                    (SELECT COUNT(*) FROM [ProductVariants] WHERE [IsActive] = 1 AND [Stock] > 0 AND [Stock] < @lowStockThreshold) AS LowStockVariantCount;
+                    (SELECT COUNT(*) FROM [Products] WHERE [IsActive] = 1 AND [DeletedAtUtc] IS NULL) AS ActiveProductCount,
+                    (SELECT COUNT(*)
+                     FROM [ProductVariants]
+                     INNER JOIN [Products] ON [Products].[Id] = [ProductVariants].[ProductId]
+                     WHERE [ProductVariants].[IsActive] = 1
+                       AND [ProductVariants].[Stock] > 0
+                       AND [ProductVariants].[Stock] < @lowStockThreshold
+                       AND [Products].[DeletedAtUtc] IS NULL) AS LowStockVariantCount;
                 """;
             AddParameter(command, "@pendingStatus", OrderStatus.Pending.ToString());
             AddParameter(command, "@refundedStatus", OrderStatus.Refunded.ToString());

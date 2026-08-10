@@ -55,10 +55,12 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(product => product.ConcurrencyToken)
             .IsConcurrencyToken();
 
+        builder.Property(product => product.DeletedAtUtc);
+
         builder.HasOne(product => product.Type)
             .WithMany(type => type.Products)
             .HasForeignKey(product => product.TypeId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(product => product.Brand)
             .WithMany(brand => brand.Products)
@@ -121,10 +123,12 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(product => product.Url)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[DeletedAtUtc] IS NULL");
 
         builder.HasIndex(product => product.MainSku)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[DeletedAtUtc] IS NULL");
 
         builder.HasIndex(product => product.TypeId);
         builder.HasIndex(product => product.BrandId);
@@ -132,5 +136,6 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasIndex(product => product.Status);
         builder.HasIndex(product => product.DisplayOrder);
         builder.HasIndex(product => product.PopularityScore);
+        builder.HasIndex(product => product.DeletedAtUtc);
     }
 }

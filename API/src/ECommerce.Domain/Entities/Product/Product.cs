@@ -36,6 +36,8 @@ public sealed class Product : AuditableEntity<long>
     public long RatingCount { get; private set; }
     public long ReviewCount { get; private set; }
     public Guid ConcurrencyToken { get; private set; }
+    public DateTime? DeletedAtUtc { get; private set; }
+    public bool IsDeleted => DeletedAtUtc.HasValue;
 
     // Burada ürünün varyant içerip içermediğini gerçek varyant koleksiyonundan türetiyorum.
     public bool HasVariants { get; private set; }
@@ -236,6 +238,7 @@ public sealed class Product : AuditableEntity<long>
     // Burada ürünü satışta kullanılabilir duruma getiriyorum.
     public void Activate()
     {
+        EnsureNotDeleted();
         IsActive = true;
         MarkAsChanged();
     }
@@ -264,8 +267,30 @@ public sealed class Product : AuditableEntity<long>
     // Burada ürünün yayın durumunu değiştiriyorum.
     public void ChangeStatus(ProductStatus status)
     {
+        EnsureNotDeleted();
         Status = status;
         MarkAsChanged();
+    }
+
+    // Burada ürünü geçmiş kayıtlarını koruyarak katalogdan kaldırıyorum.
+    public bool SoftDelete(DateTime deletedAtUtc)
+    {
+        if (DeletedAtUtc.HasValue)
+        {
+            return false;
+        }
+
+        if (deletedAtUtc.Kind != DateTimeKind.Utc)
+        {
+            throw new DomainException("Product deletion time must be UTC.");
+        }
+
+        DeletedAtUtc = deletedAtUtc;
+        Status = ProductStatus.Archived;
+        IsActive = false;
+        IsFeatured = false;
+        MarkAsChanged();
+        return true;
     }
 
     // Burada ürünün bağlı olduğu türü değiştiriyorum.
@@ -424,6 +449,15 @@ public sealed class Product : AuditableEntity<long>
         }
 
         DisplayOrder = displayOrder;
+    }
+
+    // Burada silinmiş ürünün tekrar aktif katalog durumuna alınmasını engelliyorum.
+    private void EnsureNotDeleted()
+    {
+        if (DeletedAtUtc.HasValue)
+        {
+            throw new DomainException("A deleted product cannot be changed.");
+        }
     }
 
     // Burada ürün değişikliğini concurrency ve audit alanlarına yansıtıyorum.

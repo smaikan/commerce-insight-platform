@@ -10,9 +10,9 @@ namespace ECommerce.IntegrationTests.Persistence;
 
 public sealed class StorefrontBannerPersistenceTests
 {
-    // Burada banner setinin ekleme, güncelleme ve eksilen alanı kaldırma davranışını ilişkisel veritabanında doğruluyorum.
+    // Burada bir bölüm değiştirilirken diğer bölümün korunup anahtar kimliği ve aktiflik filtresinin çalıştığını doğruluyorum.
     [Fact]
-    public async Task Replace_Should_Persist_Exactly_The_Requested_Banner_Slots()
+    public async Task ReplaceSection_Should_Update_Only_Target_Section_And_Preserve_Key_Identity()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -20,27 +20,32 @@ public sealed class StorefrontBannerPersistenceTests
         await context.Database.EnsureCreatedAsync();
         var repository = new StorefrontBannerRepository(context);
 
-        await repository.ReplaceAsync([
-            new StorefrontBanner(StorefrontBannerSlot.Main, "https://cdn.example.com/main.jpg"),
-            new StorefrontBanner(StorefrontBannerSlot.Alternate1, "https://cdn.example.com/alt-1.jpg"),
-            new StorefrontBanner(StorefrontBannerSlot.Alternate2, "https://cdn.example.com/alt-2.jpg")
+        await repository.ReplaceSectionAsync(StorefrontBannerSection.Main, [
+            CreateBanner(StorefrontBannerSection.Main, "hero", 0, isMain: true),
+            CreateBanner(StorefrontBannerSection.Main, "secondary", 1, isActive: false)
+        ]);
+        await repository.ReplaceSectionAsync(StorefrontBannerSection.AltBanner1, [
+            CreateBanner(StorefrontBannerSection.AltBanner1, "alt-one", 0)
         ]);
         await context.SaveChangesAsync();
+        var heroId = (await repository.GetSectionAsync(StorefrontBannerSection.Main, activeOnly: false))
+            .Single(item => item.Key == "hero").Id;
 
-        await repository.ReplaceAsync([
-            new StorefrontBanner(StorefrontBannerSlot.Main, "https://cdn.example.com/main-new.jpg"),
-            new StorefrontBanner(StorefrontBannerSlot.Alternate1, "https://cdn.example.com/alt-new.jpg")
+        await repository.ReplaceSectionAsync(StorefrontBannerSection.Main, [
+            CreateBanner(StorefrontBannerSection.Main, "new-main", 4, isMain: true),
+            CreateBanner(StorefrontBannerSection.Main, "hero", 0, isActive: false)
         ]);
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
-        var rows = await repository.GetAllAsync();
-        rows.Should().HaveCount(2);
-        rows.Select(item => item.Slot).Should().Equal(
-            StorefrontBannerSlot.Main,
-            StorefrontBannerSlot.Alternate1);
-        rows[0].ImageUrl.Should().Be("https://cdn.example.com/main-new.jpg");
-        rows[1].ImageUrl.Should().Be("https://cdn.example.com/alt-new.jpg");
+        var mainRows = await repository.GetSectionAsync(StorefrontBannerSection.Main, activeOnly: false);
+        var altRows = await repository.GetSectionAsync(StorefrontBannerSection.AltBanner1, activeOnly: false);
+        var activeMainRows = await repository.GetSectionAsync(StorefrontBannerSection.Main, activeOnly: true);
+
+        mainRows.Select(item => item.Key).Should().Equal("new-main", "hero");
+        mainRows.Single(item => item.Key == "hero").Id.Should().Be(heroId);
+        altRows.Should().ContainSingle(item => item.Key == "alt-one");
+        activeMainRows.Should().ContainSingle(item => item.Key == "new-main");
     }
 
     // Burada koleksiyon görsel URL değerinin veri tabanına yazılıp okunabildiğini doğruluyorum.
@@ -69,4 +74,23 @@ public sealed class StorefrontBannerPersistenceTests
             .Options;
         return new AppDbContext(options);
     }
+
+    // Burada persistence testleri için geçerli banner kayıtları hazırlıyorum.
+    private static StorefrontBanner CreateBanner(
+        StorefrontBannerSection section,
+        string key,
+        int displayOrder,
+        bool isActive = true,
+        bool isMain = false) =>
+        new(
+            section,
+            $"Banner {key}",
+            key,
+            $"https://cdn.example.com/{key}.jpg",
+            BannerMediaType.Image,
+            "/collections/summer",
+            $"Banner {key}",
+            displayOrder,
+            isActive,
+            isMain);
 }
