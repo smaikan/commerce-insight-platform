@@ -36,7 +36,8 @@ export const settingsGroups: SettingsGroup[] = [
     options: [
       { title: "Stok ayarları", description: "Düşük stok eşiği, rezervasyon ve satış kuralları.", status: "in-development" },
       { title: "Koleksiyonlar", description: "Manuel koleksiyonları, görünürlüklerini ve vitrin durumlarını yönetin.", href: "/collections", status: "available" },
-      { title: "Katalog tanımları", description: "Marka, ürün türü ve etiket yönetimine tek noktadan erişim.", href: "/settings/catalog/brands", status: "available" },
+      { title: "Markalar", description: "Marka kimliklerini, görsellerini ve kullanılabilirliklerini yönetin.", href: "/brands", status: "available" },
+      { title: "Katalog tanımları", description: "Ürün türü ve etiket yönetimine tek noktadan erişin.", href: "/settings/catalog/product-types", status: "available" },
     ],
   },
   {

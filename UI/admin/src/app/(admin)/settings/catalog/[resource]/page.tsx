@@ -23,12 +23,13 @@ export default async function CatalogResourcePage({ params, searchParams }: { pa
   const page = await getCatalogItems(resource, query, session);
   return (
     <div className="mx-auto w-full max-w-screen-2xl">
-      <PageHeader title="Katalog tanımları" description="Ürünlerde kullanılan marka, ürün türü ve etiket seçeneklerini yönetin." actions={<Link href={`${basePath}/new`} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover">{config.singularTitle} ekle</Link>} />
-      <SettingsFrame activeHref="/settings/catalog/brands">
+      <PageHeader title="Katalog tanımları" description="Ürünlerde kullanılan ürün türü ve etiket seçeneklerini yönetin." actions={<Link href={`${basePath}/new`} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover">{config.singularTitle} ekle</Link>} />
+      <SettingsFrame activeHref="/settings/catalog/product-types">
         <CatalogTabs activeResource={resource} />
         <section className="mb-4"><h2 className="text-lg font-semibold text-foreground">{config.title}</h2><p className="mt-1 text-sm text-muted">{config.description}</p></section>
         {queryParams.created === "1" ? <SuccessMessage>{config.singularTitle} oluşturuldu.</SuccessMessage> : null}
         {queryParams.updated === "1" ? <SuccessMessage>{config.singularTitle} güncellendi.</SuccessMessage> : null}
+        {queryParams.deleted === "1" ? <SuccessMessage>{config.singularTitle} silindi.</SuccessMessage> : null}
         <CatalogList resource={resource} page={page} query={query} />
       </SettingsFrame>
     </div>

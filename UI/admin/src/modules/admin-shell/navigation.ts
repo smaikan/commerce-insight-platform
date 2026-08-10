@@ -30,7 +30,14 @@ export const navigationSections: NavigationSection[] = [
     items: [
       { label: "Ürünler", href: "/products", status: "available" },
       { label: "Koleksiyonlar", href: "/collections", status: "available" },
+      { label: "Markalar", href: "/brands", status: "available" },
       { label: "Stok İşlemleri", href: "/inventory/stock-movements", status: "available" },
+    ],
+  },
+  {
+    label: "Vitrin",
+    items: [
+      { label: "Bannerlar", href: "/banners", status: "available" },
     ],
   },
   {

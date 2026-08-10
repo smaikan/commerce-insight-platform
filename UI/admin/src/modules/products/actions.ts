@@ -3,11 +3,15 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { ApiError } from "@/lib/api/problem";
+import { adminMutationError } from "@/lib/admin/mutation-error";
+import type { AdminMutationResult } from "@/lib/admin/mutation-result";
 import { requireAdminActionSession } from "@/lib/auth/session";
 import {
   createProduct,
   createProductImage,
   createProductVariant,
+  deleteProduct,
+  deleteProductImage,
   getProduct,
   getProductImages,
   patchProductState,
@@ -23,6 +27,47 @@ import {
   type ProductMediaCommitResult,
 } from "@/modules/products/product-media";
 import type { ProductActionState } from "@/modules/products/types";
+import type { ProductStatus } from "@/modules/products/types";
+
+// Burada ürün listesindeki hızlı durum geçişini yalnız belgelenen status endpoint'iyle uygularım.
+export async function setProductListStatusAction(productId: string, status: ProductStatus): Promise<AdminMutationResult> {
+  try {
+    const session = await requireAdminActionSession();
+    await patchProductState(productId, "status", { status }, session);
+    revalidatePath("/products");
+    revalidatePath(`/products/${encodeURIComponent(productId)}`);
+    return { status: "success", message: status === 1 ? "Ürün aktifleştirildi." : "Ürün taslağa alındı." };
+  } catch (error) {
+    return adminMutationError(error, "Ürün durumu değiştirilemedi.", "Ürün durumu başka bir işlemle çakıştı. Sayfayı yenileyip tekrar deneyin.");
+  }
+}
+
+// Burada ürünü operasyon geçmişini koruyarak arşive taşıyan silme işlemini çalıştırıyorum.
+export async function deleteProductAction(productId: string): Promise<AdminMutationResult> {
+  try {
+    await deleteProduct(productId, await requireAdminActionSession());
+    revalidatePath("/products");
+    return { status: "success", message: "Ürün arşive taşındı.", redirectHref: "/products?deleted=1" };
+  } catch (error) {
+    return adminMutationError(
+      error,
+      "Ürün silinemedi.",
+      "Silme işlemi başka bir değişiklikle çakıştı. Sayfayı yenileyip tekrar deneyin.",
+    );
+  }
+}
+
+// Burada kayıtlı ürün görselini silip yeni ana görsel seçimini backend'e bırakıyorum.
+export async function deleteProductImageAction(productId: string, imageId: string): Promise<AdminMutationResult> {
+  try {
+    await deleteProductImage(imageId, await requireAdminActionSession());
+    revalidatePath("/products");
+    revalidatePath(`/products/${encodeURIComponent(productId)}`);
+    return { status: "success", message: "Görsel üründen kaldırıldı." };
+  } catch (error) {
+    return adminMutationError(error, "Görsel silinemedi.", "Görsel başka bir işlem tarafından değiştirildi. Sayfayı yenileyip tekrar deneyin.");
+  }
+}
 
 // Burada yeni ürün, atomik varyantlar ve opsiyonel ayrı görsel işlemini güvenli sırada çalıştırıyorum.
 export async function createProductAction(

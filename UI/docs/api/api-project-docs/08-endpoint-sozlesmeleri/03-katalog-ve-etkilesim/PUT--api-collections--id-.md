@@ -23,13 +23,15 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
 | `url` | string | Hayır |
 | `description` | string | Hayır |
 | `displayOrder` | integer (int32) | Evet |
+| `imageUrl` | string | Hayır |
 
 ```json
 {
     "name":  "string",
     "url":  "string",
     "description":  "string",
-    "displayOrder":  1
+    "displayOrder":  1,
+    "imageUrl":  "https://cdn.example.com/collections/yaz.jpg"
 }
 ```
 
@@ -43,7 +45,8 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
     "url":  "string",
     "isActive":  true,
     "isFeatured":  true,
-    "displayOrder":  1
+    "displayOrder":  1,
+    "imageUrl":  "https://cdn.example.com/collections/yaz.jpg"
 }
 ```
 

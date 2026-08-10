@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api/problem";
+import { adminMutationError } from "@/lib/admin/mutation-error";
+import type { AdminMutationResult } from "@/lib/admin/mutation-result";
 import { requireAdminActionSession } from "@/lib/auth/session";
-import { createCatalogItem, setCatalogItemActivation, updateCatalogItem } from "@/modules/settings/catalog-api";
+import { createCatalogItem, deleteCatalogItem, setCatalogItemActivation, updateCatalogItem } from "@/modules/settings/catalog-api";
 import { catalogResourceConfigs, type CatalogResource } from "@/modules/settings/catalog-resource";
 import type { CatalogFormValue } from "@/modules/settings/catalog-types";
 import type { SettingsActionState } from "@/modules/settings/types";
@@ -52,6 +54,19 @@ export async function setCatalogItemActivationAction(resource: CatalogResource, 
     return { status: "success", message: isActive ? "Kayıt etkinleştirildi." : "Kayıt pasifleştirildi." };
   } catch (error) {
     return actionError(error, "Kayıt durumu değiştirilemedi");
+  }
+}
+
+// Burada üründe kullanılmayan katalog tanımını silip ilgili listeyi yeniliyorum.
+export async function deleteCatalogItemAction(resource: CatalogResource, id: string): Promise<AdminMutationResult> {
+  const session = await actionSession();
+  if (!session.ok) return { status: "error", message: session.state.message || "Yönetici oturumu doğrulanamadı." };
+  try {
+    await deleteCatalogItem(resource, id, session.value);
+    revalidatePath(`/settings/catalog/${resource}`);
+    return { status: "success", message: `${catalogResourceConfigs[resource].singularTitle} silindi.`, redirectHref: `/settings/catalog/${resource}?deleted=1` };
+  } catch (error) {
+    return adminMutationError(error, "Katalog kaydı silinemedi.", "Silme işlemi başka bir değişiklikle çakıştı. Sayfayı yenileyip tekrar deneyin.");
   }
 }
 

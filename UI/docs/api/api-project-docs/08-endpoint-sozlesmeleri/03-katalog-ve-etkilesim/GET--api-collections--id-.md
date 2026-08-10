@@ -27,7 +27,8 @@ Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, 
     "url":  "string",
     "isActive":  true,
     "isFeatured":  true,
-    "displayOrder":  1
+    "displayOrder":  1,
+    "imageUrl":  "https://cdn.example.com/collections/yaz.jpg"
 }
 ```
 

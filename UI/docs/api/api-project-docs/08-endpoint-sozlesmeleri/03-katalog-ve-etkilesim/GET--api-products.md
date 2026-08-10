@@ -16,7 +16,10 @@
 | `Search` | query | Hayır | string |
 | `TypeId` | query | Hayır | string (uuid) |
 | `BrandId` | query | Hayır | string (uuid) |
+| `CollectionId` | query | Hayır | string (uuid) |
+| `TagId` | query | Hayır | string (uuid) |
 | `Status` | query | Hayır |  |
+| `IsActive` | query | Hayır | boolean |
 | `IsFeatured` | query | Hayır | boolean |
 | `SortBy` | query | Hayır |  |
 | `Descending` | query | Hayır | boolean |
@@ -27,5 +30,7 @@ Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, 
 
 ## Başarılı response (200)
 
-`ProductDtoPagedResult` döner. Her liste öğesindeki `mainImage`, backend'in `isMain` önceliğiyle seçtiği tek liste görselidir; frontend ürün başına ek görsel isteği yapmaz. Ürün aktifliği yalnız `status` alanından yönetilir; yalnız `Active` durumundaki ürün satışa açıktır.
+`ProductDtoPagedResult` döner. Her liste öğesindeki `mainImage`, backend'in `isMain` önceliğiyle seçtiği tek liste görselidir; frontend ürün başına ek görsel isteği yapmaz. Mevcut runtime sözleşmesinde `Status` ve `IsActive` alanları birlikte bulunur.
+
+`TypeId`, `BrandId`, `CollectionId` ve `TagId` filtreleri birlikte gönderilebilir. Birden fazla filtre gönderildiğinde backend koşulları AND mantığıyla uygular. Boş GUID değerleri 400 validation hatasıdır.
 

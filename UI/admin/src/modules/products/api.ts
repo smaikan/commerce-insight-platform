@@ -129,6 +129,14 @@ export function updateProduct(productId: string, input: UpdateProductInput, sess
   });
 }
 
+// Burada ürünü geçmişini koruyan soft-delete işlemiyle katalogdan kaldırıyorum.
+export function deleteProduct(productId: string, session: AdminSession): Promise<void> {
+  return apiRequest(`/api/products/${encodeURIComponent(productId)}`, {
+    method: "DELETE",
+    accessToken: session.accessToken,
+  });
+}
+
 // Burada ürünün ayrı yönetilen durum alanlarından yalnız istenen birini güncelliyorum.
 export function patchProductState(
   productId: string,
@@ -198,6 +206,14 @@ export function updateProductImage(imageId: string, input: ProductImageInput, se
   return apiRequest(`/api/product-images/${encodeURIComponent(imageId)}`, {
     method: "PUT",
     body: input,
+    accessToken: session.accessToken,
+  });
+}
+
+// Burada ürün görselini silip ana görsel devrini backend kuralına bırakıyorum.
+export function deleteProductImage(imageId: string, session: AdminSession): Promise<void> {
+  return apiRequest(`/api/product-images/${encodeURIComponent(imageId)}`, {
+    method: "DELETE",
     accessToken: session.accessToken,
   });
 }

@@ -3,6 +3,9 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/lib/admin/components/confirm-dialog";
+import { deleteProductImageAction } from "@/modules/products/actions";
 import { validateProductImageFile } from "@/modules/products/cloudinary-upload";
 import {
   MAX_PRODUCT_IMAGES,
@@ -16,6 +19,7 @@ type LocalMedia = ProductMediaDraftItem & {
 };
 
 type ProductMediaEditorProps = {
+  productId?: string;
   images: ProductImage[];
   disabled?: boolean;
   onDirty: () => void;
@@ -23,15 +27,33 @@ type ProductMediaEditorProps = {
 };
 
 // Burada kayıtlı görsellerle yeni dosyaları aynı kontrollü medya alanında yönetiyorum.
-export function ProductMediaEditor({ images, disabled = false, onDirty, onDraftChange }: ProductMediaEditorProps) {
+export function ProductMediaEditor({ productId, images, disabled = false, onDirty, onDraftChange }: ProductMediaEditorProps) {
+  const router = useRouter();
   const visibleExistingImages = images.slice(0, MAX_PRODUCT_IMAGES);
   const initialMainImage = visibleExistingImages.find((image) => image.isMain) || visibleExistingImages[0];
   const [localMedia, setLocalMedia] = useState<LocalMedia[]>([]);
   const [mainKey, setMainKey] = useState<string | null>(initialMainImage ? `existing-${initialMainImage.id}` : null);
   const [message, setMessage] = useState<string>();
+  const [deleteCandidate, setDeleteCandidate] = useState<ProductImage>();
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewUrlsRef = useRef(new Set<string>());
   const totalCount = visibleExistingImages.length + localMedia.length;
+
+  // Burada onaylanan kayıtlı görseli silip backend'in ana görsel seçimini yeniden okuyorum.
+  const deleteExistingImage = async () => {
+    if (!productId || !deleteCandidate || deleting) return;
+    setDeleting(true);
+    const result = await deleteProductImageAction(productId, deleteCandidate.id);
+    setDeleting(false);
+    if (result.status === "error") {
+      setMessage(result.message);
+      return;
+    }
+    setDeleteCandidate(undefined);
+    setMessage(result.message);
+    router.refresh();
+  };
 
   // Burada üst formun yükleme sırasında kullanacağı dosya ve ana görsel seçimini güncel tutuyorum.
   useEffect(() => {
@@ -127,6 +149,7 @@ export function ProductMediaEditor({ images, disabled = false, onDirty, onDraftC
               isMain={mainKey === key}
               disabled={disabled}
               onSelectMain={selectMain}
+              onRemove={productId ? () => setDeleteCandidate(image) : undefined}
             />
           );
         })}
@@ -177,6 +200,16 @@ export function ProductMediaEditor({ images, disabled = false, onDirty, onDraftC
           Yeni görseller ürünle birlikte kaydedilecek. Seçtiğiniz ana görsel ürün listesinde kullanılacak.
         </p>
       ) : null}
+      <ConfirmDialog
+        open={Boolean(deleteCandidate)}
+        title="Ürün görseli silinsin mi?"
+        description={deleteCandidate?.isMain ? "Ana görsel silinecek. Sıradaki uygun görsel otomatik olarak ana görsel olacak." : "Seçilen görsel ürün kaydından kalıcı olarak kaldırılacak."}
+        confirmLabel="Görseli sil"
+        pending={deleting}
+        error={message && deleteCandidate ? message : undefined}
+        onCancel={() => { if (!deleting) { setDeleteCandidate(undefined); setMessage(undefined); } }}
+        onConfirm={deleteExistingImage}
+      />
     </section>
   );
 }

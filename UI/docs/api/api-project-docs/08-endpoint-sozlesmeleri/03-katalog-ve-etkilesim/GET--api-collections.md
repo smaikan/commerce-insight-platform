@@ -18,7 +18,9 @@
 
 Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, query veya header parametreleriyle gönderin.
 
+`CollectionDto` içindeki `imageUrl`, koleksiyona görsel tanımlanmadığında `null`, tanımlandığında en fazla 500 karakterlik görsel URL’sidir.
+
 ## Başarılı response (200)
 
-Response body yoktur.
+Sayfalı `CollectionDto` sonucu döner.
 

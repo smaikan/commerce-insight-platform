@@ -28,6 +28,11 @@ export function updateCatalogItem(resource: CatalogResource, id: string, value: 
   return apiRequest(`${catalogResourceConfigs[resource].endpoint}/${encodeURIComponent(id)}`, { method: "PUT", body: updatePayload(resource, value), accessToken: session.accessToken });
 }
 
+// Burada üründe kullanılmayan tür veya etiketi kaynak endpoint'inden siliyorum.
+export function deleteCatalogItem(resource: CatalogResource, id: string, session: AdminSession): Promise<void> {
+  return apiRequest(`${catalogResourceConfigs[resource].endpoint}/${encodeURIComponent(id)}`, { method: "DELETE", accessToken: session.accessToken });
+}
+
 // Burada katalog kaydının kullanılabilirliğini ortak activation endpoint yapısıyla değiştiriyorum.
 export function setCatalogItemActivation(resource: CatalogResource, id: string, isActive: boolean, session: AdminSession): Promise<CatalogItem> {
   return apiRequest(`${catalogResourceConfigs[resource].endpoint}/${encodeURIComponent(id)}/activation`, { method: "PATCH", body: { isActive }, accessToken: session.accessToken });
@@ -35,14 +40,12 @@ export function setCatalogItemActivation(resource: CatalogResource, id: string, 
 
 // Burada create isteğinde isActive alanını koruyup desteklenmeyen alanları gövdeden çıkarıyorum.
 function createPayload(resource: CatalogResource, value: CatalogFormValue) {
-  if (resource === "brands") return { name: value.name, url: value.url, description: value.description, isActive: value.isActive };
   if (resource === "product-types") return { name: value.name, description: value.description, isActive: value.isActive };
   return { name: value.name, url: value.url, isActive: value.isActive };
 }
 
 // Burada update endpoint'lerinin kabul etmediği aktiflik alanını bilgi güncellemesinden ayırıyorum.
 function updatePayload(resource: CatalogResource, value: CatalogFormValue) {
-  if (resource === "brands") return { name: value.name, url: value.url, description: value.description };
   if (resource === "product-types") return { name: value.name, description: value.description };
   return { name: value.name, url: value.url };
 }

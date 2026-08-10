@@ -3,7 +3,7 @@
 - İşlev alanı: **03 Katalog ve ürün etkileşimi**
 - İşlev: Yeni kaynak veya iş akışı adımı oluşturur/başlatır.
 - Operation ID: `POST-/api/brands`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Yetki: `AdminOnly`.
 - Content-Type: request body varsa `application/json` gönderin.
 - Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
@@ -21,17 +21,21 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
 | `url` | string | Hayır |
 | `description` | string | Hayır |
 | `isActive` | boolean | Evet |
+| `imageUrl` | string veya null | Hayır |
 
 ```json
 {
     "name":  "string",
     "url":  "string",
     "description":  "string",
-    "isActive":  true
+    "isActive":  true,
+    "imageUrl": "https://cdn.example.com/brands/ornek-marka.png"
 }
 ```
 
-## Başarılı response (200)
+`imageUrl` en fazla 500 karakterdir. Alan atlanır, `null` veya boş gönderilirse marka görselsiz oluşturulur.
+
+## Başarılı response (201)
 
 ```json
 {
@@ -39,7 +43,8 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
     "name":  "string",
     "description":  "string",
     "url":  "string",
-    "isActive":  true
+    "isActive":  true,
+    "imageUrl": "https://cdn.example.com/brands/ornek-marka.png"
 }
 ```
 

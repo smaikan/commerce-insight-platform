@@ -27,12 +27,15 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
                         "description":  "string",
                         "isActive":  true,
                         "isFeatured":  true,
-                        "displayOrder":  1
+                        "displayOrder":  1,
+                        "imageUrl":  "https://cdn.example.com/collections/yaz.jpg"
                     }
 }
 ```
 
-## Başarılı response (200)
+Her `collections` öğesi isteğe bağlı, en fazla 500 karakterlik `imageUrl` alanı kabul eder.
 
-Response body yoktur.
+## Başarılı response (201)
+
+Oluşturulan `CollectionDto[]` dizisi döner; her DTO isteğe bağlı `imageUrl` alanını içerir.
 

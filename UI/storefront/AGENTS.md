@@ -349,7 +349,7 @@ Freshness matrix:
 - After the mutation, only the relevant product/collection/list tag/path is invalidated; broad `/` invalidation is not the default.
 - Initial crawlable content does not fall behind client effect/dynamic import.
 - Page/layout Server Component, client leaf small; There is no global provider and broad renderer.
-- `next/image`, stable dimensions/aspect ratio, correct `sizes`, modern source. Only real above-fold LCP candidate eager/high priority; not grid images.
+- `next/image`, stable dimensions/aspect ratio, correct `sizes`, modern source. Product card media and product detail gallery media use a fixed `4:5` aspect ratio across breakpoints. Only real above-fold LCP candidate eager/high priority; not grid images.
 - `next/font`, required family/weights/subsets and stable fallback. Third-party script route-scoped and least-blocking strategy; chat/review/analytics extras deferred.
 - Dynamic import only measured non-critical heavy widget; product core/LCP is not hidden.
 
@@ -360,6 +360,7 @@ Field CWV 75th percentile mobile/desktop separate: LCP â‰¤2.5s, INP â‰¤2
 The storefront should be spacious, visually focused, brand-focused, sales-driven and mobile-first; It should not turn into landing-page decoration.
 
 - Product photo, product name, price, variant/availability and primary purchase action are the first hierarchy.
+- Product card images and product detail gallery images use a fixed `4:5` aspect ratio on mobile, tablet and desktop. Loading, missing-image and error placeholders reserve the same geometry everywhere.
 - Use calm surfaces, controlled accent, consistent spacing/type/radius/shadow. Inventing a new system for each section/card.
 - Only when the card is a selectable/repeatable entity or meaningful interaction surface.
 - Do not use gradient, glass, glow, repeated blur/large shadow, badge-above-every-heading, giant hero, fake slogan/stat/testimonial/brand logos and purposeless animation.
@@ -389,7 +390,7 @@ WCAG 2.2 AA is targeted.
 
 ## 20. Loading, empty, error and unavailable situations
 
-- Reserves loading final geometry and image/product grid aspect ratios; No theatrical skeleton/shimmer.
+- Reserves loading final geometry and the fixed `4:5` aspect ratio of product card and product detail gallery media; No theatrical skeleton/shimmer.
 - Empty state tells what is not there and only offers the real next action; No fake products/illustration/metrics.
 - API error gives what failed, safe retry/back path and trace reference if necessary; Maintains valid form/cart state.
 - Disabled readable and semantic; If the reason is not obvious, it explains. Busy carries not only opacity but also announcement/state.
