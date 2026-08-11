@@ -45,6 +45,13 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
                 "İşlenmeyen API hatası oluştu. TraceId: {TraceId}",
                 httpContext.TraceIdentifier);
         }
+        else if (exception is ConcurrencyException)
+        {
+            _logger.LogWarning(
+                "API concurrency isteği {StatusCode} durum koduyla sonuçlandı. TraceId: {TraceId}",
+                statusCode,
+                httpContext.TraceIdentifier);
+        }
         else
         {
             _logger.LogWarning(

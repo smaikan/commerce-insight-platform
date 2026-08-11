@@ -21,6 +21,9 @@ public sealed class CartItemConfiguration : IEntityTypeConfiguration<CartItem>
 
         builder.HasKey(item => item.Id);
 
+        builder.Property(item => item.Id)
+            .ValueGeneratedNever();
+
         builder.Ignore(item => item.TotalPrice);
 
         builder.Property(item => item.UnitPrice)

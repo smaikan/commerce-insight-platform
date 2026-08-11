@@ -1,5 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
-
+import Image from "next/image";
 import type { BannerSection, BannerSectionItem } from "@/modules/banners/types";
 
 type BannerMediaProps = {
@@ -71,21 +70,19 @@ export function BannerMedia({ item, priority = false, variant }: BannerMediaProp
       preload={variant === "main" ? "metadata" : "none"}
     />
   ) : (
-    <img
-      className="size-full object-cover"
+    <Image
+      className="object-cover"
       src={item.mediaUrl}
       alt={item.altText || ""}
-      width={1600}
-      height={900}
-      loading={priority ? "eager" : "lazy"}
-      fetchPriority={priority ? "high" : "auto"}
-      decoding="async"
+      fill
+      preload={priority}
+      sizes={variant === "main" ? "(min-width: 1440px) 1440px, 100vw" : "(min-width: 1024px) 32vw, (min-width: 640px) 48vw, 78vw"}
     />
   );
 
   if (item.mediaType === 2) {
     return (
-      <div className={`relative overflow-hidden rounded-xl bg-zinc-100 ${frameClass}`}>
+      <div className={`relative overflow-hidden rounded-xl bg-surface-subtle ${frameClass}`}>
         {media}
         {href ? (
           <a href={href} className="absolute right-3 top-3 inline-flex min-h-10 items-center rounded-lg bg-white/95 px-3 text-sm font-semibold text-zinc-950 shadow-sm outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2" aria-label={`${item.altText || item.name}: içeriğe git`}>
@@ -97,11 +94,11 @@ export function BannerMedia({ item, priority = false, variant }: BannerMediaProp
   }
 
   return href ? (
-    <a href={href} className={`block overflow-hidden rounded-xl bg-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 ${frameClass}`} aria-label={item.altText || item.name}>
+    <a href={href} className={`relative block overflow-hidden rounded-xl bg-surface-subtle outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 ${frameClass}`} aria-label={item.altText || item.name}>
       {media}
     </a>
   ) : (
-    <div className={`overflow-hidden rounded-xl bg-zinc-100 ${frameClass}`}>{media}</div>
+    <div className={`relative overflow-hidden rounded-xl bg-surface-subtle ${frameClass}`}>{media}</div>
   );
 }
 

@@ -39,7 +39,7 @@ describe("storefront banner sections", () => {
     };
     const html = renderToStaticMarkup(<MainBannerSection section={section} />);
     expect(html.indexOf("primary.webp")).toBeLessThan(html.indexOf("secondary.webp"));
-    expect(html).toContain('fetchPriority="high"');
+    expect(html).toContain('rel="preload"');
   });
 
   // Burada video medyasının sesli otomatik oynatma olmadan kontrollü ve mobil uyumlu oluşturulduğunu doğruluyorum.

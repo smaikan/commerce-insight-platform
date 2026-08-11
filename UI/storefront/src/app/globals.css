@@ -1,26 +1,160 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f8fc;
+  --surface: #ffffff;
+  --surface-subtle: #eaf2f8;
+  --foreground: #152b3c;
+  --ink-muted: #587084;
+  --line: #d5e2ec;
+  --brand-600: #3f6f92;
+  --brand-700: #315b7a;
+  --brand-950: #102d44;
+  --danger: #a1394b;
+  --success: #277257;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-ink: var(--foreground);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-950: var(--brand-950);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --shadow-panel: 0 18px 50px rgb(16 45 68 / 0.1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Burada sayfa genelinde mavimsi, sakin ve yüksek okunabilirlikli temel yüzeyi kuruyorum. */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Burada tüm ana sayfa içeriklerini aynı responsive kolon ve kenar boşluğunda hizalıyorum. */
+.page-shell {
+  width: min(100% - 2rem, 90rem);
+  margin-inline: auto;
+}
+
+@media (min-width: 40rem) {
+  .page-shell {
+    width: min(100% - 3rem, 90rem);
+  }
+}
+
+@media (min-width: 64rem) {
+  .page-shell {
+    width: min(100% - 4rem, 90rem);
+  }
+}
+
+/* Burada klavye kullanıcıları için ortak ve görünür odak dilini tanımlıyorum. */
+.focus-ring,
+.nav-link,
+.header-action,
+.mobile-nav-link {
+  border-radius: 0.375rem;
+  outline: none;
+}
+
+.focus-ring:focus-visible,
+.nav-link:focus-visible,
+.header-action:focus-visible,
+.mobile-nav-link:focus-visible {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--brand-600);
+}
+
+.nav-link,
+.header-action {
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.nav-link:hover,
+.header-action:hover {
+  color: var(--brand-700);
+}
+
+.header-action {
+  padding: 0.625rem 0.75rem;
+  color: var(--foreground);
+}
+
+.mobile-nav-link {
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  padding-inline: 0.75rem;
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.mobile-nav-link:hover {
+  background: var(--surface-subtle);
+}
+
+/* Burada mobil navigasyonu sol kenardan gelen, arka plan etkileşimini kilitleyen hafif bir drawer olarak sunuyorum. */
+.mobile-navigation-dialog[open] {
+  animation: mobile-navigation-enter 180ms ease-out;
+}
+
+.mobile-navigation-dialog::backdrop {
+  background: rgb(16 45 68 / 0.35);
+}
+
+@keyframes mobile-navigation-enter {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Burada mobil ürün carousel'inde scroll-snap davranışını korurken dekoratif scrollbar'ı gizliyorum. */
+.product-media-carousel {
+  scrollbar-width: none;
+}
+
+.product-media-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+/* Burada skip linki yalnız odaklandığında görünür kılarak ana içeriğe hızlı geçiş sağlıyorum. */
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  transform: translateY(-160%);
+  border-radius: 0.5rem;
+  background: var(--brand-950);
+  padding: 0.75rem 1rem;
+  color: white;
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Burada hareket hassasiyetinde dekoratif geçişleri en düşük seviyeye indiriyorum. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
-import type { ProductSeoResponse } from "./products-api";
+
 import {
+  buildProductBreadcrumbJsonLd,
   buildProductJsonLd,
   buildProductMetadata,
   productCanonicalUrl,
   serializeJsonLd,
+  type ProductSeoShape,
 } from "./product-seo";
 
-const productData: ProductSeoResponse = {
+const productData: ProductSeoShape = {
   product: {
-    id: "P00001",
     title: "Siyah Spor Ayakkabı",
     mainSku: "SHOE-MAIN",
     description: "Günlük kullanıma uygun spor ayakkabı.",
@@ -21,12 +22,10 @@ const productData: ProductSeoResponse = {
     ratingCount: 10,
     variants: [
       {
-        id: "variant-1",
         name: "Numara",
         value: "42",
         sku: "SHOE-42",
         price: 1299,
-        compareAtPrice: null,
         stock: 5,
         isActive: true,
       },
@@ -34,17 +33,14 @@ const productData: ProductSeoResponse = {
   },
   images: [
     {
-      id: "image-1",
       imageUrl: "https://cdn.example.com/shoe.jpg",
       altText: "Siyah Spor Ayakkabı",
-      displayOrder: 0,
-      isMain: true,
     },
   ],
-  lastModifiedAt: "2026-08-01T00:00:00Z",
 };
 
 describe("product SEO", () => {
+  // Burada ürün başlığı, açıklaması ve API slug değerinin metadata içinde korunduğunu doğruluyorum.
   it("uses product fallbacks and the canonical product URL", () => {
     const metadata = buildProductMetadata(productData);
 
@@ -53,6 +49,18 @@ describe("product SEO", () => {
     expect(metadata.alternates?.canonical).toBe(productCanonicalUrl("siyah-spor-ayakkabi"));
   });
 
+  // Burada görünür ürün hiyerarşisinin mutlak canonical URL'lerle BreadcrumbList olarak üretildiğini doğruluyorum.
+  it("builds the visible product breadcrumb hierarchy", () => {
+    const breadcrumb = buildProductBreadcrumbJsonLd(productData);
+
+    expect(breadcrumb.itemListElement).toHaveLength(3);
+    expect(breadcrumb.itemListElement[2]).toMatchObject({
+      name: "Siyah Spor Ayakkabı",
+      item: productCanonicalUrl("siyah-spor-ayakkabi"),
+    });
+  });
+
+  // Burada Product JSON-LD'nin gerçek puan, teklif, para birimi ve stok durumunu taşıdığını doğruluyorum.
   it("builds Product JSON-LD with rating, offer, currency and availability", () => {
     const jsonLd = buildProductJsonLd(productData);
 
@@ -68,6 +76,7 @@ describe("product SEO", () => {
     ]);
   });
 
+  // Burada JSON-LD içinde script kapanışı üretebilecek karakterlerin kaçırıldığını doğruluyorum.
   it("escapes markup-significant characters in serialized JSON-LD", () => {
     expect(serializeJsonLd({ name: "</script><script>" })).not.toContain("</script>");
     expect(serializeJsonLd({ name: "</script><script>" })).toContain("\\u003c");

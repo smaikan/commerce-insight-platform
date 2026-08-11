@@ -481,6 +481,14 @@ A Storefront slice is OK only if:
 
 The missing contract only stops the relevant feature. Do not guess without exact operation/field/topology; Report which doc/API changes are required and stop at that limit. If the work is unrelated, safe and clearly requested, you can continue in scope.
 
+## Geliştirme sırasında kullanıcıya danışma
+
+- Storefront geliştirmesinde görsel hiyerarşi, navigasyon, ürün kartı yoğunluğu, mobil kompozisyon, renk/tema, tipografi, ürün bilgisi sunumu ve kullanıcı akışını anlamlı biçimde etkileyen kararlarda kullanıcıya danış.
+- Soruyu kısa ve somut sor; önerilen seçeneği, alternatifleri ve önemli farkı belirt. Kullanıcının ürün kararını yalnızca teknik bir ayrıntıymış gibi varsayma.
+- Güvenli hazırlık, kaynak inceleme, sözleşme doğrulama, test ve kararla çelişmeyecek uygulama işlerine devam et; her küçük kod ayrıntısı için çalışmayı durdurma.
+- Kullanıcı yanıtı gelene kadar geri döndürülmesi kolay ve kapsamı değiştirmeyen bir varsayım gerekiyorsa bunu açıkça geçici olarak belirt. Yanıt geldiğinde kullanıcının kararı geçerlidir.
+- Danışma isteği; API, Admin, dokümantasyon, paket kurulumu, yayınlama veya kapsam dışı dosyalarda değişiklik yapma yetkisi vermez.
+
 ## Kod yazımı ve revizyon disiplini
 
 - Kod değişikliğini tamamladıktan sonra yeniden inceleme yap; gereksiz tekrarları, kullanılmayan bağımlılıkları, gereksiz soyutlamaları ve okunabilirliği düşüren yapıları düzeltmeden işi tamamlanmış sayma.

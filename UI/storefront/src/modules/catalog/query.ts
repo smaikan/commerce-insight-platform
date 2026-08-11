@@ -1,0 +1,102 @@
+import type {
+  CatalogSearchParams,
+  CatalogSort,
+  CatalogView,
+  PublishedProductQuery,
+} from "@/modules/catalog/types";
+
+export const CATALOG_PAGE_SIZE = 24;
+
+export const CATALOG_SORT_LABELS: Record<CatalogSort, string> = {
+  newest: "En yeni",
+  popular: "En popüler",
+  "display-order": "Önerilen sıra",
+  title: "Ada göre",
+};
+
+const SORT_QUERY: Record<CatalogSort, Pick<PublishedProductQuery, "SortBy" | "Descending">> = {
+  newest: { SortBy: 0, Descending: true },
+  popular: { SortBy: 1, Descending: true },
+  "display-order": { SortBy: 2, Descending: false },
+  title: { SortBy: 3, Descending: false },
+};
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Burada paylaşılabilir katalog görünümünü güvenli sayfa ve belgeli sıralama değerlerine indiriyorum.
+export function parseCatalogView(searchParams: CatalogSearchParams): CatalogView {
+  const rawPage = firstValue(searchParams.page);
+  const page = Number.parseInt(rawPage || "1", 10);
+  const rawSort = firstValue(searchParams.sort);
+  const sort = isCatalogSort(rawSort) ? rawSort : "newest";
+
+  const brandId = optionalUuid(searchParams.brand);
+  const collectionId = optionalUuid(searchParams.collection);
+  const typeId = optionalUuid(searchParams.type);
+
+  return {
+    page: Number.isSafeInteger(page) && page > 0 ? page : 1,
+    sort,
+    ...(brandId ? { brandId } : {}),
+    ...(collectionId ? { collectionId } : {}),
+    ...(typeId ? { typeId } : {}),
+  };
+}
+
+// Burada UI görünümünü OpenAPI'nin sayfalama ve numeric enum sorgusuna dönüştürüyorum.
+export function toPublishedProductQuery(view: CatalogView): PublishedProductQuery {
+  return {
+    PageNumber: view.page,
+    PageSize: CATALOG_PAGE_SIZE,
+    ...SORT_QUERY[view.sort],
+    ...(view.brandId ? { BrandId: view.brandId } : {}),
+    ...(view.collectionId ? { CollectionId: view.collectionId } : {}),
+    ...(view.typeId ? { TypeId: view.typeId } : {}),
+  };
+}
+
+// Burada sayfalama ve sıralama linklerinin yalnız anlamlı parametreleri taşımasını sağlıyorum.
+export function catalogHref(view: CatalogView): string {
+  const query = new URLSearchParams();
+  if (view.page > 1) query.set("page", String(view.page));
+  if (view.sort !== "newest") query.set("sort", view.sort);
+  if (view.brandId) query.set("brand", view.brandId);
+  if (view.collectionId) query.set("collection", view.collectionId);
+  if (view.typeId) query.set("type", view.typeId);
+  const suffix = query.toString();
+  return suffix ? `/products?${suffix}` : "/products";
+}
+
+// Burada yalnız sıralamayı canonical URL'den çıkarıp filtrelenmiş ürün kümesini değiştirmeden koruyorum.
+export function catalogCanonicalHref(view: CatalogView): string {
+  return catalogHref({ ...view, sort: "newest" });
+}
+
+export function hasCatalogFilters(view: CatalogView): boolean {
+  return Boolean(view.brandId || view.collectionId || view.typeId);
+}
+
+export type CatalogFilterKey = "brandId" | "collectionId" | "typeId";
+
+// Burada tek bir sınıflandırma filtresini kaldırırken sıralamayı ve diğer filtreleri koruyup sonucu ilk sayfaya döndürüyorum.
+export function catalogHrefWithoutFilter(view: CatalogView, filter: CatalogFilterKey): string {
+  const nextView = { ...view, page: 1 };
+  delete nextView[filter];
+  return catalogHref(nextView);
+}
+
+// Burada çok değerli search param içinden yalnız ilk metin değerini okuyorum.
+function firstValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+// Burada API'ye yalnız biçimi geçerli tekil GUID filtrelerinin ulaşmasına izin veriyorum.
+function optionalUuid(value: string | string[] | undefined): string | undefined {
+  const candidate = firstValue(value)?.trim();
+  return candidate && UUID_PATTERN.test(candidate) ? candidate : undefined;
+}
+
+// Burada kullanıcı URL'sindeki sıralama anahtarını desteklenen seçeneklerle sınırlandırıyorum.
+function isCatalogSort(value: string | undefined): value is CatalogSort {
+  return Boolean(value && Object.hasOwn(CATALOG_SORT_LABELS, value));
+}
