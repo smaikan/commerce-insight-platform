@@ -1,6 +1,7 @@
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using ECommerce.Application.Common.Identifiers;
+using System.ComponentModel.DataAnnotations;
 
 namespace ECommerce.Application.Orders.Dtos;
 
@@ -24,7 +25,12 @@ public sealed record OrderDto(
     DateTime? CancelledAt,
     DateTime CreatedAt,
     OrderCustomerDto? Customer = null,
-    OrderAddressDto? BillingAddress = null);
+    OrderAddressDto? BillingAddress = null,
+    [property: MaxLength(Order.MaximumShippingCarrierLength)] string? ShippingCarrier = null,
+    [property: MaxLength(Order.MaximumTrackingNumberLength)] string? TrackingNumber = null,
+    [property: MaxLength(Order.MaximumTrackingUrlLength), Url] string? TrackingUrl = null,
+    DateTime? ShippedAt = null,
+    DateTime? DeliveredAt = null);
 
 // Burada sipariş sahibine gösterilecek değişmez müşteri iletişim snapshot'ını tanımlıyorum.
 public sealed record OrderCustomerDto(string FirstName, string LastName, string Email, string PhoneNumber);
@@ -42,7 +48,12 @@ public sealed record OrderItemDto(
     decimal DiscountTotal,
     decimal? TaxRatePercentage,
     decimal TaxTotal,
-    decimal RefundTotal);
+    decimal RefundTotal,
+    [property: MaxLength(OrderItem.MaximumProductUrlLength)] string? ProductUrl = null,
+    [property: MaxLength(OrderItem.MaximumImageUrlLength), Url] string? ImageUrl = null,
+    [property: MaxLength(OrderItem.MaximumImageAltLength)] string? ImageAlt = null,
+    [property: MaxLength(OrderItem.MaximumVariantNameLength)] string? VariantName = null,
+    [property: MaxLength(OrderItem.MaximumVariantValueLength)] string? VariantValue = null);
 
 // Burada sipariş listesinin PII ve kalem grafiği taşımayan hafif cevap modelini tanımlıyorum.
 public sealed record OrderSummaryDto(
@@ -120,7 +131,12 @@ public static class OrderDtoMapping
                     item.DiscountTotal,
                     item.TaxRatePercentage,
                     item.TaxTotal,
-                    item.RefundTotal))
+                    item.RefundTotal,
+                    item.ProductUrlSnapshot,
+                    item.ImageUrlSnapshot,
+                    item.ImageAltSnapshot,
+                    item.VariantNameSnapshot,
+                    item.VariantValueSnapshot))
                 .ToList(),
             order.Payments
                 .OrderBy(payment => payment.CreatedAt)
@@ -168,8 +184,19 @@ public static class OrderDtoMapping
                     order.BillingAddressSnapshot.City,
                     order.BillingAddressSnapshot.District,
                     order.BillingAddressSnapshot.FullAddress,
-                    order.BillingAddressSnapshot.PostalCode));
+                    order.BillingAddressSnapshot.PostalCode),
+            order.ShippingCarrier,
+            order.TrackingNumber,
+            order.TrackingUrl,
+            AsUtc(order.ShippedAt),
+            AsUtc(order.DeliveredAt));
     }
+
+    // Burada SQL datetime2'den belirsiz kind ile okunan teslimat tarihlerini wire sözleşmesinde UTC olarak işaretliyorum.
+    private static DateTime? AsUtc(DateTime? value) =>
+        value.HasValue
+            ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+            : null;
 
     // Burada sipariş aggregate'ını listeler için küçük ve PII içermeyen özet DTO'ya dönüştürüyorum.
     public static OrderSummaryDto ToSummaryDto(this Order order)

@@ -1,6 +1,7 @@
 using ECommerce.Application.Common.Identifiers;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace ECommerce.Application.Carts.Dtos;
 
@@ -10,7 +11,8 @@ public sealed record CartItemDto(
     string ProductId,
     Guid ProductVariantId,
     string? ProductTitle,
-    string? VariantName,
+    [property: MaxLength(OrderItem.MaximumVariantNameLength)] string? VariantName,
+    [property: MaxLength(OrderItem.MaximumVariantValueLength)] string? VariantValue,
     string? Sku,
     int Quantity,
     decimal UnitPrice,
@@ -28,6 +30,7 @@ public static class CartItemDtoMapping
     {
         var product = item.Product;
         var variant = item.ProductVariant;
+        var exposesVariantSelection = product?.HasVariants == true;
         var currentUnitPrice = variant?.Price ?? item.UnitPrice;
         var isAvailable =
             product is not null &&
@@ -43,7 +46,8 @@ public static class CartItemDtoMapping
             PublicIdCodec.EncodeProductId(item.ProductId),
             item.ProductVariantId,
             product?.Title,
-            variant?.Name,
+            exposesVariantSelection ? variant?.Name : null,
+            exposesVariantSelection ? variant?.Value : null,
             variant?.Sku,
             item.Quantity,
             item.UnitPrice,

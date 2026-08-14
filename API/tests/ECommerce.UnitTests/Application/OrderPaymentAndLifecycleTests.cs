@@ -163,6 +163,64 @@ public sealed class OrderPaymentAndLifecycleTests
         result.IsValid.Should().BeFalse();
     }
 
+    // Burada kargoya verildi durumunun firma ve takip numarası olmadan kabul edilmediğini doğruluyorum.
+    [Fact]
+    public void ChangeOrderStatusValidator_Should_Require_Shipment_Fields_For_Shipped()
+    {
+        var validator = new ChangeOrderStatusCommandValidator();
+
+        var missingFields = validator.Validate(new ChangeOrderStatusCommand(Guid.NewGuid(), OrderStatus.Shipped));
+        var unsafeUrl = validator.Validate(new ChangeOrderStatusCommand(
+            Guid.NewGuid(),
+            OrderStatus.Shipped,
+            "Carrier",
+            "TRACK-123",
+            "javascript:alert(1)"));
+
+        missingFields.IsValid.Should().BeFalse();
+        unsafeUrl.IsValid.Should().BeFalse();
+    }
+
+    // Burada yönetim durum komutunun kargo bilgilerini kaydedip DTO'ya kargoya çıkış tarihini yansıttığını doğruluyorum.
+    [Fact]
+    public async Task ChangeStatus_Should_Set_Shipment_Tracking_And_Shipped_Time()
+    {
+        var clock = new FixedClock();
+        var order = CreateOrder();
+        order.ChangeStatus(OrderStatus.Confirmed, clock.UtcNow);
+        var payment = new Payment(order.Id, PaymentProvider.Fake, order.GrandTotal, "shipment_payment_key_001");
+        order.AddPayment(payment);
+        payment.MarkAsPaid("shipment_transaction_001");
+        order.ChangeStatus(OrderStatus.Paid, clock.UtcNow);
+        order.ChangeStatus(OrderStatus.Preparing, clock.UtcNow);
+        var orders = new Mock<IOrderRepository>();
+        orders.Setup(repository => repository.GetByIdForUpdateAsync(order.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        var unitOfWork = CreateTransactionalUnitOfWork<OrderDto>();
+        var handler = new ChangeOrderStatusCommandHandler(
+            orders.Object,
+            new OrderInventoryService(Mock.Of<IProductVariantRepository>()),
+            new OrderCouponService(Mock.Of<ICouponRepository>(), clock),
+            clock,
+            unitOfWork.Object);
+
+        var result = await handler.Handle(
+            new ChangeOrderStatusCommand(
+                order.Id,
+                OrderStatus.Shipped,
+                "Carrier",
+                "TRACK-123",
+                "https://track.example.com/TRACK-123"),
+            CancellationToken.None);
+
+        result.Status.Should().Be(OrderStatus.Shipped);
+        result.ShippingCarrier.Should().Be("Carrier");
+        result.TrackingNumber.Should().Be("TRACK-123");
+        result.TrackingUrl.Should().Be("https://track.example.com/TRACK-123");
+        result.ShippedAt.Should().Be(clock.UtcNow);
+        unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     // Burada yönetici kupon kodunu değiştirse bile iptal sırasında kullanım kaydının sipariş kimliğiyle geri alındığını doğruluyorum.
     [Fact]
     public async Task ReleaseCoupon_Should_Use_CouponUsage_Order_Link_After_A_Code_Change()

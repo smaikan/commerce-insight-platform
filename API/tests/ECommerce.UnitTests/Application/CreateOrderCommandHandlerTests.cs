@@ -19,8 +19,14 @@ public sealed class CreateOrderCommandHandlerTests
     [Fact]
     public async Task Handle_Should_Create_Order_Reduce_Stock_And_Clear_Cart()
     {
-        var product = CreateProduct();
-        var variant = CreateVariant(product, stock: 5, price: 12m);
+        var product = CreateProduct(hasVariants: true);
+        product.Images.Add(new ProductImage(
+            product,
+            "https://cdn.example.com/order-product.jpg",
+            displayOrder: 1,
+            isMain: true,
+            altText: "Order product image"));
+        var variant = CreateVariant(product, stock: 5, price: 12m, name: "Renk", value: "Pudra");
         var cart = Cart.CreateForUser(7);
         cart.AddItem(product.Id, variant.Id, 2, 10m);
         var carts = new Mock<ICartRepository>();
@@ -69,6 +75,13 @@ public sealed class CreateOrderCommandHandlerTests
         result.OrderNumber.Should().StartWith("ORD-");
         result.SubTotal.Should().Be(24m);
         savedOrder!.Items.Should().ContainSingle();
+        result.Items.Single().ProductUrl.Should().Be("order-product");
+        result.Items.Single().ImageUrl.Should().Be("https://cdn.example.com/order-product.jpg");
+        result.Items.Single().ImageAlt.Should().Be("Order product image");
+        result.Items.Single().VariantName.Should().Be("Renk");
+        result.Items.Single().VariantValue.Should().Be("Pudra");
+        savedOrder.Items.Single().VariantNameSnapshot.Should().Be("Renk");
+        savedOrder.Items.Single().VariantValueSnapshot.Should().Be("Pudra");
         variant.Stock.Should().Be(3);
         variant.StockMovements.Should().ContainSingle(movement =>
             movement.Type == StockMovementType.Sale &&
@@ -222,6 +235,8 @@ public sealed class CreateOrderCommandHandlerTests
         result.CouponCode.Should().Be("SAVE20");
         result.ShippingAddress.Should().NotBeNull();
         result.ShippingAddress!.SourceAddressId.Should().Be(address.Id);
+        result.Items.Single().VariantName.Should().BeNull();
+        result.Items.Single().VariantValue.Should().BeNull();
         coupon.UsedCount.Should().Be(1);
         coupons.Verify(repository => repository.AddUsageAsync(
             It.Is<CouponUsage>(usage => usage.OrderId.HasValue && usage.UserId == 7),
@@ -396,14 +411,15 @@ public sealed class CreateOrderCommandHandlerTests
     }
 
     // Burada test için satışa açık ürün örneğini kalıcı kimliğiyle oluşturuyorum.
-    private static Product CreateProduct(TaxRate? taxRate = null)
+    private static Product CreateProduct(TaxRate? taxRate = null, bool hasVariants = false)
     {
         var product = new Product(
             "Order Product",
             "order-product",
             "ORDER-MAIN",
             status: ProductStatus.Active,
-            taxRateId: taxRate?.Id)
+            taxRateId: taxRate?.Id,
+            hasVariants: hasVariants)
             .WithId(12);
         if (taxRate is not null)
         {
@@ -416,9 +432,20 @@ public sealed class CreateOrderCommandHandlerTests
     }
 
     // Burada test için stoklu aktif varyant örneğini oluşturuyorum.
-    private static ProductVariant CreateVariant(Product product, int stock = 10, decimal price = 10m)
+    private static ProductVariant CreateVariant(
+        Product product,
+        int stock = 10,
+        decimal price = 10m,
+        string name = "Default",
+        string? value = null)
     {
-        return new ProductVariant(product.Id, "Default", $"ORDER-{Guid.NewGuid():N}", price, stock);
+        return new ProductVariant(
+            product.Id,
+            name,
+            $"ORDER-{Guid.NewGuid():N}",
+            price,
+            stock,
+            value: value);
     }
 
     // Burada serializable transaction delegesini testte doğrudan çalıştıran unit of work mockunu hazırlıyorum.

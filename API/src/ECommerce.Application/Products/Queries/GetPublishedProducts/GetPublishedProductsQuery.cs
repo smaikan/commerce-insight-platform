@@ -12,5 +12,6 @@ public sealed record GetPublishedProductsQuery(
     Guid? BrandId = null,
     Guid? CollectionId = null,
     Guid? TagId = null,
-    PublishedProductSortBy SortBy = PublishedProductSortBy.Newest,
-    bool Descending = true) : IRequest<PagedResult<PublishedProductListItemDto>>;
+    PublishedProductSortBy? SortBy = null,
+    bool? Descending = null,
+    string? Search = null) : IRequest<PagedResult<PublishedProductListItemDto>>;

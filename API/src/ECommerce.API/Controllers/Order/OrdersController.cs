@@ -16,6 +16,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.ComponentModel.DataAnnotations;
 
 namespace ECommerce.API.Controllers.Order;
 
@@ -130,7 +131,14 @@ public sealed class OrdersController : ControllerBase
         Guid id,
         ChangeOrderStatusRequest request,
         CancellationToken cancellationToken) =>
-        Ok(await _sender.Send(new ChangeOrderStatusCommand(id, request.Status), cancellationToken));
+        Ok(await _sender.Send(
+            new ChangeOrderStatusCommand(
+                id,
+                request.Status,
+                request.ShippingCarrier,
+                request.TrackingNumber,
+                request.TrackingUrl),
+            cancellationToken));
 }
 
 // Burada checkout isteğinin concurrency, isteğe bağlı teslimat adresi ve kupon alanlarını tanımlıyorum.
@@ -144,7 +152,11 @@ public sealed record CreateOrderRequest(
 public sealed record CreatePaymentRequest(PaymentProvider Provider);
 
 // Burada yönetim sipariş yaşam döngüsü güncellemesi için hedef durumu tanımlıyorum.
-public sealed record ChangeOrderStatusRequest(OrderStatus Status);
+public sealed record ChangeOrderStatusRequest(
+    OrderStatus Status,
+    [property: MaxLength(ECommerce.Domain.Entities.Order.MaximumShippingCarrierLength)] string? ShippingCarrier = null,
+    [property: MaxLength(ECommerce.Domain.Entities.Order.MaximumTrackingNumberLength)] string? TrackingNumber = null,
+    [property: MaxLength(ECommerce.Domain.Entities.Order.MaximumTrackingUrlLength), Url] string? TrackingUrl = null);
 
 public sealed record BulkImportOrdersRequest(IReadOnlyList<ImportOrderRequest> Orders);
 

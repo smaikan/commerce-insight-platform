@@ -74,7 +74,18 @@ public sealed class ChangeOrderStatusCommandHandler : IRequestHandler<ChangeOrde
             await _couponService.ReleaseForCancellationAsync(order, cancellationToken);
         }
 
-        order.ChangeStatus(request.Status, _clock.UtcNow);
+        if (request.Status == OrderStatus.Shipped)
+        {
+            order.SetShipment(
+                request.ShippingCarrier!,
+                request.TrackingNumber!,
+                request.TrackingUrl,
+                _clock.UtcNow);
+        }
+        else
+        {
+            order.ChangeStatus(request.Status, _clock.UtcNow);
+        }
         if (_notificationService is not null)
         {
             await _notificationService.QueueOrderStatusChangedAsync(order, cancellationToken);

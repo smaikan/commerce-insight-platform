@@ -23,12 +23,28 @@ public sealed class OrderTests
         var order = new Order(1, "ORD-1", 200m, 0m, 0m, 0m, 200m);
         var variantId = Guid.NewGuid();
 
-        var item = order.AddItem(12, variantId, "  Product title  ", " sku-1 ", 100m, 2);
+        var item = order.AddItem(
+            12,
+            variantId,
+            "  Product title  ",
+            " sku-1 ",
+            100m,
+            2,
+            productUrlSnapshot: " product-title ",
+            imageUrlSnapshot: " https://cdn.example.com/product.jpg ",
+            imageAltSnapshot: " Product image ",
+            variantNameSnapshot: " Renk ",
+            variantValueSnapshot: " Pudra ");
         order.EnsureItemsMatchSubTotal();
 
         item.OrderId.Should().Be(order.Id);
         item.ProductTitleSnapshot.Should().Be("Product title");
         item.VariantSkuSnapshot.Should().Be("sku-1");
+        item.ProductUrlSnapshot.Should().Be("product-title");
+        item.ImageUrlSnapshot.Should().Be("https://cdn.example.com/product.jpg");
+        item.ImageAltSnapshot.Should().Be("Product image");
+        item.VariantNameSnapshot.Should().Be("Renk");
+        item.VariantValueSnapshot.Should().Be("Pudra");
         item.TotalPrice.Should().Be(200m);
         order.Items.Should().ContainSingle().Which.Should().BeSameAs(item);
     }
@@ -114,6 +130,38 @@ public sealed class OrderTests
 
         order.Status.Should().Be(OrderStatus.Delivered);
         order.PaidAt.Should().Be(utcNow.AddMinutes(1));
+        order.ShippedAt.Should().Be(utcNow.AddMinutes(3));
+        order.DeliveredAt.Should().Be(utcNow.AddMinutes(4));
+    }
+
+    // Burada kargo takip snapshot'ının güvenli URL ile saklanıp ilk kargoya çıkış zamanını koruduğunu doğruluyorum.
+    [Fact]
+    public void SetShipment_Should_Persist_Tracking_And_Preserve_First_Shipped_Time()
+    {
+        var utcNow = new DateTime(2026, 8, 13, 8, 0, 0, DateTimeKind.Utc);
+        var order = CreatePreparingOrder(utcNow);
+
+        order.SetShipment("  Yurtiçi Kargo  ", "  TRACK-123  ", "https://track.example.com/TRACK-123", utcNow.AddMinutes(3));
+        order.SetShipment("Yurtiçi Kargo", "TRACK-456", null, utcNow.AddMinutes(4));
+
+        order.Status.Should().Be(OrderStatus.Shipped);
+        order.ShippingCarrier.Should().Be("Yurtiçi Kargo");
+        order.TrackingNumber.Should().Be("TRACK-456");
+        order.TrackingUrl.Should().BeNull();
+        order.ShippedAt.Should().Be(utcNow.AddMinutes(3));
+    }
+
+    // Burada güvenli olmayan takip protokolünün siparişe kaydedilmesini engellediğimi doğruluyorum.
+    [Fact]
+    public void SetShipment_Should_Reject_Unsafe_Tracking_Url()
+    {
+        var utcNow = new DateTime(2026, 8, 13, 8, 0, 0, DateTimeKind.Utc);
+        var order = CreatePreparingOrder(utcNow);
+
+        Action act = () => order.SetShipment("Carrier", "TRACK-123", "javascript:alert(1)", utcNow.AddMinutes(3));
+
+        act.Should().Throw<DomainException>();
+        order.Status.Should().Be(OrderStatus.Preparing);
     }
 
     // Burada başarılı ödeme kaydı olmadan parasal siparişin paid durumuna geçirilmesini engelliyorum.
@@ -161,5 +209,18 @@ public sealed class OrderTests
         Action act = () => order.ChangeStatus(OrderStatus.Delivered, utcNow);
 
         act.Should().Throw<DomainException>();
+    }
+
+    // Burada kargo testleri için başarılı ödemeden hazırlama aşamasına kadar geçerli sipariş yaşam döngüsünü kuruyorum.
+    private static Order CreatePreparingOrder(DateTime utcNow)
+    {
+        var order = new Order(1, "ORD-SHIPMENT", 100m, 0m, 0m, 0m, 100m);
+        order.ChangeStatus(OrderStatus.Confirmed, utcNow);
+        var payment = new Payment(order.Id, PaymentProvider.Fake, order.GrandTotal, "shipment_payment_key_001");
+        order.AddPayment(payment);
+        payment.MarkAsPaid("shipment_transaction_001");
+        order.ChangeStatus(OrderStatus.Paid, utcNow.AddMinutes(1));
+        order.ChangeStatus(OrderStatus.Preparing, utcNow.AddMinutes(2));
+        return order;
     }
 }

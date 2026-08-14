@@ -3,7 +3,6 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Models;
 using ECommerce.Application.Products.Dtos;
 using ECommerce.Domain.Entities;
-using ECommerce.Domain.Enums;
 using ECommerce.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,43 +24,54 @@ public sealed class PublishedProductListReader : IPublishedProductListReader
         PublishedProductListFilter filter,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Products
+        var settings = _context.StoreSettings
             .AsNoTracking()
-            .Where(product =>
-                product.DeletedAtUtc == null &&
-                product.IsActive &&
-                product.Status == ProductStatus.Active);
+            .Where(item => item.Id == StoreSettings.SingletonId);
+        var publishedProducts = _context.Products
+            .AsNoTracking()
+            .WherePublished();
+        var query = filter.ResolveStoreSettings
+            ? publishedProducts.ApplyStorefrontVisibility(settings)
+            : publishedProducts.ApplyStorefrontVisibility(
+                filter.ShowOutOfStockProducts,
+                filter.ShowProductsWithoutPrice);
         query = ApplyFilter(query, filter);
-        var totalCount = await query.CountAsync(cancellationToken);
-        var items = await CreateOrderedQuery(query, filter)
-            .ThenBy(product => product.Id)
+
+        int totalCount;
+        IQueryable<Product> orderedProducts;
+        if (filter.SearchTokens is { Count: > 0 } &&
+            filter.CandidateGrams is { Count: > 0 } &&
+            filter.SearchNormalized is not null)
+        {
+            var candidates = PublishedProductSearchQueryComposer.ApplySearch(
+                _context,
+                query,
+                filter.SearchNormalized,
+                filter.SearchTokens,
+                filter.CandidateGrams);
+            totalCount = await candidates.CountAsync(cancellationToken);
+            orderedProducts = filter.SortBy.HasValue
+                ? CreateOrderedQuery(
+                        candidates.Select(candidate => candidate.Product),
+                        filter,
+                        settings)
+                    .ThenBy(product => product.Id)
+                : candidates.OrderByRelevance(filter.SearchNormalized)
+                    .Select(candidate => candidate.Product);
+        }
+        else
+        {
+            totalCount = await query.CountAsync(cancellationToken);
+            orderedProducts = CreateOrderedQuery(query, filter, settings).ThenBy(product => product.Id);
+        }
+
+        var pagedProducts = orderedProducts
             .Skip((filter.PageNumber - 1) * filter.PageSize)
-            .Take(filter.PageSize)
-            .Select(product => new PublishedProductProjection(
-                product.Id,
-                product.Title,
-                product.Url,
-                product.Description,
-                product.Brand == null ? null : product.Brand.Name,
-                product.AverageRating,
-                product.RatingCount,
-                product.Variants
-                    .Where(variant => variant.IsActive)
-                    .OrderBy(variant => variant.Price)
-                    .ThenBy(variant => variant.Id)
-                    .Select(variant => new ProductPriceProjection(variant.Price, variant.CompareAtPrice))
-                    .FirstOrDefault(),
-                product.Images
-                    .OrderByDescending(image => image.IsMain)
-                    .ThenBy(image => image.DisplayOrder)
-                    .ThenBy(image => image.Id)
-                    .Select(image => new ProductImageProjection(
-                        image.Id,
-                        image.ImageUrl,
-                        image.AltText,
-                        image.DisplayOrder,
-                        image.IsMain))
-                    .FirstOrDefault()))
+            .Take(filter.PageSize);
+        var projectedProducts = filter.ResolveStoreSettings
+            ? pagedProducts.SelectPublishedProductCards(settings)
+            : pagedProducts.SelectPublishedProductCards(filter.ShowStockWarning, filter.LowStockThreshold);
+        var items = await projectedProducts
             .ToListAsync(cancellationToken);
 
         return new PagedResult<PublishedProductListItemDto>(
@@ -104,25 +114,107 @@ public sealed class PublishedProductListReader : IPublishedProductListReader
     // Burada storefront sıralama seçeneğini güvenli ve kararlı EF sorgusuna çeviriyorum.
     private static IOrderedQueryable<Product> CreateOrderedQuery(
         IQueryable<Product> query,
-        PublishedProductListFilter filter) =>
-        filter.SortBy switch
+        PublishedProductListFilter filter,
+        IQueryable<StoreSettings> settings)
+    {
+        if (filter.ResolveStoreSettings && !filter.SortBy.HasValue)
         {
-            PublishedProductSortBy.Popularity => filter.Descending
+            return CreateStoreDefaultOrderedQuery(query, settings);
+        }
+
+        if (filter.ResolveStoreSettings && !filter.Descending.HasValue)
+        {
+            return CreateStoreDirectionOrderedQuery(
+                query,
+                filter.SortBy ?? PublishedProductSortBy.Newest,
+                settings);
+        }
+
+        var descending = filter.Descending != false;
+        return filter.SortBy switch
+        {
+            PublishedProductSortBy.Popularity => descending
                 ? query.OrderByDescending(product => product.PopularityScore)
                 : query.OrderBy(product => product.PopularityScore),
-            PublishedProductSortBy.DisplayOrder => filter.Descending
+            PublishedProductSortBy.DisplayOrder => descending
                 ? query.OrderByDescending(product => product.DisplayOrder)
                 : query.OrderBy(product => product.DisplayOrder),
-            PublishedProductSortBy.Title => filter.Descending
+            PublishedProductSortBy.Title => descending
                 ? query.OrderByDescending(product => product.Title)
                 : query.OrderBy(product => product.Title),
-            _ => filter.Descending
+            _ => descending
                 ? query.OrderByDescending(product => product.CreatedAt)
                 : query.OrderBy(product => product.CreatedAt)
         };
+    }
+
+    // Burada StoreSettings içindeki varsayılan alan ve yönü tek SQL'in koşullu sıralama anahtarlarına çeviriyorum.
+    private static IOrderedQueryable<Product> CreateStoreDefaultOrderedQuery(
+        IQueryable<Product> query,
+        IQueryable<StoreSettings> settings) =>
+        query
+            .OrderByDescending(product =>
+                (!settings.Any() || settings.Any(item =>
+                    item.DefaultProductSort == ECommerce.Domain.Enums.StorefrontProductSort.Newest &&
+                    item.DefaultProductSortDescending))
+                    ? product.CreatedAt : DateTime.MinValue)
+            .ThenBy(product => settings.Any(item =>
+                item.DefaultProductSort == ECommerce.Domain.Enums.StorefrontProductSort.Newest &&
+                !item.DefaultProductSortDescending) ? product.CreatedAt : DateTime.MaxValue)
+            .ThenByDescending(product => settings.Any(item =>
+                item.DefaultProductSort == ECommerce.Domain.Enums.StorefrontProductSort.Popularity &&
+                item.DefaultProductSortDescending) ? product.PopularityScore : long.MinValue)
+            .ThenBy(product => settings.Any(item =>
+                item.DefaultProductSort == ECommerce.Domain.Enums.StorefrontProductSort.Popularity &&
+                !item.DefaultProductSortDescending) ? product.PopularityScore : long.MaxValue)
+            .ThenByDescending(product => settings.Any(item =>
+                item.DefaultProductSort == ECommerce.Domain.Enums.StorefrontProductSort.DisplayOrder &&
+                item.DefaultProductSortDescending) ? product.DisplayOrder : int.MinValue)
+            .ThenBy(product => settings.Any(item =>
+                item.DefaultProductSort == ECommerce.Domain.Enums.StorefrontProductSort.DisplayOrder &&
+                !item.DefaultProductSortDescending) ? product.DisplayOrder : int.MaxValue)
+            .ThenByDescending(product => settings.Any(item =>
+                item.DefaultProductSort == ECommerce.Domain.Enums.StorefrontProductSort.Title &&
+                item.DefaultProductSortDescending) ? product.Title : string.Empty)
+            .ThenBy(product => settings.Any(item =>
+                item.DefaultProductSort == ECommerce.Domain.Enums.StorefrontProductSort.Title &&
+                !item.DefaultProductSortDescending) ? product.Title : string.Empty);
+
+    // Burada explicit alanın yönü gönderilmediyse yalnız StoreSettings yönünü SQL tarafında uyguluyorum.
+    private static IOrderedQueryable<Product> CreateStoreDirectionOrderedQuery(
+        IQueryable<Product> query,
+        PublishedProductSortBy sortBy,
+        IQueryable<StoreSettings> settings) =>
+        sortBy switch
+        {
+            PublishedProductSortBy.Popularity => query
+                .OrderByDescending(product =>
+                    (!settings.Any() || settings.Any(item => item.DefaultProductSortDescending))
+                        ? product.PopularityScore : long.MinValue)
+                .ThenBy(product => settings.Any(item => !item.DefaultProductSortDescending)
+                    ? product.PopularityScore : long.MaxValue),
+            PublishedProductSortBy.DisplayOrder => query
+                .OrderByDescending(product =>
+                    (!settings.Any() || settings.Any(item => item.DefaultProductSortDescending))
+                        ? product.DisplayOrder : int.MinValue)
+                .ThenBy(product => settings.Any(item => !item.DefaultProductSortDescending)
+                    ? product.DisplayOrder : int.MaxValue),
+            PublishedProductSortBy.Title => query
+                .OrderByDescending(product =>
+                    (!settings.Any() || settings.Any(item => item.DefaultProductSortDescending))
+                        ? product.Title : string.Empty)
+                .ThenBy(product => settings.Any(item => !item.DefaultProductSortDescending)
+                    ? product.Title : string.Empty),
+            _ => query
+                .OrderByDescending(product =>
+                    (!settings.Any() || settings.Any(item => item.DefaultProductSortDescending))
+                        ? product.CreatedAt : DateTime.MinValue)
+                .ThenBy(product => settings.Any(item => !item.DefaultProductSortDescending)
+                    ? product.CreatedAt : DateTime.MaxValue)
+        };
 
     // Burada veritabanı projeksiyonunu storefront kartı DTO'suna dönüştürüyorum.
-    private static PublishedProductListItemDto ToDto(PublishedProductProjection product) =>
+    private static PublishedProductListItemDto ToDto(PublishedProductCardProjection product) =>
         new(
             PublicIdCodec.EncodeProductId(product.Id),
             product.Title,
@@ -141,28 +233,8 @@ public sealed class PublishedProductListReader : IPublishedProductListReader
                     product.MainImage.ImageUrl,
                     product.MainImage.AltText,
                     product.MainImage.DisplayOrder,
-                    product.MainImage.IsMain));
-
-    // Burada storefront kartı için gereken ürün alanlarını taşıyorum.
-    private sealed record PublishedProductProjection(
-        long Id,
-        string Title,
-        string Url,
-        string? Summary,
-        string? BrandName,
-        decimal AverageRating,
-        long RatingCount,
-        ProductPriceProjection? Price,
-        ProductImageProjection? MainImage);
-
-    // Burada storefront kartının fiyat özetini taşıyorum.
-    private sealed record ProductPriceProjection(decimal Price, decimal? CompareAtPrice);
-
-    // Burada storefront kartının ana görsel alanlarını taşıyorum.
-    private sealed record ProductImageProjection(
-        Guid Id,
-        string ImageUrl,
-        string? AltText,
-        int DisplayOrder,
-        bool IsMain);
+                    product.MainImage.IsMain),
+            product.IsAvailable,
+            product.LowestAvailableStock,
+            product.IsLowStock);
 }

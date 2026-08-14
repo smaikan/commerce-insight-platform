@@ -1,5 +1,6 @@
 using ECommerce.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using ECommerce.Persistence.Search;
 
 namespace ECommerce.Persistence.Context;
 
@@ -27,6 +28,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<EmailOutboxMessage> EmailOutbox => Set<EmailOutboxMessage>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductSearchDocument> ProductSearchDocuments => Set<ProductSearchDocument>();
+    public DbSet<ProductSearchGram> ProductSearchGrams => Set<ProductSearchGram>();
     public DbSet<ProductBundleItem> ProductBundleItems => Set<ProductBundleItem>();
     public DbSet<ProductCollection> ProductCollections => Set<ProductCollection>();
     public DbSet<ProductDailyMetric> ProductDailyMetrics => Set<ProductDailyMetric>();
@@ -45,6 +48,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<ReturnRequest> ReturnRequests => Set<ReturnRequest>();
     public DbSet<ShippingMethod> ShippingMethods => Set<ShippingMethod>();
     public DbSet<StorefrontBanner> StorefrontBanners => Set<StorefrontBanner>();
+    public DbSet<StoreSettings> StoreSettings => Set<StoreSettings>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<TaxRate> TaxRates => Set<TaxRate>();
     public DbSet<User> Users => Set<User>();
@@ -54,6 +58,11 @@ public sealed class AppDbContext : DbContext
     public DbSet<GuestOrderAccessGrant> GuestOrderAccessGrants => Set<GuestOrderAccessGrant>();
     public DbSet<GuestOrderMagicLink> GuestOrderMagicLinks => Set<GuestOrderMagicLink>();
     public DbSet<GuestCheckoutIdempotency> GuestCheckoutIdempotencies => Set<GuestCheckoutIdempotency>();
+
+    // Burada normalize edilmiş arama metninin bütün sorgu tokenlarını içerip içermediğini SQL Server'a soruyorum.
+    [DbFunction("ProductSearchContainsAllTokens", "dbo")]
+    public static bool ProductSearchContainsAllTokens(string searchText, string normalizedQuery) =>
+        throw new NotSupportedException("Bu metot yalnız EF Core SQL çevirisi içinde kullanılabilir.");
 
     // Burada entity configuration sınıflarını otomatik olarak modele uyguluyorum.
     protected override void OnModelCreating(ModelBuilder modelBuilder)

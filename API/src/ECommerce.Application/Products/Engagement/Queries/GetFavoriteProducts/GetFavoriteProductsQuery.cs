@@ -4,4 +4,8 @@ using MediatR;
 
 namespace ECommerce.Application.Products.Engagement.Queries.GetFavoriteProducts;
 
-public sealed record GetFavoriteProductsQuery(int PageNumber = 1, int PageSize = 20) : IRequest<PagedResult<ProductDto>>;
+// Burada favori sayfalamasını ve anonim sahiplik için isteğe bağlı session değerini taşıyorum.
+public sealed record GetFavoriteProductsQuery(
+    int PageNumber = 1,
+    int PageSize = 20,
+    string? SessionId = null) : IRequest<PagedResult<ProductDto>>;

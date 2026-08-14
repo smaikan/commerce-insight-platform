@@ -17,8 +17,17 @@ public sealed class ProductEngagementRepository : IProductEngagementRepository
     }
 
     // Burada kullanıcının ürün favorisini güncelleme amacıyla getiriyorum.
-    public Task<FavoriteProduct?> GetFavoriteForUpdateAsync(long productId, long userId, CancellationToken cancellationToken = default) =>
-        _context.FavoriteProducts.FirstOrDefaultAsync(item => item.ProductId == productId && item.UserId == userId, cancellationToken);
+    public Task<FavoriteProduct?> GetFavoriteForUpdateAsync(
+        long productId,
+        FavoriteOwner owner,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        return ApplyFavoriteOwnerFilter(
+                _context.FavoriteProducts.Where(item => item.ProductId == productId),
+                owner)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
 
     // Burada yeni favori kaydını veritabanı takibine ekliyorum.
     public async Task AddFavoriteAsync(FavoriteProduct favorite, CancellationToken cancellationToken = default) =>
@@ -27,21 +36,66 @@ public sealed class ProductEngagementRepository : IProductEngagementRepository
     // Burada favori kaydını silinmek üzere işaretliyorum.
     public void RemoveFavorite(FavoriteProduct favorite) => _context.FavoriteProducts.Remove(favorite);
 
-    // Burada kullanıcının favori ürünlerini sayfalı şekilde getiriyorum.
-    public async Task<PagedResult<Product>> GetFavoriteProductsAsync(long userId, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    // Burada owner'ın güncel favori sayısını tüm ürün grafiğini yüklemeden hesaplıyorum.
+    public Task<int> CountFavoritesAsync(
+        FavoriteOwner owner,
+        CancellationToken cancellationToken = default)
     {
-        var query = _context.FavoriteProducts.AsNoTracking()
-            .Where(item => item.UserId == userId)
-            .Select(item => item.Product)
+        ArgumentNullException.ThrowIfNull(owner);
+        return ApplyFavoriteOwnerFilter(_context.FavoriteProducts.AsNoTracking(), owner)
+            .CountAsync(cancellationToken);
+    }
+
+    // Burada owner'a ait favorileri claim sırasında kararlı kilit sırasıyla takipli getiriyorum.
+    public async Task<IReadOnlyList<FavoriteProduct>> GetFavoritesForUpdateAsync(
+        FavoriteOwner owner,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        return await ApplyFavoriteOwnerFilter(_context.FavoriteProducts, owner)
+            .OrderBy(item => item.ProductId)
+            .ThenBy(item => item.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    // Burada kullanıcının favori ürünlerini sayfalı şekilde getiriyorum.
+    public async Task<PagedResult<Product>> GetFavoriteProductsAsync(
+        FavoriteOwner owner,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        var query = _context.Products.AsNoTracking()
+            .Where(product => owner.UserId.HasValue
+                ? product.Favorites.Any(favorite => favorite.UserId == owner.UserId.Value)
+                : product.Favorites.Any(favorite =>
+                    favorite.UserId == null && favorite.SessionId == owner.SessionId))
             .Include(product => product.Type)
             .Include(product => product.Brand)
+            .Include(product => product.TaxRate)
+            .Include(product => product.Variants)
+            .Include(product => product.Images)
+            .Include(product => product.ProductCollections)
+                .ThenInclude(productCollection => productCollection.Collection)
             .Include(product => product.ProductTags)
                 .ThenInclude(productTag => productTag.Tag)
             .AsSplitQuery();
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query.OrderBy(product => product.Title)
+            .ThenBy(product => product.Id)
             .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
         return new PagedResult<Product>(items, pageNumber, pageSize, totalCount);
+    }
+
+    // Burada favori sorgusunu doğrulanmış kullanıcı veya guest session sahibine sınırlıyorum.
+    private static IQueryable<FavoriteProduct> ApplyFavoriteOwnerFilter(
+        IQueryable<FavoriteProduct> query,
+        FavoriteOwner owner)
+    {
+        return owner.UserId.HasValue
+            ? query.Where(item => item.UserId == owner.UserId.Value)
+            : query.Where(item => item.UserId == null && item.SessionId == owner.SessionId);
     }
 
     // Burada kullanıcının ürün puanını güncelleme amacıyla getiriyorum.

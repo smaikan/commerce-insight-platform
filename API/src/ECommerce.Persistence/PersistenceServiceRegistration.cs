@@ -47,6 +47,9 @@ public static class PersistenceServiceRegistration
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IProductListReader, ProductListReader>();
         services.AddScoped<IPublishedProductListReader, PublishedProductListReader>();
+        services.AddScoped<IPublishedProductSearchReader, PublishedProductSearchReader>();
+        services.AddScoped<IPublishedProductFacetReader, PublishedProductFacetReader>();
+        services.AddScoped<IPublishedCollectionShowcaseReader, PublishedCollectionShowcaseReader>();
         services.AddScoped<IOrderListReader, OrderListReader>();
         services.AddScoped<IAdminDashboardReader, AdminDashboardReader>();
         services.AddScoped<IProductAnalyticsReader, ProductAnalyticsReader>();
@@ -67,6 +70,7 @@ public static class PersistenceServiceRegistration
         services.AddScoped<IReturnRequestRepository, ReturnRequestRepository>();
         services.AddScoped<IShippingMethodRepository, ShippingMethodRepository>();
         services.AddScoped<IStorefrontBannerRepository, StorefrontBannerRepository>();
+        services.AddScoped<IStoreSettingsRepository, StoreSettingsRepository>();
         services.AddScoped<ITaxRateRepository, TaxRateRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();

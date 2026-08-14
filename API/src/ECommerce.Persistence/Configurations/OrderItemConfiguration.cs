@@ -28,6 +28,21 @@ public sealed class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
             .HasMaxLength(100)
             .IsRequired();
 
+        builder.Property(item => item.VariantNameSnapshot)
+            .HasMaxLength(OrderItem.MaximumVariantNameLength);
+
+        builder.Property(item => item.VariantValueSnapshot)
+            .HasMaxLength(OrderItem.MaximumVariantValueLength);
+
+        builder.Property(item => item.ProductUrlSnapshot)
+            .HasMaxLength(OrderItem.MaximumProductUrlLength);
+
+        builder.Property(item => item.ImageUrlSnapshot)
+            .HasMaxLength(OrderItem.MaximumImageUrlLength);
+
+        builder.Property(item => item.ImageAltSnapshot)
+            .HasMaxLength(OrderItem.MaximumImageAltLength);
+
         builder.Property(item => item.UnitPrice)
             .HasPrecision(18, 2)
             .IsRequired();

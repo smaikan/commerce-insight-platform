@@ -8,6 +8,9 @@ public sealed class Order : AuditableEntity
     public const int MaximumOrderNumberLength = 30;
     public const int MaximumItemCount = 100;
     public const int MaximumCouponCodeLength = 50;
+    public const int MaximumShippingCarrierLength = 150;
+    public const int MaximumTrackingNumberLength = 100;
+    public const int MaximumTrackingUrlLength = 500;
     public const decimal MaximumSupportedAmount = OrderItem.MaximumSupportedAmount;
     public static readonly TimeSpan MaximumStockReservationDuration = TimeSpan.FromDays(7);
 
@@ -38,6 +41,11 @@ public sealed class Order : AuditableEntity
     public IReadOnlyCollection<Payment> Payments => _payments.AsReadOnly();
     public DateTime? PaidAt { get; private set; }
     public DateTime? CancelledAt { get; private set; }
+    public string? ShippingCarrier { get; private set; }
+    public string? TrackingNumber { get; private set; }
+    public string? TrackingUrl { get; private set; }
+    public DateTime? ShippedAt { get; private set; }
+    public DateTime? DeliveredAt { get; private set; }
 
     // Burada EF Core'un sipariş aggregate'ını veritabanından oluşturabilmesi için boş kurucuyu tutuyorum.
     private Order()
@@ -94,7 +102,12 @@ public sealed class Order : AuditableEntity
         int quantity,
         decimal discountTotal = 0m,
         decimal taxRatePercentage = 0m,
-        decimal taxTotal = 0m)
+        decimal taxTotal = 0m,
+        string? productUrlSnapshot = null,
+        string? imageUrlSnapshot = null,
+        string? imageAltSnapshot = null,
+        string? variantNameSnapshot = null,
+        string? variantValueSnapshot = null)
     {
         if (_items.Count >= MaximumItemCount)
         {
@@ -116,7 +129,12 @@ public sealed class Order : AuditableEntity
             quantity,
             discountTotal,
             taxRatePercentage,
-            taxTotal);
+            taxTotal,
+            productUrlSnapshot,
+            imageUrlSnapshot,
+            imageAltSnapshot,
+            variantNameSnapshot,
+            variantValueSnapshot);
         decimal updatedItemTotal;
         try
         {
@@ -421,7 +439,85 @@ public sealed class Order : AuditableEntity
             ReservationExpiresAt = null;
         }
 
+        if (status == OrderStatus.Shipped && !ShippedAt.HasValue)
+        {
+            ShippedAt = utcNow;
+        }
+
+        if (status == OrderStatus.Delivered && !DeliveredAt.HasValue)
+        {
+            DeliveredAt = utcNow;
+        }
+
         MarkAsUpdated();
+    }
+
+    // Burada kargo takip snapshot'ını hazırlanan veya kargodaki sipariş için doğrulayıp kargoya çıkış anını koruyorum.
+    public void SetShipment(string shippingCarrier, string trackingNumber, string? trackingUrl, DateTime utcNow)
+    {
+        EnsureUtc(utcNow, "Shipment update time");
+        if (Status is not OrderStatus.Preparing and not OrderStatus.Shipped)
+        {
+            throw new DomainException("Shipment can only be set for a preparing or shipped order.");
+        }
+
+        var normalizedCarrier = NormalizeRequiredShipmentValue(
+            shippingCarrier,
+            MaximumShippingCarrierLength,
+            "Shipping carrier");
+        var normalizedTrackingNumber = NormalizeRequiredShipmentValue(
+            trackingNumber,
+            MaximumTrackingNumberLength,
+            "Tracking number");
+        var normalizedTrackingUrl = NormalizeTrackingUrl(trackingUrl);
+
+        ShippingCarrier = normalizedCarrier;
+        TrackingNumber = normalizedTrackingNumber;
+        TrackingUrl = normalizedTrackingUrl;
+
+        if (Status == OrderStatus.Preparing)
+        {
+            ChangeStatus(OrderStatus.Shipped, utcNow);
+            return;
+        }
+
+        MarkAsUpdated();
+    }
+
+    // Burada zorunlu kargo takip metnini boşluk ve uzunluk sınırıyla normalize ediyorum.
+    private static string NormalizeRequiredShipmentValue(string value, int maximumLength, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new DomainException($"{fieldName} cannot be empty.");
+        }
+
+        var normalizedValue = value.Trim();
+        if (normalizedValue.Length > maximumLength)
+        {
+            throw new DomainException($"{fieldName} cannot exceed {maximumLength} characters.");
+        }
+
+        return normalizedValue;
+    }
+
+    // Burada takip bağlantısını yalnız güvenli mutlak HTTP veya HTTPS adresi olarak kabul ediyorum.
+    private static string? NormalizeTrackingUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var normalizedValue = value.Trim();
+        if (normalizedValue.Length > MaximumTrackingUrlLength ||
+            !Uri.TryCreate(normalizedValue, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            throw new DomainException("Tracking URL must be an absolute HTTP or HTTPS URL within the supported length.");
+        }
+
+        return normalizedValue;
     }
 
     // Burada yalnızca içe aktarma akışının, geçmişte oluşmuş siparişin UTC oluşma anını korumasını sağlıyorum.

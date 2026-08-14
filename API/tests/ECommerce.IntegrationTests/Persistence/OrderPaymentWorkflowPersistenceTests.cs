@@ -3,6 +3,7 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Payments;
 using ECommerce.Application.Common.Security;
 using ECommerce.Application.Orders.Commands.CreatePayment;
+using ECommerce.Application.Orders.Dtos;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using ECommerce.Persistence.Context;
@@ -168,6 +169,67 @@ public sealed class OrderPaymentWorkflowPersistenceTests
         savedOrder.ShippingAddressSnapshot.FullAddress.Should().Be("Street 1");
     }
 
+    // Burada ürün medya snapshot'larıyla kargo takip geçmişinin ilişkisel depoda birlikte kalıcı olduğunu doğruluyorum.
+    [Fact]
+    public async Task Repository_Should_Persist_Immutable_Order_Item_And_Shipment_Snapshots()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        await using var context = new AppDbContext(CreateOptions(connection));
+        await context.Database.EnsureCreatedAsync();
+        var user = await SeedUserAsync(context, "order-media-shipment@example.com");
+        var catalog = await SeedCatalogAsync(context, "snapshot", hasVariants: true);
+        var utcNow = new DateTime(2026, 8, 13, 8, 0, 0, DateTimeKind.Utc);
+        var order = CreateOrder(user.Id);
+        order.AddItem(
+            catalog.Product.Id,
+            catalog.Variant.Id,
+            catalog.Product.Title,
+            catalog.Variant.Sku,
+            10m,
+            1,
+            productUrlSnapshot: "product-snapshot",
+            imageUrlSnapshot: "https://cdn.example.com/product-snapshot.jpg",
+            imageAltSnapshot: "Snapshot image",
+            variantNameSnapshot: "Renk",
+            variantValueSnapshot: "Pudra");
+        order.EnsureItemsMatchSubTotal();
+        order.ChangeStatus(OrderStatus.Confirmed, utcNow);
+        var payment = new Payment(order.Id, PaymentProvider.Fake, order.GrandTotal, "snapshot_payment_key_001");
+        order.AddPayment(payment);
+        payment.MarkAsPaid("snapshot_transaction_001");
+        order.ChangeStatus(OrderStatus.Paid, utcNow.AddMinutes(1));
+        order.ChangeStatus(OrderStatus.Preparing, utcNow.AddMinutes(2));
+        order.SetShipment("Carrier", "TRACK-123", "https://track.example.com/TRACK-123", utcNow.AddMinutes(3));
+        order.ChangeStatus(OrderStatus.Delivered, utcNow.AddMinutes(4));
+        context.Orders.Add(order);
+        await context.SaveChangesAsync();
+        catalog.Variant.UpdateDetails(
+            "Renk",
+            "Siyah",
+            catalog.Variant.Sku,
+            catalog.Variant.Barcode,
+            catalog.Variant.Material);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var savedOrder = await new OrderRepository(context).GetByIdAsync(order.Id);
+
+        savedOrder.Should().NotBeNull();
+        savedOrder!.Items.Single().ProductUrlSnapshot.Should().Be("product-snapshot");
+        savedOrder.Items.Single().ImageUrlSnapshot.Should().Be("https://cdn.example.com/product-snapshot.jpg");
+        savedOrder.Items.Single().ImageAltSnapshot.Should().Be("Snapshot image");
+        savedOrder.Items.Single().VariantNameSnapshot.Should().Be("Renk");
+        savedOrder.Items.Single().VariantValueSnapshot.Should().Be("Pudra");
+        savedOrder.ToDto().Items.Single().VariantName.Should().Be("Renk");
+        savedOrder.ToDto().Items.Single().VariantValue.Should().Be("Pudra");
+        savedOrder.ShippingCarrier.Should().Be("Carrier");
+        savedOrder.TrackingNumber.Should().Be("TRACK-123");
+        savedOrder.ShippedAt.Should().Be(utcNow.AddMinutes(3));
+        savedOrder.DeliveredAt.Should().Be(utcNow.AddMinutes(4));
+        savedOrder.ToDto().ShippedAt!.Value.Kind.Should().Be(DateTimeKind.Utc);
+        savedOrder.ToDto().DeliveredAt!.Value.Kind.Should().Be(DateTimeKind.Utc);
+    }
+
     // Burada kuponun aynı sipariş için iki kullanım kaydı oluşturmasına unique indeksin izin vermediğini doğruluyorum.
     [Fact]
     public async Task Database_Should_Reject_Duplicate_Coupon_Usage_For_The_Same_Order()
@@ -266,16 +328,24 @@ public sealed class OrderPaymentWorkflowPersistenceTests
     // Burada sipariş kalemi eşleşme testi için iki farklı ürün ve varyantı kalıcı olarak oluşturuyorum.
     private static async Task<(Product Product, ProductVariant Variant)> SeedCatalogAsync(
         AppDbContext context,
-        string suffix)
+        string suffix,
+        bool hasVariants = false)
     {
         var product = new Product(
             $"Product {suffix}",
             $"product-{suffix}",
             $"PRODUCT-{suffix}",
-            status: ProductStatus.Active);
+            status: ProductStatus.Active,
+            hasVariants: hasVariants);
         context.Products.Add(product);
         await context.SaveChangesAsync();
-        var variant = new ProductVariant(product.Id, $"Variant {suffix}", $"SKU-{suffix}", 10m, 5);
+        var variant = new ProductVariant(
+            product.Id,
+            hasVariants ? "Renk" : $"Variant {suffix}",
+            $"SKU-{suffix}",
+            10m,
+            5,
+            value: hasVariants ? "Pudra" : null);
         context.ProductVariants.Add(variant);
         await context.SaveChangesAsync();
         return (product, variant);

@@ -10,6 +10,8 @@ using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Models;
 using ECommerce.Application.Common.Security;
+using ECommerce.Application.GuestSessions.Dtos;
+using ECommerce.Application.GuestSessions.Services;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using ECommerce.UnitTests.Testing;
@@ -157,6 +159,52 @@ public sealed class CartApplicationTests
         result.Items[0].ProductId.Should().StartWith("P");
         result.Items[0].CurrentUnitPrice.Should().Be(12m);
         result.Items[0].PriceChanged.Should().BeTrue();
+    }
+
+    // Burada varyantlı ürünün seçilen seçenek adı ve değerinin sepet DTO'suna ayrı alanlar olarak taşındığını doğruluyorum.
+    [Fact]
+    public async Task GetCart_Should_Map_Selected_Variant_Name_And_Value()
+    {
+        var product = CreateActiveProduct(hasVariants: true);
+        var variant = CreateVariant(product, name: "Renk", value: "Pudra");
+        var cart = Cart.CreateForUser(7);
+        var item = cart.AddItem(product.Id, variant.Id, 1, variant.Price);
+        AttachCatalog(item, product, variant);
+        var carts = new Mock<ICartRepository>();
+        carts.Setup(repository => repository.GetByOwnerAsync(
+                It.IsAny<CartOwner>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(cart);
+        var handler = new GetCartQueryHandler(
+            carts.Object,
+            new CartOwnerResolver(new StubCurrentUser(7)));
+
+        var result = await handler.Handle(new GetCartQuery(), CancellationToken.None);
+
+        result.Items.Should().ContainSingle();
+        result.Items[0].VariantName.Should().Be("Renk");
+        result.Items[0].VariantValue.Should().Be("Pudra");
+    }
+
+    // Burada varyantsız ürünün teknik tek-varyant metninin müşteri sepetine sızmadığını doğruluyorum.
+    [Fact]
+    public async Task GetCart_Should_Hide_Technical_Variant_For_Product_Without_Variants()
+    {
+        var state = CreateCartState();
+        var carts = new Mock<ICartRepository>();
+        carts.Setup(repository => repository.GetByOwnerAsync(
+                It.IsAny<CartOwner>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state.Cart);
+        var handler = new GetCartQueryHandler(
+            carts.Object,
+            new CartOwnerResolver(new StubCurrentUser(7)));
+
+        var result = await handler.Handle(new GetCartQuery(), CancellationToken.None);
+
+        result.Items.Should().ContainSingle();
+        result.Items[0].VariantName.Should().BeNull();
+        result.Items[0].VariantValue.Should().BeNull();
     }
 
     // Burada ilk misafir eklemesinin güvenilir varyant fiyatıyla sepet oluşturduğunu ve metriği aynı transactionda kaydettiğini doğruluyorum.
@@ -504,25 +552,25 @@ public sealed class CartApplicationTests
     [Fact]
     public async Task MergeGuestCart_Should_Require_Authenticated_User()
     {
-        var unitOfWork = CreateTransactionalUnitOfWork();
+        var claimService = new Mock<IGuestSessionClaimService>();
         var handler = new MergeGuestCartCommandHandler(
-            Mock.Of<ICartRepository>(),
-            new StubCurrentUser(null),
-            unitOfWork.Object);
+            claimService.Object,
+            new StubCurrentUser(null));
 
         Func<Task> act = () => handler.Handle(
             new MergeGuestCartCommand("guest"),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<UnauthorizedException>();
-        unitOfWork.Verify(unit => unit.ExecuteInSerializableTransactionAsync(
-            It.IsAny<Func<CancellationToken, Task<CartDto>>>(),
+        claimService.Verify(service => service.ClaimAsync(
+            It.IsAny<long>(),
+            It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // Burada kullanıcı sepeti yokken misafir sepetinin aynı aggregate korunarak kullanıcıya devredildiğini doğruluyorum.
     [Fact]
-    public async Task MergeGuestCart_Should_Assign_Guest_Cart_When_User_Cart_Does_Not_Exist()
+    public async Task GuestSessionClaim_Should_Assign_Guest_Cart_When_User_Cart_Does_Not_Exist()
     {
         var product = CreateActiveProduct();
         var variant = CreateVariant(product, price: 25m, stock: 10);
@@ -542,144 +590,169 @@ public sealed class CartApplicationTests
                 guestCart.Id,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((Cart?)null);
+        var engagement = CreateClaimEngagementRepository();
         var unitOfWork = CreateTransactionalUnitOfWork();
-        var handler = new MergeGuestCartCommandHandler(
+        var service = new GuestSessionClaimService(
             carts.Object,
-            new StubCurrentUser(7),
+            Mock.Of<IProductRepository>(),
+            engagement.Object,
             unitOfWork.Object);
 
-        var result = await handler.Handle(
-            new MergeGuestCartCommand("guest"),
-            CancellationToken.None);
+        var result = await service.ClaimAsync(7, "guest", CancellationToken.None);
 
         guestCart.UserId.Should().Be(7);
         guestCart.SessionId.Should().BeNull();
         guestItem.UnitPrice.Should().Be(25m);
-        result.Id.Should().Be(guestCart.Id);
+        result.Cart.Id.Should().Be(guestCart.Id);
         carts.Verify(repository => repository.Remove(
             It.IsAny<Cart>()), Times.Never);
         unitOfWork.Verify(unit => unit.SaveChangesAsync(
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    // Burada kullanıcı sepeti olmasa bile stok dışındaki misafir sepetinin hesaba devredilmesini engelliyorum.
+    // Burada dolu üye sepetinin stok geçersiz guest sepetine rağmen korunup login'i engellemediğini doğruluyorum.
     [Fact]
-    public async Task MergeGuestCart_Should_Reject_Assignment_When_Stock_Is_Insufficient()
+    public async Task GuestSessionClaim_Should_Keep_NonEmpty_User_Cart_When_Guest_Stock_Is_Invalid()
     {
+        var userState = CreateCartState();
         var product = CreateActiveProduct();
         var variant = CreateVariant(product, price: 25m, stock: 1);
         var guestCart = Cart.CreateForGuest("guest");
         var guestItem = guestCart.AddItem(product.Id, variant.Id, 2, 20m);
         AttachCatalog(guestItem, product, variant);
-        var carts = CreateMergeRepository(null, guestCart);
+        var carts = CreateMergeRepository(userState.Cart, guestCart);
+        var engagement = CreateClaimEngagementRepository();
         var unitOfWork = CreateTransactionalUnitOfWork();
-        var handler = new MergeGuestCartCommandHandler(
+        var service = new GuestSessionClaimService(
             carts.Object,
-            new StubCurrentUser(7),
+            Mock.Of<IProductRepository>(),
+            engagement.Object,
             unitOfWork.Object);
 
-        Func<Task> act = () => handler.Handle(
-            new MergeGuestCartCommand("guest"),
-            CancellationToken.None);
+        var result = await service.ClaimAsync(7, "guest", CancellationToken.None);
 
-        await act.Should().ThrowAsync<ConflictException>();
-        guestCart.UserId.Should().BeNull();
-        guestCart.SessionId.Should().Be("guest");
-        guestItem.UnitPrice.Should().Be(20m);
-        unitOfWork.Verify(unit => unit.SaveChangesAsync(
-            It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    // Burada mevcut kullanıcı ve guest sepetlerindeki aynı varyantın güncel fiyatla tek satırda birleştirildiğini doğruluyorum.
-    [Fact]
-    public async Task MergeGuestCart_Should_Merge_Duplicate_Variant_And_Remove_Guest_Cart()
-    {
-        var product = CreateActiveProduct();
-        var variant = CreateVariant(product, price: 15m, stock: 10);
-        var userCart = Cart.CreateForUser(7);
-        var userItem = userCart.AddItem(product.Id, variant.Id, 1, 10m);
-        AttachCatalog(userItem, product, variant);
-        var guestCart = Cart.CreateForGuest("guest");
-        var guestItem = guestCart.AddItem(product.Id, variant.Id, 2, 12m);
-        AttachCatalog(guestItem, product, variant);
-        var carts = CreateMergeRepository(userCart, guestCart);
-        var unitOfWork = CreateTransactionalUnitOfWork();
-        var handler = new MergeGuestCartCommandHandler(
-            carts.Object,
-            new StubCurrentUser(7),
-            unitOfWork.Object);
-
-        var result = await handler.Handle(
-            new MergeGuestCartCommand("guest"),
-            CancellationToken.None);
-
-        userCart.Items.Should().ContainSingle();
-        userItem.Quantity.Should().Be(3);
-        userItem.UnitPrice.Should().Be(15m);
-        result.SubTotal.Should().Be(45m);
+        result.Cart.Id.Should().Be(userState.Cart.Id);
+        userState.Cart.Items.Should().ContainSingle();
+        userState.Item.Quantity.Should().Be(2);
         carts.Verify(repository => repository.Remove(guestCart), Times.Once);
         unitOfWork.Verify(unit => unit.SaveChangesAsync(
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    // Burada merge toplamı stoğu aşarsa kullanıcı sepeti ve guest sepetin silinmeden kaldığını doğruluyorum.
+    // Burada boş üye sepetinin guest ürünlerini güncel fiyatla devraldığını doğruluyorum.
     [Fact]
-    public async Task MergeGuestCart_Should_Reject_Combined_Quantity_Above_Stock()
+    public async Task GuestSessionClaim_Should_Copy_Guest_Items_Into_Empty_User_Cart()
     {
         var product = CreateActiveProduct();
-        var variant = CreateVariant(product, price: 15m, stock: 5);
+        var variant = CreateVariant(product, price: 15m, stock: 10);
         var userCart = Cart.CreateForUser(7);
-        var userItem = userCart.AddItem(product.Id, variant.Id, 4, 10m);
-        AttachCatalog(userItem, product, variant);
         var guestCart = Cart.CreateForGuest("guest");
         var guestItem = guestCart.AddItem(product.Id, variant.Id, 2, 12m);
         AttachCatalog(guestItem, product, variant);
         var carts = CreateMergeRepository(userCart, guestCart);
+        carts.Setup(repository => repository.GetByIdAsync(
+                userCart.Id,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                AttachCatalog(userCart.Items.Single(), product, variant);
+                return userCart;
+            });
+        var engagement = CreateClaimEngagementRepository();
         var unitOfWork = CreateTransactionalUnitOfWork();
-        var handler = new MergeGuestCartCommandHandler(
+        var service = new GuestSessionClaimService(
             carts.Object,
-            new StubCurrentUser(7),
+            Mock.Of<IProductRepository>(),
+            engagement.Object,
             unitOfWork.Object);
 
-        Func<Task> act = () => handler.Handle(
-            new MergeGuestCartCommand("guest"),
-            CancellationToken.None);
+        var result = await service.ClaimAsync(7, "guest", CancellationToken.None);
 
-        await act.Should().ThrowAsync<ConflictException>();
-        userItem.Quantity.Should().Be(4);
-        carts.Verify(repository => repository.Remove(
-            It.IsAny<Cart>()), Times.Never);
+        userCart.Items.Should().ContainSingle();
+        userCart.Items.Single().Quantity.Should().Be(2);
+        userCart.Items.Single().UnitPrice.Should().Be(15m);
+        result.Cart.SubTotal.Should().Be(30m);
+        carts.Verify(repository => repository.Remove(guestCart), Times.Once);
         unitOfWork.Verify(unit => unit.SaveChangesAsync(
-            It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    // Burada misafir sepeti bulunmadığında mevcut kullanıcı sepetinin değişiklik kaydı olmadan döndürüldüğünü doğruluyorum.
+    // Burada boş üye favori listesinin guest kayıtlarını sayaçları değiştirmeden devraldığını doğruluyorum.
     [Fact]
-    public async Task MergeGuestCart_Should_Return_User_Cart_When_Guest_Cart_Does_Not_Exist()
+    public async Task GuestSessionClaim_Should_Assign_Guest_Favorites_When_User_List_Is_Empty()
     {
-        var state = CreateCartState();
-        var carts = new Mock<ICartRepository>();
-        carts.Setup(repository => repository.GetByOwnerForUpdateAsync(
-                It.Is<CartOwner>(owner => owner.UserId == 7),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(state.Cart);
-        carts.Setup(repository => repository.GetByOwnerForUpdateAsync(
-                It.Is<CartOwner>(owner => owner.SessionId == "missing"),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Cart?)null);
+        var product = CreateActiveProduct();
+        product.IncreaseFavoriteCount();
+        var guestFavorite = CreateGuestFavorite(product, "guest");
+        var metric = new ProductDailyMetric(product.Id, new DateOnly(2026, 7, 23));
+        metric.IncreaseFavoriteCount();
+        var carts = CreateEmptyClaimCartRepository();
+        var engagement = CreateClaimEngagementRepository(
+            userFavoriteCount: 0,
+            guestFavorites: [guestFavorite]);
         var unitOfWork = CreateTransactionalUnitOfWork();
-        var handler = new MergeGuestCartCommandHandler(
+        var service = new GuestSessionClaimService(
             carts.Object,
-            new StubCurrentUser(7),
+            Mock.Of<IProductRepository>(),
+            engagement.Object,
             unitOfWork.Object);
 
-        var result = await handler.Handle(
-            new MergeGuestCartCommand("missing"),
-            CancellationToken.None);
+        var result = await service.ClaimAsync(7, "guest", CancellationToken.None);
 
-        result.Id.Should().Be(state.Cart.Id);
-        unitOfWork.Verify(unit => unit.SaveChangesAsync(
+        result.FavoriteCount.Should().Be(1);
+        guestFavorite.UserId.Should().Be(7);
+        guestFavorite.SessionId.Should().BeNull();
+        product.FavoriteCount.Should().Be(1);
+        product.PopularityScore.Should().Be(Product.FavoriteScoreWeight);
+        metric.FavoriteCount.Should().Be(1);
+        engagement.Verify(repository => repository.RemoveFavorite(
+            It.IsAny<FavoriteProduct>()), Times.Never);
+        engagement.Verify(repository => repository.GetProductDailyMetricForUpdateAsync(
+            It.IsAny<long>(),
+            It.IsAny<DateOnly>(),
             It.IsAny<CancellationToken>()), Times.Never);
+        unitOfWork.Verify(unit => unit.SaveChangesAsync(
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // Burada dolu üye favori listesinde guest kayıtlarının ve ürün özet sayaçlarının azaltıldığını doğruluyorum.
+    [Fact]
+    public async Task GuestSessionClaim_Should_Remove_Guest_Favorites_When_User_List_Is_Not_Empty()
+    {
+        var product = CreateActiveProduct();
+        product.IncreaseFavoriteCount();
+        var guestFavorite = CreateGuestFavorite(product, "guest");
+        var metric = new ProductDailyMetric(product.Id, new DateOnly(2026, 7, 23));
+        metric.IncreaseFavoriteCount();
+        var carts = CreateEmptyClaimCartRepository();
+        var engagement = CreateClaimEngagementRepository(
+            userFavoriteCount: 1,
+            guestFavorites: [guestFavorite]);
+        var products = new Mock<IProductRepository>();
+        products.Setup(repository => repository.GetByIdsForUpdateAsync(
+                It.Is<IEnumerable<long>>(ids => ids.SequenceEqual(new[] { product.Id })),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([product]);
+        var unitOfWork = CreateTransactionalUnitOfWork();
+        var service = new GuestSessionClaimService(
+            carts.Object,
+            products.Object,
+            engagement.Object,
+            unitOfWork.Object);
+
+        var result = await service.ClaimAsync(7, "guest", CancellationToken.None);
+
+        result.FavoriteCount.Should().Be(1);
+        product.FavoriteCount.Should().Be(0);
+        product.PopularityScore.Should().Be(0);
+        metric.FavoriteCount.Should().Be(1);
+        engagement.Verify(repository => repository.RemoveFavorite(guestFavorite), Times.Once);
+        engagement.Verify(repository => repository.GetProductDailyMetricForUpdateAsync(
+            It.IsAny<long>(),
+            It.IsAny<DateOnly>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        unitOfWork.Verify(unit => unit.SaveChangesAsync(
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // Burada metrik kaydedicinin eksik günlük kayıtları oluşturup tüm sayaçları aynı adetle artırdığını doğruluyorum.
@@ -766,14 +839,15 @@ public sealed class CartApplicationTests
     }
 
     // Burada testlerde kullanılacak aktif ürün örneğini dahili uzun kimliğiyle oluşturuyorum.
-    private static Product CreateActiveProduct(long id = 12)
+    private static Product CreateActiveProduct(long id = 12, bool hasVariants = false)
     {
         return new Product(
                 "Cart Product",
                 "cart-product",
                 $"CART-{id}",
                 status: ProductStatus.Active,
-                isActive: true)
+                isActive: true,
+                hasVariants: hasVariants)
             .WithId(id);
     }
 
@@ -781,14 +855,17 @@ public sealed class CartApplicationTests
     private static ProductVariant CreateVariant(
         Product product,
         decimal price = 10m,
-        int stock = 10)
+        int stock = 10,
+        string name = "Default",
+        string? value = null)
     {
         return new ProductVariant(
             product.Id,
-            "Default",
+            name,
             $"SKU-{Guid.NewGuid():N}",
             price,
-            stock);
+            stock,
+            value: value);
     }
 
     // Burada sepet handler testleri için ilişkileri yüklenmiş tutarlı bir aggregate hazırlıyorum.
@@ -887,7 +964,41 @@ public sealed class CartApplicationTests
             unitOfWork);
     }
 
-    // Burada serializable transaction delegesini gerçekten çalıştıran ve kayıt sonucunu taklit eden unit of work mocku oluşturuyorum.
+    // Burada claim testleri için sepeti bulunmayan kullanıcı ve misafir sorgularını hazırlıyorum.
+    private static Mock<ICartRepository> CreateEmptyClaimCartRepository()
+    {
+        var repository = new Mock<ICartRepository>();
+        repository.Setup(item => item.GetByOwnerForUpdateAsync(
+                It.IsAny<CartOwner>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Cart?)null);
+        return repository;
+    }
+
+    // Burada claim testlerinde kullanıcı sayısı ile guest favori listesini doğru owner sorgularına bağlıyorum.
+    private static Mock<IProductEngagementRepository> CreateClaimEngagementRepository(
+        int userFavoriteCount = 0,
+        IReadOnlyList<FavoriteProduct>? guestFavorites = null)
+    {
+        var repository = new Mock<IProductEngagementRepository>();
+        repository.Setup(item => item.CountFavoritesAsync(
+                It.Is<FavoriteOwner>(owner => owner.UserId == 7),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(userFavoriteCount);
+        repository.Setup(item => item.GetFavoritesForUpdateAsync(
+                It.Is<FavoriteOwner>(owner => owner.UserId == null && owner.SessionId == "guest"),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guestFavorites ?? []);
+        return repository;
+    }
+
+    // Burada claim senaryosu için verilen ürüne bağlı guest favori kaydı oluşturuyorum.
+    private static FavoriteProduct CreateGuestFavorite(Product product, string sessionId)
+    {
+        return new FavoriteProduct(product.Id, sessionId);
+    }
+
+    // Burada serializable transaction delegelerini gerçekten çalıştıran unit of work mockunu oluşturuyorum.
     private static Mock<IUnitOfWork> CreateTransactionalUnitOfWork()
     {
         var unitOfWork = new Mock<IUnitOfWork>();
@@ -895,6 +1006,11 @@ public sealed class CartApplicationTests
                 It.IsAny<Func<CancellationToken, Task<CartDto>>>(),
                 It.IsAny<CancellationToken>()))
             .Returns<Func<CancellationToken, Task<CartDto>>, CancellationToken>(
+                (operation, cancellationToken) => operation(cancellationToken));
+        unitOfWork.Setup(unit => unit.ExecuteInSerializableTransactionAsync(
+                It.IsAny<Func<CancellationToken, Task<GuestSessionClaimDto>>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<GuestSessionClaimDto>>, CancellationToken>(
                 (operation, cancellationToken) => operation(cancellationToken));
         unitOfWork.Setup(unit => unit.SaveChangesAsync(
                 It.IsAny<CancellationToken>()))

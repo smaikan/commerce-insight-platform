@@ -13,7 +13,6 @@ namespace ECommerce.Persistence.Migrations
     [DbContext(typeof(AppDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
     {
-        // Burada güncel veri tabanı modelinin EF Core anlık görüntüsünü tanımlıyorum.
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
@@ -2245,7 +2244,6 @@ namespace ECommerce.Persistence.Migrations
             modelBuilder.Entity("ECommerce.Domain.Entities.CartItem", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("CartId")
@@ -2538,17 +2536,29 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<long>("ProductId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("UserId")
+                    b.Property<string>("SessionId")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<long?>("UserId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("ProductId");
 
-                    b.HasIndex("ProductId", "UserId")
-                        .IsUnique();
+                    b.HasIndex("SessionId", "ProductId")
+                        .IsUnique()
+                        .HasFilter("[SessionId] IS NOT NULL");
 
-                    b.ToTable("FavoriteProducts", (string)null);
+                    b.HasIndex("UserId", "ProductId")
+                        .IsUnique()
+                        .HasFilter("[UserId] IS NOT NULL");
+
+                    b.ToTable("FavoriteProducts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_FavoriteProducts_ExactlyOneOwner", "([UserId] IS NOT NULL AND [SessionId] IS NULL)\nOR\n([UserId] IS NULL AND [SessionId] IS NOT NULL AND [SessionId] <> '')");
+                        });
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.GuestCheckoutIdempotency", b =>
@@ -2727,6 +2737,9 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DeliveredAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal>("DiscountTotal")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -2745,6 +2758,13 @@ namespace ECommerce.Persistence.Migrations
 
                     b.Property<DateTime?>("ReservationExpiresAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ShippedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ShippingCarrier")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<Guid?>("ShippingMethodId")
                         .HasColumnType("uniqueidentifier");
@@ -2769,6 +2789,14 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<decimal>("TaxTotal")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TrackingNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TrackingUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -2918,6 +2946,14 @@ namespace ECommerce.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("ImageAltSnapshot")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("ImageUrlSnapshot")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2926,6 +2962,10 @@ namespace ECommerce.Persistence.Migrations
 
                     b.Property<string>("ProductTitleSnapshot")
                         .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("ProductUrlSnapshot")
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
@@ -2951,10 +2991,18 @@ namespace ECommerce.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("VariantNameSnapshot")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
                     b.Property<string>("VariantSkuSnapshot")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("VariantValueSnapshot")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.HasKey("Id");
 
@@ -3168,6 +3216,8 @@ namespace ECommerce.Persistence.Migrations
                         .HasFilter("[DeletedAtUtc] IS NULL");
 
                     b.ToTable("Products", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.ProductBundleItem", b =>
@@ -3884,6 +3934,242 @@ namespace ECommerce.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ECommerce.Domain.Entities.StoreSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AddressLine")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("AllowIndexing")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContactAddress")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DarkLogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DefaultDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DefaultOpenGraphImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DefaultProductSort")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("DefaultProductSortDescending")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("DefaultShareImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DefaultTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("District")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("FacebookUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("FaviconUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("InstagramUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("LegalCompanyName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("LowStockThreshold")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MapUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MersisNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("NationalIdentityNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PinterestUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ShortDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("ShowCompareAtPrice")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowContactAddress")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowMap")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowOutOfStockProducts")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowProductsWithoutPrice")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowStockWarning")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowSupportEmail")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowSupportPhone")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowWhatsapp")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowWorkingHours")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StatusMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("SupportEmail")
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<string>("SupportPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("TaxNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TaxOffice")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("TiktokUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("TitleTemplate")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("TradeRegistryNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("WhatsappNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("WorkingHours")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("XUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("YoutubeUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StoreSettings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_StoreSettings_DefaultProductSort", "[DefaultProductSort] IN (0, 1, 2, 3)");
+
+                            t.HasCheckConstraint("CK_StoreSettings_LowStockThreshold", "[LowStockThreshold] BETWEEN 1 AND 1000000");
+
+                            t.HasCheckConstraint("CK_StoreSettings_Singleton", "[Id] = '11111111-1111-1111-1111-111111111111'");
+
+                            t.HasCheckConstraint("CK_StoreSettings_Status", "[Status] IN (0, 1, 2)");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-111111111111"),
+                            AllowIndexing = true,
+                            ConcurrencyToken = new Guid("22222222-2222-2222-2222-222222222222"),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DefaultProductSort = 0,
+                            DefaultProductSortDescending = true,
+                            DisplayName = "Mağaza",
+                            LowStockThreshold = 5,
+                            ShowCompareAtPrice = true,
+                            ShowContactAddress = false,
+                            ShowMap = false,
+                            ShowOutOfStockProducts = true,
+                            ShowProductsWithoutPrice = true,
+                            ShowStockWarning = false,
+                            ShowSupportEmail = false,
+                            ShowSupportPhone = false,
+                            ShowWhatsapp = false,
+                            ShowWorkingHours = false,
+                            Status = 0
+                        });
+                });
+
             modelBuilder.Entity("ECommerce.Domain.Entities.StorefrontBanner", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4261,6 +4547,75 @@ namespace ECommerce.Persistence.Migrations
                         .HasDatabaseName("UX_VariantOptionValues_NameId_Value");
 
                     b.ToTable("VariantOptionValues", (string)null);
+                });
+
+            modelBuilder.Entity("ECommerce.Persistence.Search.ProductSearchDocument", b =>
+                {
+                    b.Property<long>("ProductId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("BrandNormalized")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("CollectionNamesNormalized")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("MainSkuNormalized")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SearchTextNormalized")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("TagNamesNormalized")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("TitleNormalized")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("TypeNormalized")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("ProductId");
+
+                    b.HasIndex("BrandNormalized", "ProductId");
+
+                    b.HasIndex("MainSkuNormalized", "ProductId");
+
+                    b.HasIndex("TitleNormalized", "ProductId");
+
+                    b.HasIndex("TypeNormalized", "ProductId");
+
+                    b.ToTable("ProductSearchDocuments", (string)null);
+                });
+
+            modelBuilder.Entity("ECommerce.Persistence.Search.ProductSearchGram", b =>
+                {
+                    b.Property<string>("Gram")
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<long>("ProductId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Gram", "ProductId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ProductSearchGrams", (string)null);
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Accounting.CashAndBank.FinancialTransaction", b =>
@@ -4762,8 +5117,7 @@ namespace ECommerce.Persistence.Migrations
                     b.HasOne("ECommerce.Domain.Entities.User", null)
                         .WithMany("FavoriteProducts")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Product");
                 });
@@ -5197,6 +5551,24 @@ namespace ECommerce.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("VariantOptionName");
+                });
+
+            modelBuilder.Entity("ECommerce.Persistence.Search.ProductSearchDocument", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.Product", null)
+                        .WithOne()
+                        .HasForeignKey("ECommerce.Persistence.Search.ProductSearchDocument", "ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ECommerce.Persistence.Search.ProductSearchGram", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Accounting.CostLayers.InventoryCostLayer", b =>

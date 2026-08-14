@@ -14,6 +14,7 @@ using ECommerce.Application.Products.Queries.GetProductById;
 using ECommerce.Application.Products.Queries.GetProducts;
 using ECommerce.Application.Products.Queries.GetPublishedProducts;
 using ECommerce.Application.Products.Queries.GetPublishedProductByUrl;
+using ECommerce.Application.Products.Queries.GetPublishedProductSearchSuggestions;
 using ECommerce.Application.Products.Queries.GetProductSeoIndex;
 using ECommerce.Application.Products.Relations.Commands.UpdateProductRelations;
 using ECommerce.Application.Common.Models;
@@ -56,6 +57,20 @@ public sealed class ProductsController : ControllerBase
         [FromQuery] GetPublishedProductsQuery query,
         CancellationToken cancellationToken) =>
         Ok(await _sender.Send(query, cancellationToken));
+
+    // Burada navbar için en fazla on public ürün önerisini düşük payload ile anonim olarak getiriyorum.
+    [AllowAnonymous]
+    [EnableRateLimiting("public-search")]
+    [HttpGet("published/search-suggestions")]
+    [ProducesResponseType(typeof(PublishedProductSearchSuggestionsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<PublishedProductSearchSuggestionsDto>> GetPublishedSearchSuggestions(
+        [FromQuery] PublishedProductSearchSuggestionsRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await _sender.Send(
+            new GetPublishedProductSearchSuggestionsQuery(request.Query, request.Limit),
+            cancellationToken));
 
     // Burada koleksiyona bağlı yayındaki ürünleri storefront için listeliyorum.
     [AllowAnonymous]
@@ -280,8 +295,13 @@ public sealed class ProductsController : ControllerBase
 public sealed record PublishedProductListRequest(
     int PageNumber = 1,
     int PageSize = 24,
-    PublishedProductSortBy SortBy = PublishedProductSortBy.Newest,
-    bool Descending = true);
+    PublishedProductSortBy? SortBy = null,
+    bool? Descending = null);
+
+// Burada public suggestion query-string alanlarını HTTP katmanında tip güvenli biçimde taşıyorum.
+public sealed record PublishedProductSearchSuggestionsRequest(
+    string? Query = null,
+    int Limit = 10);
 
 // Burada ürün temel bilgilerini güncelleyen HTTP isteğini taşıyorum.
 public sealed record UpdateProductRequest(

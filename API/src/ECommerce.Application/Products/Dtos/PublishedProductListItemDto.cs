@@ -11,4 +11,7 @@ public sealed record PublishedProductListItemDto(
     decimal? CompareAtPrice,
     decimal AverageRating,
     long RatingCount,
-    ProductImageDto? MainImage);
+    ProductImageDto? MainImage,
+    bool IsAvailable,
+    int? LowestAvailableStock,
+    bool IsLowStock);

@@ -23,6 +23,8 @@ using Microsoft.OpenApi;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.ResponseCompression;
+using ECommerce.API.OpenApi;
+using ECommerce.API.OutputCaching;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +34,7 @@ builder.Host.UseSerilog((context, configuration) =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddScoped<ProductOutputCacheInvalidationFilter>();
 var corsOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .Get<string[]>() ?? [];
@@ -56,6 +59,7 @@ builder.Services.AddOutputCache(options =>
 });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<GuestSessionCookieManager>();
 builder.Services.AddHostedService<UserTokenCleanupBackgroundService>();
 builder.Services.AddHostedService<EmailOutboxBackgroundService>();
 builder.Services.AddOptions<OrderReservationOptions>()
@@ -89,6 +93,10 @@ builder.Services.AddSwaggerGen(options =>
     // Burada null olamaz C# referans alanlarını Swagger sözleşmesinde de zorunlu gösteriyorum.
     options.SupportNonNullableReferenceTypes();
     options.NonNullableReferenceTypesAsRequired();
+    options.OperationFilter<PublishedProductFacetOperationFilter>();
+    options.OperationFilter<PublishedProductSearchOperationFilter>();
+    options.OperationFilter<AllowAnonymousOperationFilter>();
+    options.OperationFilter<StoreSettingsOperationFilter>();
     options.CustomSchemaIds(type =>
     {
         if (type.Name is "Payment" or "PaymentStatus" or "PaymentDto")
@@ -251,6 +259,19 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("public-search", httpContext =>
+    {
+        var clientKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            $"public-search:{clientKey}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
     options.AddPolicy("cart", httpContext =>
     {
         var userKey = httpContext.User.Identity?.IsAuthenticated == true

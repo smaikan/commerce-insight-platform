@@ -8,8 +8,16 @@ public sealed record PublishedProductListFilter(
     Guid? BrandId = null,
     Guid? CollectionId = null,
     Guid? TagId = null,
-    PublishedProductSortBy SortBy = PublishedProductSortBy.Newest,
-    bool Descending = true);
+    PublishedProductSortBy? SortBy = PublishedProductSortBy.Newest,
+    bool? Descending = true,
+    bool ShowOutOfStockProducts = true,
+    bool ShowProductsWithoutPrice = true,
+    bool ShowStockWarning = false,
+    int LowStockThreshold = 5,
+    string? SearchNormalized = null,
+    IReadOnlyList<string>? SearchTokens = null,
+    IReadOnlyList<string>? CandidateGrams = null,
+    bool ResolveStoreSettings = false);
 
 // Burada storefront ürün listesinin desteklediği sıralama alanlarını tanımlıyorum.
 public enum PublishedProductSortBy

@@ -11,11 +11,13 @@ using ECommerce.Application.Common.Models;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ECommerce.API.OutputCaching;
 
 namespace ECommerce.API.Controllers.Product;
 
 [ApiController]
 [Route("api/brands")]
+[ServiceFilter(typeof(ProductOutputCacheInvalidationFilter))]
 public sealed class BrandsController : ControllerBase
 {
     private readonly ISender _sender;

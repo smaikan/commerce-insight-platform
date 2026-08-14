@@ -50,6 +50,9 @@ public sealed class ProductListFilteringQueryHandlerTests
         var reader = new Mock<IPublishedProductListReader>();
         reader.Setup(item => item.GetListAsync(It.IsAny<PublishedProductListFilter>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResult<PublishedProductListItemDto>([], 1, 24, 0));
+        var settingsRepository = new Mock<IStoreSettingsRepository>();
+        settingsRepository.Setup(repository => repository.GetAsync(false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ECommerce.Domain.Entities.StoreSettings.CreateDefault());
         var handler = new GetPublishedProductsQueryHandler(reader.Object);
 
         await handler.Handle(new GetPublishedProductsQuery(

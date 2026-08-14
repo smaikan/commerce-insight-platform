@@ -10,11 +10,13 @@ using ECommerce.Application.ProductTypes.Queries.GetProductTypes;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ECommerce.API.OutputCaching;
 
 namespace ECommerce.API.Controllers.Product;
 
 [ApiController]
 [Route("api/product-types")]
+[ServiceFilter(typeof(ProductOutputCacheInvalidationFilter))]
 public sealed class ProductTypesController : ControllerBase
 {
     private readonly ISender _sender;

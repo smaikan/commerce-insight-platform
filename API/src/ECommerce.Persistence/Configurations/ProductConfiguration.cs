@@ -9,7 +9,7 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
     // Burada ürün tablosunun kolon, ilişki ve indeks kurallarını tanımlıyorum.
     public void Configure(EntityTypeBuilder<Product> builder)
     {
-        builder.ToTable("Products");
+        builder.ToTable("Products", table => table.UseSqlOutputClause(false));
 
         builder.HasKey(product => product.Id);
 

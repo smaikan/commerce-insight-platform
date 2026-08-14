@@ -251,10 +251,18 @@ public sealed class OrderCheckoutOrchestrator
         foreach (var line in lines)
         {
             var linePricing = pricing.Lines[line.Variant.Id];
+            var mainImage = line.Product.Images
+                .OrderByDescending(image => image.IsMain)
+                .ThenBy(image => image.DisplayOrder)
+                .ThenBy(image => image.Id)
+                .FirstOrDefault();
             order.AddItem(
                 line.Product.Id, line.Variant.Id, line.Product.Title, line.Variant.Sku,
                 line.Variant.NetPrice, line.Quantity, linePricing.DiscountTotal,
-                linePricing.TaxRatePercentage, linePricing.TaxTotal);
+                linePricing.TaxRatePercentage, linePricing.TaxTotal,
+                line.Product.Url, mainImage?.ImageUrl, mainImage?.AltText,
+                line.Product.HasVariants ? line.Variant.Name : null,
+                line.Product.HasVariants ? line.Variant.Value : null);
         }
     }
 

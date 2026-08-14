@@ -34,6 +34,11 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(order => order.CouponCode).HasMaxLength(Order.MaximumCouponCodeLength);
         builder.Property(order => order.ShippingMethodName).HasMaxLength(ShippingMethod.MaximumNameLength);
         builder.Property(order => order.ReservationExpiresAt);
+        builder.Property(order => order.ShippingCarrier).HasMaxLength(Order.MaximumShippingCarrierLength);
+        builder.Property(order => order.TrackingNumber).HasMaxLength(Order.MaximumTrackingNumberLength);
+        builder.Property(order => order.TrackingUrl).HasMaxLength(Order.MaximumTrackingUrlLength);
+        builder.Property(order => order.ShippedAt);
+        builder.Property(order => order.DeliveredAt);
 
         builder.HasOne(order => order.Address)
             .WithMany()

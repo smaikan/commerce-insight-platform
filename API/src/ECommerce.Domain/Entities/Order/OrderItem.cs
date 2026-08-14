@@ -6,6 +6,11 @@ public sealed class OrderItem : BaseEntity
 {
     public const int MaximumProductTitleLength = 250;
     public const int MaximumVariantSkuLength = 100;
+    public const int MaximumVariantNameLength = 150;
+    public const int MaximumVariantValueLength = 150;
+    public const int MaximumProductUrlLength = 250;
+    public const int MaximumImageUrlLength = 500;
+    public const int MaximumImageAltLength = 250;
     public const int SupportedPriceScale = 2;
     public const decimal MaximumSupportedAmount = 9999999999999999.99m;
 
@@ -15,6 +20,11 @@ public sealed class OrderItem : BaseEntity
     public Guid ProductVariantId { get; private set; }
     public string ProductTitleSnapshot { get; private set; } = null!;
     public string VariantSkuSnapshot { get; private set; } = null!;
+    public string? VariantNameSnapshot { get; private set; }
+    public string? VariantValueSnapshot { get; private set; }
+    public string? ProductUrlSnapshot { get; private set; }
+    public string? ImageUrlSnapshot { get; private set; }
+    public string? ImageAltSnapshot { get; private set; }
     public decimal UnitPrice { get; private set; }
     public int Quantity { get; private set; }
     public decimal TotalPrice { get; private set; }
@@ -40,7 +50,12 @@ public sealed class OrderItem : BaseEntity
         int quantity,
         decimal discountTotal,
         decimal taxRatePercentage,
-        decimal taxTotal)
+        decimal taxTotal,
+        string? productUrlSnapshot = null,
+        string? imageUrlSnapshot = null,
+        string? imageAltSnapshot = null,
+        string? variantNameSnapshot = null,
+        string? variantValueSnapshot = null)
     {
         if (order is null || order.Id == Guid.Empty || productId <= 0 || productVariantId == Guid.Empty)
         {
@@ -59,6 +74,26 @@ public sealed class OrderItem : BaseEntity
             variantSkuSnapshot,
             MaximumVariantSkuLength,
             "Variant SKU snapshot");
+        VariantNameSnapshot = NormalizeOptionalSnapshot(
+            variantNameSnapshot,
+            MaximumVariantNameLength,
+            "Variant name snapshot");
+        VariantValueSnapshot = NormalizeOptionalSnapshot(
+            variantValueSnapshot,
+            MaximumVariantValueLength,
+            "Variant value snapshot");
+        ProductUrlSnapshot = NormalizeOptionalSnapshot(
+            productUrlSnapshot,
+            MaximumProductUrlLength,
+            "Product URL snapshot");
+        ImageUrlSnapshot = NormalizeOptionalSnapshot(
+            imageUrlSnapshot,
+            MaximumImageUrlLength,
+            "Image URL snapshot");
+        ImageAltSnapshot = NormalizeOptionalSnapshot(
+            imageAltSnapshot,
+            MaximumImageAltLength,
+            "Image alt snapshot");
         UnitPrice = ValidateUnitPrice(unitPrice);
         Quantity = ValidateQuantity(quantity);
         TotalPrice = CalculateTotalPrice(UnitPrice, Quantity);
@@ -96,6 +131,23 @@ public sealed class OrderItem : BaseEntity
         if (string.IsNullOrWhiteSpace(value))
         {
             throw new DomainException($"{fieldName} cannot be empty.");
+        }
+
+        var normalizedValue = value.Trim();
+        if (normalizedValue.Length > maximumLength)
+        {
+            throw new DomainException($"{fieldName} cannot exceed {maximumLength} characters.");
+        }
+
+        return normalizedValue;
+    }
+
+    // Burada eski siparişlerle uyumlu isteğe bağlı snapshot metinlerini uzunluk sınırıyla normalize ediyorum.
+    private static string? NormalizeOptionalSnapshot(string? value, int maximumLength, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
         }
 
         var normalizedValue = value.Trim();

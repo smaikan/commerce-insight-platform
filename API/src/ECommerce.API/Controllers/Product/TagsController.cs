@@ -10,11 +10,13 @@ using ECommerce.Application.Tags.Queries.GetTags;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ECommerce.API.OutputCaching;
 
 namespace ECommerce.API.Controllers.Product;
 
 [ApiController]
 [Route("api/tags")]
+[ServiceFilter(typeof(ProductOutputCacheInvalidationFilter))]
 public sealed class TagsController : ControllerBase
 {
     private readonly ISender _sender;

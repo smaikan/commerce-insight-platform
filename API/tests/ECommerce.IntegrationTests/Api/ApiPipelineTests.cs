@@ -96,6 +96,19 @@ public sealed class ApiPipelineTests
         var schemas = document.RootElement
             .GetProperty("components")
             .GetProperty("schemas");
+        foreach (var schemaName in new[] { "CartItemDto", "OrderItemDto" })
+        {
+            var variantSchema = schemas.GetProperty(schemaName);
+            foreach (var propertyName in new[] { "variantName", "variantValue" })
+            {
+                var property = variantSchema.GetProperty("properties").GetProperty(propertyName);
+                property.GetProperty("type").GetString().Should().Be("string");
+                property.GetProperty("nullable").GetBoolean().Should().BeTrue();
+                property.GetProperty("maxLength").GetInt32().Should().Be(150);
+                AssertOptionalProperty(variantSchema, propertyName);
+            }
+        }
+
         var loginSchema = schemas.GetProperty("LoginRequest");
         var loginRequiredProperties = loginSchema
             .GetProperty("required")
@@ -486,7 +499,11 @@ public sealed class ApiPipelineTests
                 var requiresGuestSession = endpoint.RouteTemplate.StartsWith(
                     "/api/guest-orders", StringComparison.Ordinal) &&
                     endpoint.RouteTemplate is not "/api/guest-orders/access-links" and
-                    not "/api/guest-orders/access/exchange";
+                    not "/api/guest-orders/access/exchange" ||
+                    endpoint.RouteTemplate.StartsWith(
+                        "/api/product-engagement/products/", StringComparison.Ordinal) &&
+                    endpoint.RouteTemplate.EndsWith("/favorites", StringComparison.Ordinal) &&
+                    endpoint.Method != HttpMethod.Get;
                 if (!requiresGuestSession)
                 {
                     response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized,

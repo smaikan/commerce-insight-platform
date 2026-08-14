@@ -8,15 +8,19 @@ using ECommerce.Application.Collections.Commands.UpdateCollection;
 using ECommerce.Application.Collections.Dtos;
 using ECommerce.Application.Collections.Queries.GetCollectionById;
 using ECommerce.Application.Collections.Queries.GetCollections;
+using ECommerce.Application.Collections.Queries.GetPublishedCollectionShowcase;
 using ECommerce.Application.Common.Models;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ECommerce.API.OutputCaching;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace ECommerce.API.Controllers.Product;
 
 [ApiController]
 [Route("api/collections")]
+[ServiceFilter(typeof(ProductOutputCacheInvalidationFilter))]
 public sealed class CollectionsController : ControllerBase
 {
     private readonly ISender _sender;
@@ -27,6 +31,14 @@ public sealed class CollectionsController : ControllerBase
     // Burada koleksiyon listesini herkese açık olarak sunuyorum.
     [AllowAnonymous, HttpGet]
     public async Task<ActionResult<PagedResult<CollectionDto>>> GetList([FromQuery] GetCollectionsQuery query, CancellationToken cancellationToken) => Ok(await _sender.Send(query, cancellationToken));
+
+    // Burada storefront için aktif ve yayımlanmış ürünü bulunan koleksiyon vitrinini toplu sunuyorum.
+    [AllowAnonymous, HttpGet("published")]
+    [OutputCache(PolicyName = "public-products")]
+    public async Task<ActionResult<PagedResult<PublishedCollectionShowcaseItemDto>>> GetPublishedShowcase(
+        [FromQuery] GetPublishedCollectionShowcaseQuery query,
+        CancellationToken cancellationToken) =>
+        Ok(await _sender.Send(query, cancellationToken));
 
     // Burada tek koleksiyon kaydını herkese açık olarak sunuyorum.
     [AllowAnonymous, HttpGet("{id:guid}")]

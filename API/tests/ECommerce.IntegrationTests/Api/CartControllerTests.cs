@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using ECommerce.API.Controllers.Cart;
+using ECommerce.API.Security;
 using ECommerce.Application.Carts.Commands.AddCartItem;
 using ECommerce.Application.Carts.Commands.MergeGuestCart;
 using ECommerce.Application.Carts.Dtos;
@@ -37,6 +38,7 @@ public sealed class CartControllerTests
         controller.Response.Headers.SetCookie.Single().Should().Contain("httponly");
         controller.Response.Headers.SetCookie.Single().Should().Contain("secure");
         controller.Response.Headers.SetCookie.Single().Should().Contain("samesite=lax");
+        controller.Response.Headers.SetCookie.Single().Should().Contain("path=/api");
     }
 
     // Burada giriş yapmış kullanıcının sepetinde misafir cookie değerinin Application katmanına taşınmadığını doğruluyorum.
@@ -69,9 +71,11 @@ public sealed class CartControllerTests
         result.Result.Should().BeOfType<OkObjectResult>();
         var command = sender.LastRequest.Should().BeOfType<MergeGuestCartCommand>().Subject;
         command.SessionId.Should().Be(guestSessionId);
-        controller.Response.Headers.SetCookie.Should().ContainSingle();
-        controller.Response.Headers.SetCookie.Single().Should().Contain("ecommerce_guest_cart=");
-        controller.Response.Headers.SetCookie.Single().Should().Contain("expires=");
+        controller.Response.Headers.SetCookie.Should().HaveCount(2);
+        controller.Response.Headers.SetCookie.Should().OnlyContain(value =>
+            value != null &&
+            value.Contains("ecommerce_guest_cart=", StringComparison.OrdinalIgnoreCase) &&
+            value.Contains("expires=", StringComparison.OrdinalIgnoreCase));
     }
 
     // Burada controller testleri için HttpContext ve isteğe bağlı doğrulanmış kullanıcı oluşturarak controller'ı hazırlıyorum.
@@ -91,7 +95,10 @@ public sealed class CartControllerTests
                 ["GuestProtection:TrustedOrigins"] = "https://store.example.test"
             })
             .Build();
-        return new CartController(sender, configuration)
+        return new CartController(
+            sender,
+            configuration,
+            new GuestSessionCookieManager(configuration))
         {
             ControllerContext = new ControllerContext
             {

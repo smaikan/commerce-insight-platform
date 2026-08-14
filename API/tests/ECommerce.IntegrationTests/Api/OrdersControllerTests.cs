@@ -69,6 +69,33 @@ public sealed class OrdersControllerTests
             .Which.IdempotencyKey.Should().Be(idempotencyKey);
     }
 
+    // Burada kargo alanlarının admin durum endpointinden tip güvenli komuta eksiksiz taşındığını doğruluyorum.
+    [Fact]
+    public async Task ChangeStatus_Should_Send_Shipment_Fields_In_Command()
+    {
+        var sender = new RecordingSender();
+        var controller = new OrdersController(sender);
+        var orderId = Guid.NewGuid();
+
+        var result = await controller.ChangeStatus(
+            orderId,
+            new ChangeOrderStatusRequest(
+                OrderStatus.Shipped,
+                "Carrier",
+                "TRACK-123",
+                "https://track.example.com/TRACK-123"),
+            CancellationToken.None);
+
+        result.Result.Should().BeOfType<OkObjectResult>();
+        sender.LastRequest.Should().BeOfType<ECommerce.Application.Orders.Commands.ChangeOrderStatus.ChangeOrderStatusCommand>()
+            .Which.Should().Match<ECommerce.Application.Orders.Commands.ChangeOrderStatus.ChangeOrderStatusCommand>(command =>
+                command.OrderId == orderId &&
+                command.Status == OrderStatus.Shipped &&
+                command.ShippingCarrier == "Carrier" &&
+                command.TrackingNumber == "TRACK-123" &&
+                command.TrackingUrl == "https://track.example.com/TRACK-123");
+    }
+
     // Burada sahte ödeme sağlayıcısının production ortamında siparişi ödenmiş duruma geçirecek başarı sonucu üretmediğini doğruluyorum.
     [Fact]
     public async Task FakePaymentGateway_Should_Be_Disabled_In_Production()

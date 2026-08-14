@@ -94,6 +94,7 @@ public sealed class ProductRepository : IProductRepository
         var productIds = ids.Where(id => id > 0).Distinct().OrderBy(id => id).ToList();
         return await _context.Products
             .Include(product => product.TaxRate)
+            .Include(product => product.Images)
             .Where(product => product.DeletedAtUtc == null && productIds.Contains(product.Id))
             .OrderBy(product => product.Id)
             .ToListAsync(cancellationToken);

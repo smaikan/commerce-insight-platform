@@ -9,9 +9,12 @@ using ECommerce.Application.Products.Engagement.Commands.UpsertRating;
 using ECommerce.Application.Products.Engagement.Queries.GetFavoriteProducts;
 using ECommerce.Application.Products.Engagement.Queries.GetProductMetrics;
 using ECommerce.Application.Products.Engagement.Queries.GetProductReviews;
+using ECommerce.Application.Common.Models;
+using ECommerce.Application.Products.Dtos;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace ECommerce.API.Controllers.Product;
 
@@ -20,35 +23,74 @@ namespace ECommerce.API.Controllers.Product;
 public sealed class ProductEngagementController : ControllerBase
 {
     private readonly ISender _sender;
+    private readonly GuestSessionCookieManager _guestSessionCookies;
 
     // Burada ürün etkileşimi isteklerini Application katmanına iletecek göndericiyi hazırlıyorum.
-    public ProductEngagementController(ISender sender) => _sender = sender;
+    public ProductEngagementController(
+        ISender sender,
+        GuestSessionCookieManager guestSessionCookies)
+    {
+        _sender = sender;
+        _guestSessionCookies = guestSessionCookies;
+    }
 
     // Burada oturum açmış kullanıcının favori ürünlerini getiriyorum.
-    [Authorize]
+    [AllowAnonymous]
+    [EnableRateLimiting("cart")]
     [HttpGet("favorites")]
-    public async Task<ActionResult> GetFavorites(
+    [ProducesResponseType(typeof(PagedResult<ProductDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<PagedResult<ProductDto>>> GetFavorites(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default) =>
-        Ok(await _sender.Send(new GetFavoriteProductsQuery(pageNumber, pageSize), cancellationToken));
+        Ok(await _sender.Send(new GetFavoriteProductsQuery(
+            pageNumber,
+            pageSize,
+            _guestSessionCookies.GetSessionIdForAccess(HttpContext)), cancellationToken));
 
     // Burada oturum açmış kullanıcının ürünü favorilerine eklemesini sağlıyorum.
-    [Authorize]
+    [AllowAnonymous]
+    [EnableRateLimiting("cart")]
     [HttpPost("products/{productId}/favorites")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> AddFavorite(string productId, CancellationToken cancellationToken)
     {
-        await _sender.Send(new AddFavoriteCommand(ApiPublicIdParser.ParseProductId(productId)), cancellationToken);
+        await _sender.Send(new AddFavoriteCommand(
+            ApiPublicIdParser.ParseProductId(productId),
+            GetSessionIdForFavoriteMutation()), cancellationToken);
         return NoContent();
     }
 
     // Burada oturum açmış kullanıcının ürünü favorilerinden kaldırmasını sağlıyorum.
-    [Authorize]
+    [AllowAnonymous]
+    [EnableRateLimiting("cart")]
     [HttpDelete("products/{productId}/favorites")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveFavorite(string productId, CancellationToken cancellationToken)
     {
-        await _sender.Send(new RemoveFavoriteCommand(ApiPublicIdParser.ParseProductId(productId)), cancellationToken);
+        await _sender.Send(new RemoveFavoriteCommand(
+            ApiPublicIdParser.ParseProductId(productId),
+            GetSessionIdForFavoriteMutation()), cancellationToken);
         return NoContent();
+    }
+
+    // Burada authenticated istekte JWT'yi, guest mutation'da cookie ve CSRF ile doğrulanan session'ı kullanıyorum.
+    private string? GetSessionIdForFavoriteMutation()
+    {
+        return User.Identity?.IsAuthenticated == true
+            ? null
+            : _guestSessionCookies.RequireSessionForMutation(HttpContext);
     }
 
     // Burada teslim edilmiş ürüne kullanıcı puanı verilmesini sağlıyorum.

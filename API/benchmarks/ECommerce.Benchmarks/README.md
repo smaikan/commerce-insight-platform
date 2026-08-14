@@ -32,3 +32,22 @@ production-like SQL Server data set.
 The order list benchmark also uses EF Core's in-memory provider with 1,000 orders.
 It covers the exact `OrderListReader` projection, page count and `Skip` behavior,
 but it cannot validate SQL Server indexes or `Contains` query plans.
+
+## Public ürün araması
+
+SQL Server aday planlarını 100.000 ürün ve gerçekçi ilişki hacmiyle karşılaştırmak için:
+
+```powershell
+sqlcmd -S "(localdb)\MSSQLLocalDB" -E -i benchmarks/sql/product-search-candidate-comparison.sql -o .artifacts/product-search-candidate-comparison.txt
+sqlcmd -S "(localdb)\MSSQLLocalDB" -E -i benchmarks/sql/product-search-gram-candidate.sql -o .artifacts/product-search-gram-candidate.txt
+```
+
+İlk script ilişkisel `%term%` sorgusu ile tek satırlık doküman taramasını; ikinci script iki milyon satırlık temsili gram indeksinde hibrit aday sorgusunu ölçer. `STATISTICS IO/TIME` ham çıktıları `.artifacts` altında oluşur. Veri hazırlama süresi sorgu süresinden ayrı değerlendirilir.
+
+Production-benzeri API ve SQL Server aynı kontrollü ortamdayken p95/p99 ölçümü için önce 100.000 ürünlük veri ve migration hazırlanır, API cache'siz suggestion endpointiyle başlatılır, ardından:
+
+```powershell
+pwsh benchmarks/scripts/measure-published-product-search.ps1 -BaseUrl https://localhost:3300 -Iterations 1000 -Concurrency 32
+```
+
+LocalDB, geliştirme verisi veya paylaşımlı geliştirici makinesi p95/p99 kabul kararı için yeterli değildir. Script sık, seyrek ve sonuçsuz sorguları paralel gönderir; 429 oluşmaması için performans ortamındaki rate-limit ölçüm profili bilinçli biçimde yapılandırılmalıdır.

@@ -2,6 +2,7 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Models;
 using ECommerce.Application.Products.Dtos;
 using MediatR;
+using ECommerce.Application.Products.Services;
 
 namespace ECommerce.Application.Products.Queries.GetPublishedProducts;
 
@@ -17,10 +18,13 @@ public sealed class GetPublishedProductsQueryHandler
     }
 
     // Burada yalnız yayımlanmış ürünlerin sıralı listesini döndürüyorum.
-    public Task<PagedResult<PublishedProductListItemDto>> Handle(
+    public async Task<PagedResult<PublishedProductListItemDto>> Handle(
         GetPublishedProductsQuery request,
-        CancellationToken cancellationToken) =>
-        _productListReader.GetListAsync(
+        CancellationToken cancellationToken)
+    {
+        var normalizedSearch = ProductSearchTextNormalizer.Normalize(request.Search);
+        var searchTokens = ProductSearchTextNormalizer.Tokenize(normalizedSearch);
+        return await _productListReader.GetListAsync(
             new PublishedProductListFilter(
                 request.PageNumber,
                 request.PageSize,
@@ -29,6 +33,15 @@ public sealed class GetPublishedProductsQueryHandler
                 request.CollectionId,
                 request.TagId,
                 request.SortBy,
-                request.Descending),
+                request.Descending,
+                true,
+                true,
+                false,
+                5,
+                searchTokens.Count == 0 ? null : normalizedSearch,
+                searchTokens,
+                ProductSearchTextNormalizer.CreateCandidateGrams(searchTokens),
+                ResolveStoreSettings: true),
             cancellationToken);
+    }
 }

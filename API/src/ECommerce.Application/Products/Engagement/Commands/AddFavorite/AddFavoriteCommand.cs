@@ -2,4 +2,5 @@ using MediatR;
 
 namespace ECommerce.Application.Products.Engagement.Commands.AddFavorite;
 
-public sealed record AddFavoriteCommand(long ProductId) : IRequest;
+// Burada favoriye eklenecek ürünü ve anonim sahiplik için isteğe bağlı session değerini taşıyorum.
+public sealed record AddFavoriteCommand(long ProductId, string? SessionId = null) : IRequest;

@@ -1,5 +1,5 @@
-using System.Security.Cryptography;
 using ECommerce.Application.Carts.Commands.AddCartItem;
+using ECommerce.API.Security;
 using ECommerce.Application.Carts.Commands.ClearCart;
 using ECommerce.Application.Carts.Commands.MergeGuestCart;
 using ECommerce.Application.Carts.Commands.RemoveCartItem;
@@ -24,20 +24,21 @@ namespace ECommerce.API.Controllers.Cart;
 [Route("api/cart")]
 public sealed class CartController : ControllerBase
 {
-    private const string GuestCartCookieName = "ecommerce_guest_cart";
-    private const string GuestCartCookiePath = "/api/cart";
-    private const int GuestCartTokenByteLength = 32;
     private const string GuestOrderSessionCookieName = "ecommerce_guest_orders";
     private const string GuestOrderCsrfCookieName = "ecommerce_guest_csrf";
-    private static readonly TimeSpan GuestCartCookieLifetime = TimeSpan.FromDays(30);
     private readonly ISender _sender;
     private readonly IConfiguration _configuration;
+    private readonly GuestSessionCookieManager _guestSessionCookies;
 
     // Burada Cart HTTP isteklerini Application akışlarına yönlendirecek sender'ı hazırlıyorum.
-    public CartController(ISender sender, IConfiguration configuration)
+    public CartController(
+        ISender sender,
+        IConfiguration configuration,
+        GuestSessionCookieManager guestSessionCookies)
     {
         _sender = sender;
         _configuration = configuration;
+        _guestSessionCookies = guestSessionCookies;
     }
 
     // Burada giriş yapan kullanıcıya veya güvenli misafir cookie'sine ait güncel sepeti getiriyorum.
@@ -136,7 +137,7 @@ public sealed class CartController : ControllerBase
             throw new BadHttpRequestException("Idempotency-Key header is required.");
         }
 
-        var cartSessionId = GetOrCreateGuestCartSessionId();
+        var cartSessionId = _guestSessionCookies.GetSessionIdForAccess(HttpContext)!;
         var result = await _sender.Send(
             new CreateGuestOrderCommand(
                 cartSessionId,
@@ -168,77 +169,27 @@ public sealed class CartController : ControllerBase
     // Burada giriş yapmış kullanıcıda cookie'yi yok sayıp anonim istekte güvenli guest session üretiyorum veya okuyorum.
     private string? GetSessionIdForCartAccess()
     {
-        return User.Identity?.IsAuthenticated == true
-            ? null
-            : GetOrCreateGuestCartSessionId();
+        return _guestSessionCookies.GetSessionIdForAccess(HttpContext);
     }
 
     // Burada yalnız geçerli biçimdeki daha önce verilmiş misafir sepet oturumunu okuyorum.
     private string? GetExistingGuestCartSessionId()
     {
-        return Request.Cookies.TryGetValue(GuestCartCookieName, out var sessionId) &&
-               IsCanonicalGuestCartSessionId(sessionId)
-            ? sessionId
-            : null;
+        return _guestSessionCookies.GetExistingSessionId(Request);
     }
 
     // Burada yalnız sunucunun ürettiği 256 bitlik guest güvenlik cookie değerini kabul ediyorum.
     private string? GetCanonicalCookie(string name)
     {
-        return Request.Cookies.TryGetValue(name, out var value) && IsCanonicalGuestCartSessionId(value)
+        return Request.Cookies.TryGetValue(name, out var value) && GuestSessionCookieManager.IsCanonicalToken(value)
             ? value
             : null;
-    }
-
-    // Burada eksik veya bozuk cookie yerine kriptografik olarak rastgele yeni bir misafir sepet oturumu yazıyorum.
-    private string GetOrCreateGuestCartSessionId()
-    {
-        var existingSessionId = GetExistingGuestCartSessionId();
-        if (existingSessionId is not null)
-        {
-            return existingSessionId;
-        }
-
-        var sessionId = Convert.ToHexString(
-            RandomNumberGenerator.GetBytes(GuestCartTokenByteLength));
-        Response.Cookies.Append(GuestCartCookieName, sessionId, CreateGuestCartCookieOptions());
-        return sessionId;
-    }
-
-    // Burada cookie değeri için yalnız sunucunun ürettiği 256 bitlik büyük harfli hexadecimal biçimi kabul ediyorum.
-    private static bool IsCanonicalGuestCartSessionId(string sessionId)
-    {
-        return sessionId.Length == GuestCartTokenByteLength * 2 &&
-               sessionId.All(character =>
-                   character is >= '0' and <= '9' or >= 'A' and <= 'F');
-    }
-
-    // Burada misafir sepet cookie'sini tarayıcı betiklerinden ve düz HTTP'den koruyan seçenekleri oluşturuyorum.
-    private static CookieOptions CreateGuestCartCookieOptions()
-    {
-        return new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
-            IsEssential = true,
-            Path = GuestCartCookiePath,
-            MaxAge = GuestCartCookieLifetime,
-            Expires = DateTimeOffset.UtcNow.Add(GuestCartCookieLifetime)
-        };
     }
 
     // Burada misafir sepeti kullanıcıya devredildiğinde artık geçersiz olan browser cookie'sini siliyorum.
     private void DeleteGuestCartCookie()
     {
-        Response.Cookies.Delete(GuestCartCookieName, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
-            IsEssential = true,
-            Path = GuestCartCookiePath
-        });
+        _guestSessionCookies.DeleteSessionCookie(Response);
     }
 
     // Burada guest sipariş session ve CSRF cookie'lerini yedi günlük güvenli seçeneklerle yazıyorum.
