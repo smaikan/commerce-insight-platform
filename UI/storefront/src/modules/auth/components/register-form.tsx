@@ -24,7 +24,29 @@ export function RegisterForm() {
           <PasswordField key={`password-${state.revision}`} id="register-password" name="password" label="Şifre" autoComplete="new-password" hint="En az 6, en fazla 128 karakter." error={state.fieldErrors?.password} />
           <PasswordField key={`confirm-${state.revision}`} id="register-confirm-password" name="confirmPassword" label="Şifre tekrarı" autoComplete="new-password" error={state.fieldErrors?.confirmPassword} />
         </div>
-        <p className="text-xs leading-5 text-ink-muted">Hesap oluşturarak kişisel verilerinin <Link href="/privacy-policy" prefetch={false} className="focus-ring font-bold text-brand-700 underline underline-offset-2">Gizlilik Politikası</Link> kapsamında işlenmesini kabul edersin.</p>
+        {/* Burada yasal metinleri açmayı zorunlu kılmadan üyelik kabulü ile KVKK aydınlatmasının okunduğu beyanını erişilebilir tek checkbox'ta sunuyorum. */}
+        <div className={`border-l-4 px-3 py-2.5 ${state.fieldErrors?.legalConsent ? "border-danger bg-danger/5" : "border-brand-600 bg-surface-subtle"}`}>
+          <div className="flex items-start gap-2">
+            <label htmlFor="register-legal-consent" className="focus-within:ring-brand-600 grid size-11 shrink-0 cursor-pointer place-items-center rounded-md focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-surface-subtle">
+              <span className="sr-only">Üyelik sözleşmesi ve KVKK aydınlatma metni onayı</span>
+              <input
+                id="register-legal-consent"
+                name="legalConsent"
+                type="checkbox"
+                value="accepted"
+                required
+                defaultChecked={state.values?.legalConsent}
+                aria-invalid={Boolean(state.fieldErrors?.legalConsent)}
+                aria-describedby={`register-legal-consent-copy${state.fieldErrors?.legalConsent ? " register-legal-consent-error" : ""}`}
+                className="size-5 accent-brand-950"
+              />
+            </label>
+            <p id="register-legal-consent-copy" className="pt-1.5 text-xs leading-5 text-ink-muted">
+              <Link href="/membership-agreement" target="_blank" rel="noreferrer" prefetch={false} className="focus-ring font-bold text-brand-700 underline underline-offset-2">Üyelik Sözleşmesi’ni<span className="sr-only"> (yeni sekmede açılır)</span></Link> kabul ediyor ve <Link href="/membership-privacy-notice" target="_blank" rel="noreferrer" prefetch={false} className="focus-ring font-bold text-brand-700 underline underline-offset-2">Üyelik KVKK Aydınlatma Metni’ni<span className="sr-only"> (yeni sekmede açılır)</span></Link> okuduğumu beyan ediyorum.
+            </p>
+          </div>
+          {state.fieldErrors?.legalConsent ? <p id="register-legal-consent-error" className="mt-1 pl-[3.25rem] text-sm font-medium text-danger">{state.fieldErrors.legalConsent}</p> : null}
+        </div>
         <SubmitButton idleLabel="Hesap oluştur" pendingLabel="Hesap oluşturuluyor…" />
       </form>
 

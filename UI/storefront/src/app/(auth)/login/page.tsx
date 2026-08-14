@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 type LoginPageProps = {
-  searchParams: Promise<{ registered?: string; autoLogin?: string; loggedOut?: string; returnTo?: string }>;
+  searchParams: Promise<{ registered?: string; autoLogin?: string; loggedOut?: string; passwordReset?: string; returnTo?: string }>;
 };
 
 // Burada yalnızca güvenli dönüş hedefini forma taşıyıp kayıt sonrası bildirimi aynı auth kabuğunda gösteriyorum.
@@ -32,6 +32,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           registered={query.registered === "1"}
           autoLoginFailed={query.autoLogin === "failed"}
           loggedOut={query.loggedOut === "1"}
+          passwordReset={query.passwordReset === "1"}
         />
       </AuthShell>
     </>

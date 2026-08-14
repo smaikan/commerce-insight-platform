@@ -75,6 +75,18 @@ POST /api/auth/reset-password
 
 Forgot-password response her durumda `202` mantığında genel davranır; email var/yok bilgisi UI'ya ifşa edilmemelidir. Reset başarıda `204` döner.
 
+Parola sıfırlama güvenlik sözleşmesi:
+
+- `forgot-password` ve `reset-password` `AllowAnonymous` uçlardır; aynı IP kovasında toplam dakikada 5 istek sınırı uygulanır.
+- Var olmayan/pasif hesap ile aktif hesap aynı `202` cevabını alır.
+- Aktif token üretildikten sonraki varsayılan 120 saniyede yeni token veya outbox mesajı üretilmez; mevcut bağlantı geçerli kalır.
+- E-posta bağlantısı `#token=...` fragment'ı kullanır. Frontend fragment'tan okuduğu tokenı yalnız reset request body içinde gönderir ve URL/log/storage alanlarına kopyalamaz.
+- Geçersiz, süresi dolmuş veya kullanılmış token `401` ve `code=invalid_or_expired_reset_token` döndürür.
+- Başarılı reset bütün refresh tokenlarını iptal eder ve security version değişimiyle daha önce üretilmiş access tokenları geçersiz kılar.
+- Ayrıntılı request/response ve frontend uygulama notları için endpoint sözleşmelerini okuyun: [forgot-password](../08-endpoint-sozlesmeleri/01-auth-ve-oturum/POST--api-auth-forgot-password.md), [reset-password](../08-endpoint-sozlesmeleri/01-auth-ve-oturum/POST--api-auth-reset-password.md).
+
+Production başlangıcında `Email:FromAddress`, `Email:Smtp:Host`, `Email:Smtp:Port`, `Email:Smtp:Username`, `Email:Smtp:Password` ve `Email:PasswordResetUrl` doğrulanır. Reset URL'si production'da HTTPS olmalı ve localhost/loopback hedeflememelidir. SMTP parolasını `appsettings.json` içine yazmayın; örneğin `Email__Smtp__Password` değerini deployment secret store üzerinden sağlayın. Geçersiz yapılandırma API'nin güvenli biçimde başlamamasına neden olur.
+
 ## Kullanıcı endpointleri — User
 
 | Method | Endpoint | Amaç | Response |

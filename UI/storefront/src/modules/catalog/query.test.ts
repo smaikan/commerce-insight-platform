@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   catalogHref,
   catalogHrefWithoutFilter,
+  catalogSearchParamsNeedRedirect,
   parseCatalogView,
   toPublishedProductQuery,
 } from "./query";
@@ -55,6 +56,34 @@ describe("catalog query", () => {
       sort: "newest",
       brandId: "90889aa5-e32a-48d9-a16a-90d663def971",
     })).toBe("/products?brand=90889aa5-e32a-48d9-a16a-90d663def971");
+  });
+
+  // Burada sınıflandırma yolunda temsil edilen filtrenin sorguya tekrarlanmadığını doğruluyorum.
+  it("creates classification links without duplicating the path-owned filter", () => {
+    expect(catalogHref({
+      page: 2,
+      sort: "popular",
+      brandId: "90889aa5-e32a-48d9-a16a-90d663def971",
+      typeId: "21ee9c6b-f6d2-4aae-9672-44ed04eda316",
+    }, {
+      basePath: "/brand/serantis",
+      omitFilter: "brandId",
+    })).toBe("/brand/serantis?page=2&sort=popular&type=21ee9c6b-f6d2-4aae-9672-44ed04eda316");
+  });
+
+  // Burada geçersiz veya yolda zaten temsil edilen parametrelerin temiz URL yönlendirmesini tetiklediğini doğruluyorum.
+  it("detects search params that need a clean classification redirect", () => {
+    const view = {
+      page: 1,
+      sort: "newest" as const,
+      brandId: "90889aa5-e32a-48d9-a16a-90d663def971",
+    };
+    const options = { basePath: "/brand/serantis", omitFilter: "brandId" as const };
+
+    expect(catalogSearchParamsNeedRedirect({}, view, options)).toBe(false);
+    expect(catalogSearchParamsNeedRedirect({ page: "1" }, view, options)).toBe(true);
+    expect(catalogSearchParamsNeedRedirect({ brand: view.brandId }, view, options)).toBe(true);
+    expect(catalogSearchParamsNeedRedirect({ sort: ["popular", "title"] }, { ...view, sort: "popular" }, options)).toBe(true);
   });
 
   // Burada tek filtre kaldırıldığında diğer seçimlerin ve sıralamanın korunup sayfanın bire döndüğünü doğruluyorum.

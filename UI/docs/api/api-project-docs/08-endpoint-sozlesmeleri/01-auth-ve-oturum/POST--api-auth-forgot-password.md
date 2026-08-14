@@ -1,31 +1,40 @@
-﻿# POST /api/auth/forgot-password
+# POST /api/auth/forgot-password
 
 - İşlev alanı: **01 Auth ve oturum**
-- İşlev: Parola sıfırlama e-posta akışını başlatır.
+- İşlev: Kullanıcı varlığını açığa çıkarmadan parola sıfırlama e-posta akışını başlatır.
 - Operation ID: `POST-/api/auth/forgot-password`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
-- Content-Type: request body varsa `application/json` gönderin.
-- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
-
-## Parametreler
-
-Path, query veya header parametresi yoktur.
+- Yetki: **Public / AllowAnonymous** (`security: []`).
+- Content-Type: `application/json`.
+- Başarı: `202 Accepted`, response body yoktur.
 
 ## Request body
 
-Aşağıdaki örnek alan adlarını camelCase ile gönderin.
-
-| Alan | Tip | Zorunlu |
-| --- | --- | --- |
-| `email` | string | Evet |
+| Alan | Tip | Zorunlu | Kural |
+| --- | --- | --- | --- |
+| `email` | string | Evet | Geçerli e-posta, en fazla 320 karakter. |
 
 ```json
 {
-    "email":  "string"
+  "email": "user@example.com"
 }
 ```
 
-## Başarılı response (200)
+## Güvenlik ve tekrar davranışı
 
-Response body yoktur.
+- Aktif kullanıcı bulunsa da bulunmasa da aynı `202` ve boş gövde döner. Frontend kullanıcı varlığını bu endpoint üzerinden çıkarmamalıdır.
+- Token ve e-posta outbox kaydı aynı transaction içinde oluşturulur; HTTP isteği SMTP gönderimini beklemez.
+- Varsayılan `120` saniyelik e-posta cooldown süresinde aktif token korunur. Yeni token ve ikinci outbox mesajı üretilmez; endpoint yine `202` döner.
+- Cooldown `Auth:PasswordResetRequestCooldownSeconds` deployment ayarıyla değiştirilebilir.
+- `forgot-password` ve `reset-password` aynı IP kovasında toplam dakikada 5 istekle sınırlıdır.
+- Ham token veritabanında tutulmaz. Outbox içinde Data Protection ile korunur ve yalnız gönderim sırasında çözülür.
+- E-posta bağlantısındaki token query string'de değil `#token=...` URL fragment'ında taşınır.
 
+## Response sözleşmesi
+
+| HTTP | Gövde | `code` | Açıklama |
+| --- | --- | --- | --- |
+| `202` | Yok | — | İstek kullanıcı varlığı açıklanmadan kabul edildi. |
+| `400` | `ValidationProblemDetails` | `bad_request` | E-posta biçimi veya uzunluğu geçersiz. |
+| `429` | `ProblemDetails` | `rate_limit_exceeded` | IP limiti aşıldı. |
+
+Frontend `202` sonrasında her durumda “E-posta kayıtlıysa sıfırlama bağlantısı gönderildi” gibi genel bir mesaj göstermelidir.

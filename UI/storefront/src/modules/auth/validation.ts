@@ -1,7 +1,7 @@
 import type { LoginPayload, RegisterPayload } from "@/modules/auth/contracts";
 
-export type AuthFieldErrors = Partial<Record<"email" | "password" | "confirmPassword" | "firstName" | "lastName" | "phoneNumber", string>>;
-export type AuthFormValues = Partial<Record<"email" | "firstName" | "lastName" | "phoneNumber", string>>;
+export type AuthFieldErrors = Partial<Record<"email" | "password" | "confirmPassword" | "firstName" | "lastName" | "phoneNumber" | "legalConsent", string>>;
+export type AuthFormValues = Partial<Record<"email" | "firstName" | "lastName" | "phoneNumber", string>> & { legalConsent?: boolean };
 
 type ValidationResult<T> = { success: true; data: T } | { success: false; errors: AuthFieldErrors; values: AuthFormValues };
 
@@ -31,6 +31,8 @@ export function validateRegister(formData: FormData): ValidationResult<RegisterP
   const phoneNumber = readText(formData, "phoneNumber").trim();
   const password = readText(formData, "password");
   const confirmPassword = readText(formData, "confirmPassword");
+  // Burada yalnızca kutucuğun beklenen değerini yasal onay sayarak istemci doğrulamasının atlanmasını engelliyorum.
+  const legalConsent = formData.get("legalConsent") === "accepted";
   const errors: AuthFieldErrors = {};
 
   if (!firstName) errors.firstName = "Adınızı girin.";
@@ -45,8 +47,9 @@ export function validateRegister(formData: FormData): ValidationResult<RegisterP
   else if (password.length > 128) errors.password = "Şifre en fazla 128 karakter olabilir.";
   if (!confirmPassword) errors.confirmPassword = "Şifrenizi tekrar girin.";
   else if (password !== confirmPassword) errors.confirmPassword = "Şifreler birbiriyle eşleşmiyor.";
+  if (!legalConsent) errors.legalConsent = "Devam etmek için üyelik koşullarını onaylayın.";
 
-  const values = { firstName, lastName, email, phoneNumber };
+  const values = { firstName, lastName, email, phoneNumber, legalConsent };
   return Object.keys(errors).length
     ? { success: false, errors, values }
     : { success: true, data: { firstName, lastName, email, password, phoneNumber: phoneNumber || null } };

@@ -4,32 +4,39 @@ import type { ReactNode } from "react";
 import {
   catalogHref,
   catalogHrefWithoutFilter,
-  hasCatalogFilters,
   type CatalogFilterKey,
+  type CatalogUrlOptions,
 } from "../query";
 import type { CatalogFacets, CatalogView } from "../types";
 
 // Burada filtreleri JavaScript gerektirmeyen bir GET formuyla paylaşılabilir katalog URL'lerine bağlıyorum.
-export function CatalogFilters({ facets, view }: { facets: CatalogFacets; view: CatalogView }) {
-  const hasFilters = hasCatalogFilters(view);
+export function CatalogFilters({
+  facets,
+  view,
+  urlOptions,
+}: {
+  facets: CatalogFacets;
+  view: CatalogView;
+  urlOptions?: CatalogUrlOptions;
+}) {
   const activeFilters: Array<{ key: CatalogFilterKey; label: string; value: string }> = [];
 
   // Burada kapalı filtre panelinde de seçili sınıflandırmaların adlarını gösterebilmek için API seçeneklerinden güvenli etiketler çözüyorum.
-  if (view.brandId) {
+  if (view.brandId && urlOptions?.omitFilter !== "brandId") {
     activeFilters.push({
       key: "brandId",
       label: "Marka",
       value: facets.brands.find((brand) => brand.id === view.brandId)?.name || "Kullanılamıyor",
     });
   }
-  if (view.collectionId) {
+  if (view.collectionId && urlOptions?.omitFilter !== "collectionId") {
     activeFilters.push({
       key: "collectionId",
       label: "Koleksiyon",
       value: facets.collections.find((collection) => collection.id === view.collectionId)?.name || "Kullanılamıyor",
     });
   }
-  if (view.typeId) {
+  if (view.typeId && urlOptions?.omitFilter !== "typeId") {
     activeFilters.push({
       key: "typeId",
       label: "Ürün türü",
@@ -61,27 +68,34 @@ export function CatalogFilters({ facets, view }: { facets: CatalogFacets; view: 
         <div className="border-t border-line py-5">
           <div className="mb-4 flex items-start justify-between gap-4">
             <p className="max-w-lg text-xs leading-5 text-ink-muted">Marka, koleksiyon ve ürün türünü birlikte seçebilirsiniz.</p>
-            {hasFilters ? (
-              <Link className="focus-ring shrink-0 text-sm font-semibold text-brand-700 hover:text-brand-950" href={catalogHref({ page: 1, sort: view.sort })}>
+            {activeFilters.length > 0 ? (
+              <Link className="focus-ring shrink-0 text-sm font-semibold text-brand-700 hover:text-brand-950" href={catalogHref({ page: 1, sort: view.sort }, urlOptions)}>
                 Temizle
               </Link>
             ) : null}
           </div>
 
-          <form action="/products" method="get" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto] lg:items-end">
+          <form action={urlOptions?.basePath || "/products"} method="get" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto] lg:items-end">
             {view.sort !== "newest" ? <input type="hidden" name="sort" value={view.sort} /> : null}
 
-            <FilterSelect label="Marka" name="brand" emptyLabel="Tüm markalar" defaultValue={view.brandId}>
-              {facets.brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
-            </FilterSelect>
+            {/* Burada yolun zaten temsil ettiği sınıflandırma filtresini ikinci kez seçilebilir olarak göstermiyorum. */}
+            {urlOptions?.omitFilter !== "brandId" ? (
+              <FilterSelect label="Marka" name="brand" emptyLabel="Tüm markalar" defaultValue={view.brandId}>
+                {facets.brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
+              </FilterSelect>
+            ) : null}
 
-            <FilterSelect label="Koleksiyon" name="collection" emptyLabel="Tüm koleksiyonlar" defaultValue={view.collectionId}>
-              {facets.collections.map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}
-            </FilterSelect>
+            {urlOptions?.omitFilter !== "collectionId" ? (
+              <FilterSelect label="Koleksiyon" name="collection" emptyLabel="Tüm koleksiyonlar" defaultValue={view.collectionId}>
+                {facets.collections.map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}
+              </FilterSelect>
+            ) : null}
 
-            <FilterSelect label="Ürün türü" name="type" emptyLabel="Tüm ürün türleri" defaultValue={view.typeId}>
-              {facets.productTypes.map((productType) => <option key={productType.id} value={productType.id}>{productType.name}</option>)}
-            </FilterSelect>
+            {urlOptions?.omitFilter !== "typeId" ? (
+              <FilterSelect label="Ürün türü" name="type" emptyLabel="Tüm ürün türleri" defaultValue={view.typeId}>
+                {facets.productTypes.map((productType) => <option key={productType.id} value={productType.id}>{productType.name}</option>)}
+              </FilterSelect>
+            ) : null}
 
             <button type="submit" className="focus-ring min-h-11 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-950 sm:col-span-2 lg:col-span-1">
               Uygula
@@ -95,7 +109,7 @@ export function CatalogFilters({ facets, view }: { facets: CatalogFacets; view: 
           {activeFilters.map((filter) => (
             <li key={filter.key}>
               <Link
-                href={catalogHrefWithoutFilter(view, filter.key)}
+                href={catalogHrefWithoutFilter(view, filter.key, urlOptions)}
                 aria-label={`${filter.label}: ${filter.value} filtresini kaldır`}
                 className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-ink hover:border-brand-600"
               >

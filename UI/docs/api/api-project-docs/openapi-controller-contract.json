@@ -2979,7 +2979,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "put": {
         "tags": [
@@ -3083,7 +3084,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "put": {
         "tags": [
@@ -3187,7 +3189,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "put": {
         "tags": [
@@ -3291,7 +3294,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "put": {
         "tags": [
@@ -3395,7 +3399,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "put": {
         "tags": [
@@ -3518,7 +3523,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/auth/login": {
@@ -3566,7 +3572,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/auth/refresh-token": {
@@ -3614,7 +3621,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/auth/logout": {
@@ -3645,7 +3653,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/auth/forgot-password": {
@@ -3673,10 +3682,51 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/auth/reset-password": {
@@ -3704,10 +3754,91 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/accounting/bank-accounts": {
@@ -3887,7 +4018,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "post": {
         "tags": [
@@ -3973,7 +4105,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "delete": {
         "tags": [
@@ -4196,7 +4329,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "delete": {
         "tags": [
@@ -4233,7 +4367,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/cart/items": {
@@ -4281,7 +4416,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/cart/items/{cartItemId}": {
@@ -4340,7 +4476,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "delete": {
         "tags": [
@@ -4386,7 +4523,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/cart/merge-guest": {
@@ -4479,7 +4617,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/accounting/cash-accounts": {
@@ -4659,7 +4798,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "post": {
         "tags": [
@@ -4708,6 +4848,54 @@
         }
       }
     },
+    "/api/collections/published": {
+      "get": {
+        "tags": [
+          "Collections"
+        ],
+        "parameters": [
+          {
+            "name": "PageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedCollectionShowcaseItemDtoPagedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedCollectionShowcaseItemDtoPagedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedCollectionShowcaseItemDtoPagedResult"
+                }
+              }
+            }
+          }
+        },
+        "security": [ ]
+      }
+    },
     "/api/collections/{id}": {
       "get": {
         "tags": [
@@ -4745,7 +4933,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "delete": {
         "tags": [
@@ -5876,7 +6065,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/guest-orders/access/exchange": {
@@ -5924,7 +6114,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/guest-orders": {
@@ -5973,7 +6164,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/guest-orders/{id}": {
@@ -6013,7 +6205,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/guest-orders/{id}/payments": {
@@ -6079,7 +6272,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/guest-orders/{id}/cancel": {
@@ -6119,7 +6313,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/guest-orders/{id}/returns": {
@@ -6177,7 +6372,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "post": {
         "tags": [
@@ -6234,7 +6430,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/guest-orders/{id}/returns/{returnId}": {
@@ -6283,7 +6480,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/guest-orders/claim": {
@@ -6308,6 +6506,95 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GuestClaimResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/guest-session/claim": {
+      "post": {
+        "tags": [
+          "GuestSession"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestSessionClaimDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestSessionClaimDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestSessionClaimDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -6440,7 +6727,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "put": {
         "tags": [
@@ -7289,9 +7577,67 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDtoPagedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDtoPagedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDtoPagedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/product-engagement/products/{productId}/favorites": {
@@ -7310,10 +7656,111 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
-        }
+        },
+        "security": [ ]
       },
       "delete": {
         "tags": [
@@ -7330,10 +7777,91 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/product-engagement/products/{productId}/rating": {
@@ -7453,7 +7981,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/product-engagement/reviews/{reviewId}/approval": {
@@ -7614,7 +8143,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "put": {
         "tags": [
@@ -7732,7 +8262,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "security": [ ]
       },
       "post": {
         "tags": [
@@ -8025,6 +8556,16 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "Opsiyonel 2-100 karakterli public ürün araması. SortBy verilmezse relevance uygulanır.",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            },
+            "example": "şönil"
           }
         ],
         "responses": {
@@ -8048,7 +8589,120 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
+      }
+    },
+    "/api/products/published/search-suggestions": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "description": "Navbar otomatik tamamlama endpointidir. Query normalize edildikten sonra 2-100 karakter, Limit 1-10 aralığındadır. COUNT çalıştırmaz; Limit+1 kayıtla hasMore üretir ve IP başına dakikada 120 istekle sınırlıdır.",
+        "parameters": [
+          {
+            "name": "Query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 2,
+              "type": "string"
+            },
+            "example": "şönil"
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "schema": {
+              "maximum": 10,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            },
+            "example": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductSearchSuggestionsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductSearchSuggestionsDto"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "P123",
+                      "title": "Şönil Taşlı Kolye",
+                      "url": "sonil-tasli-kolye",
+                      "brandName": "Marka",
+                      "price": 2499.90,
+                      "compareAtPrice": 2799.90,
+                      "imageUrl": "https://cdn.example.com/product.jpg",
+                      "imageAlt": "Şönil taşlı kolye",
+                      "isAvailable": true
+                    }
+                  ],
+                  "hasMore": true
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedProductSearchSuggestionsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [ ]
       }
     },
     "/api/products/by-collection/{collectionId}": {
@@ -8118,7 +8772,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/products/by-tag/{tagId}": {
@@ -8188,7 +8843,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/products/by-type/{typeId}": {
@@ -8258,7 +8914,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/products/by-brand/{brandId}": {
@@ -8328,7 +8985,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/products/by-url/{url}": {
@@ -8367,7 +9025,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/products/seo-index": {
@@ -8397,7 +9056,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/products/{id}": {
@@ -8929,7 +9589,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "security": [ ]
       },
       "post": {
         "tags": [
@@ -9015,7 +9676,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "delete": {
         "tags": [
@@ -9272,7 +9934,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "put": {
         "tags": [
@@ -9390,7 +10053,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "security": [ ]
       },
       "post": {
         "tags": [
@@ -9624,6 +10288,273 @@
             }
           }
         }
+      }
+    },
+    "/api/products/published/facets/brands": {
+      "get": {
+        "tags": [
+          "PublishedProductFacets"
+        ],
+        "description": "Yalnız aktif ve yayımlanmış ürünleri sayar. Endpointin kendi facet filtresi sayım sırasında dışarıda bırakılır; diğer filtreler AND mantığıyla uygulanır.",
+        "parameters": [
+          {
+            "name": "TypeId",
+            "in": "query",
+            "description": "Opsiyonel ürün türü filtresi; product-types endpointinde sayımdan dışlanır.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "BrandId",
+            "in": "query",
+            "description": "Opsiyonel marka filtresi; brands endpointinde sayımdan dışlanır.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "CollectionId",
+            "in": "query",
+            "description": "Opsiyonel koleksiyon filtresi; collections endpointinde sayımdan dışlanır.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "TagId",
+            "in": "query",
+            "description": "Opsiyonel etiket filtresi; tüm facet endpointlerinde uygulanır.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishedProductFacetItemDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishedProductFacetItemDto"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "11111111-1111-1111-1111-111111111111",
+                    "name": "Marka",
+                    "productCount": 12
+                  }
+                ]
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishedProductFacetItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [ ]
+      }
+    },
+    "/api/products/published/facets/collections": {
+      "get": {
+        "tags": [
+          "PublishedProductFacets"
+        ],
+        "description": "Yalnız aktif ve yayımlanmış ürünleri sayar. Endpointin kendi facet filtresi sayım sırasında dışarıda bırakılır; diğer filtreler AND mantığıyla uygulanır.",
+        "parameters": [
+          {
+            "name": "TypeId",
+            "in": "query",
+            "description": "Opsiyonel ürün türü filtresi; product-types endpointinde sayımdan dışlanır.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "BrandId",
+            "in": "query",
+            "description": "Opsiyonel marka filtresi; brands endpointinde sayımdan dışlanır.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "CollectionId",
+            "in": "query",
+            "description": "Opsiyonel koleksiyon filtresi; collections endpointinde sayımdan dışlanır.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "TagId",
+            "in": "query",
+            "description": "Opsiyonel etiket filtresi; tüm facet endpointlerinde uygulanır.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishedProductFacetItemDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishedProductFacetItemDto"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "11111111-1111-1111-1111-111111111111",
+                    "name": "Marka",
+                    "productCount": 12
+                  }
+                ]
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishedProductFacetItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [ ]
+      }
+    },
+    "/api/products/published/facets/product-types": {
+      "get": {
+        "tags": [
+          "PublishedProductFacets"
+        ],
+        "description": "Yalnız aktif ve yayımlanmış ürünleri sayar. Endpointin kendi facet filtresi sayım sırasında dışarıda bırakılır; diğer filtreler AND mantığıyla uygulanır.",
+        "parameters": [
+          {
+            "name": "TypeId",
+            "in": "query",
+            "description": "Opsiyonel ürün türü filtresi; product-types endpointinde sayımdan dışlanır.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "BrandId",
+            "in": "query",
+            "description": "Opsiyonel marka filtresi; brands endpointinde sayımdan dışlanır.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "CollectionId",
+            "in": "query",
+            "description": "Opsiyonel koleksiyon filtresi; collections endpointinde sayımdan dışlanır.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "TagId",
+            "in": "query",
+            "description": "Opsiyonel etiket filtresi; tüm facet endpointlerinde uygulanır.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishedProductFacetItemDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishedProductFacetItemDto"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "11111111-1111-1111-1111-111111111111",
+                    "name": "Marka",
+                    "productCount": 12
+                  }
+                ]
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishedProductFacetItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [ ]
       }
     },
     "/api/accounting/purchase-invoices": {
@@ -11383,7 +12314,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/shipping-methods": {
@@ -11872,6 +12804,752 @@
         }
       }
     },
+    "/api/store-settings": {
+      "get": {
+        "tags": [
+          "StoreSettings"
+        ],
+        "description": "Anonim storefront sözleşmesidir. Yasal/vergi alanlarını içermez; görünürlüğü kapalı iletişim değerleri null döner.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicStoreSettingsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicStoreSettingsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicStoreSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [ ]
+      }
+    },
+    "/api/store-settings/admin": {
+      "get": {
+        "tags": [
+          "StoreSettings"
+        ],
+        "description": "AdminOnly sözleşmesidir. Bütün yönetilebilir alanları ve güncel concurrencyToken değerini döndürür.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/store-settings/identity": {
+      "put": {
+        "tags": [
+          "StoreSettings"
+        ],
+        "description": "Yalnız ilgili ayar bölümünü atomik günceller. expectedConcurrencyToken zorunludur; eski token 409 concurrency_conflict üretir.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreIdentityRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreIdentityRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreIdentityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/store-settings/contact": {
+      "put": {
+        "tags": [
+          "StoreSettings"
+        ],
+        "description": "Yalnız ilgili ayar bölümünü atomik günceller. expectedConcurrencyToken zorunludur; eski token 409 concurrency_conflict üretir.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreContactRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreContactRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreContactRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/store-settings/legal": {
+      "put": {
+        "tags": [
+          "StoreSettings"
+        ],
+        "description": "Yalnız ilgili ayar bölümünü atomik günceller. expectedConcurrencyToken zorunludur; eski token 409 concurrency_conflict üretir.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreLegalRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreLegalRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreLegalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/store-settings/seo": {
+      "put": {
+        "tags": [
+          "StoreSettings"
+        ],
+        "description": "Yalnız SEO ve sosyal bağlantıları günceller. Canonical storefront origin deployment/environment konfigürasyonunda kalır ve bu istekle değiştirilemez.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreSeoRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreSeoRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreSeoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/store-settings/storefront": {
+      "put": {
+        "tags": [
+          "StoreSettings"
+        ],
+        "description": "Yalnız storefront çalışma durumu ve katalog tercihlerini günceller. Status: 0 Active, 1 Maintenance, 2 Disabled. DefaultProductSort: 0 Newest, 1 Popularity, 2 DisplayOrder, 3 Title.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStorefrontPreferencesRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStorefrontPreferencesRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStorefrontPreferencesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStoreSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/tags": {
       "get": {
         "tags": [
@@ -11899,7 +13577,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "security": [ ]
       },
       "post": {
         "tags": [
@@ -11985,7 +13664,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       },
       "delete": {
         "tags": [
@@ -12202,7 +13882,8 @@
               }
             }
           }
-        }
+        },
+        "security": [ ]
       }
     },
     "/api/tax-rates": {
@@ -14017,6 +15698,216 @@
         },
         "additionalProperties": false
       },
+      "AdminStoreSettingsDto": {
+        "required": [
+          "allowIndexing",
+          "concurrencyToken",
+          "defaultProductSort",
+          "defaultProductSortDescending",
+          "displayName",
+          "lowStockThreshold",
+          "showCompareAtPrice",
+          "showContactAddress",
+          "showMap",
+          "showOutOfStockProducts",
+          "showProductsWithoutPrice",
+          "showStockWarning",
+          "showSupportEmail",
+          "showSupportPhone",
+          "showWhatsapp",
+          "showWorkingHours",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "shortDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "darkLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "faviconUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultShareImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportPhone": {
+            "type": "string",
+            "nullable": true
+          },
+          "whatsappNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "contactAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "workingHours": {
+            "type": "string",
+            "nullable": true
+          },
+          "mapUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "showSupportEmail": {
+            "type": "boolean"
+          },
+          "showSupportPhone": {
+            "type": "boolean"
+          },
+          "showWhatsapp": {
+            "type": "boolean"
+          },
+          "showContactAddress": {
+            "type": "boolean"
+          },
+          "showWorkingHours": {
+            "type": "boolean"
+          },
+          "showMap": {
+            "type": "boolean"
+          },
+          "legalCompanyName": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxOffice": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "nationalIdentityNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "mersisNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "tradeRegistryNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "district": {
+            "type": "string",
+            "nullable": true
+          },
+          "addressLine": {
+            "type": "string",
+            "nullable": true
+          },
+          "postalCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "titleTemplate": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultOpenGraphImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "allowIndexing": {
+            "type": "boolean"
+          },
+          "facebookUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "instagramUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "tiktokUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "youtubeUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "xUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "pinterestUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/StorefrontStatus"
+          },
+          "statusMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "showOutOfStockProducts": {
+            "type": "boolean"
+          },
+          "showProductsWithoutPrice": {
+            "type": "boolean"
+          },
+          "defaultProductSort": {
+            "$ref": "#/components/schemas/StorefrontProductSort"
+          },
+          "defaultProductSortDescending": {
+            "type": "boolean"
+          },
+          "showCompareAtPrice": {
+            "type": "boolean"
+          },
+          "showStockWarning": {
+            "type": "boolean"
+          },
+          "lowStockThreshold": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "concurrencyToken": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "AdminUserDto": {
         "required": [
           "createdAt",
@@ -15088,6 +16979,12 @@
             "nullable": true
           },
           "variantName": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "variantValue": {
+            "maxLength": 150,
             "type": "string",
             "nullable": true
           },
@@ -15186,6 +17083,22 @@
         "properties": {
           "status": {
             "$ref": "#/components/schemas/OrderStatus"
+          },
+          "shippingCarrier": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "trackingNumber": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "trackingUrl": {
+            "maxLength": 500,
+            "type": "string",
+            "format": "uri",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -17340,6 +19253,23 @@
         },
         "additionalProperties": false
       },
+      "GuestSessionClaimDto": {
+        "required": [
+          "cart",
+          "favoriteCount"
+        ],
+        "type": "object",
+        "properties": {
+          "cart": {
+            "$ref": "#/components/schemas/CartDto"
+          },
+          "favoriteCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "ImportOrderItemRequest": {
         "required": [
           "discountTotal",
@@ -17772,6 +19702,32 @@
           },
           "billingAddress": {
             "$ref": "#/components/schemas/OrderAddressDto"
+          },
+          "shippingCarrier": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "trackingNumber": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "trackingUrl": {
+            "maxLength": 500,
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "shippedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -17853,6 +19809,32 @@
           "refundTotal": {
             "type": "number",
             "format": "double"
+          },
+          "productUrl": {
+            "maxLength": 250,
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "maxLength": 500,
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "imageAlt": {
+            "maxLength": 250,
+            "type": "string",
+            "nullable": true
+          },
+          "variantName": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "variantValue": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -18146,6 +20128,33 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
       },
       "ProductActivityType": {
         "enum": [
@@ -18778,10 +20787,283 @@
         },
         "additionalProperties": false
       },
+      "PublicStoreSettingsDto": {
+        "required": [
+          "allowIndexing",
+          "defaultProductSort",
+          "defaultProductSortDescending",
+          "displayName",
+          "lowStockThreshold",
+          "showCompareAtPrice",
+          "showContactAddress",
+          "showMap",
+          "showOutOfStockProducts",
+          "showProductsWithoutPrice",
+          "showStockWarning",
+          "showSupportEmail",
+          "showSupportPhone",
+          "showWhatsapp",
+          "showWorkingHours",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "shortDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "darkLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "faviconUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultShareImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportPhone": {
+            "type": "string",
+            "nullable": true
+          },
+          "whatsappNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "contactAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "workingHours": {
+            "type": "string",
+            "nullable": true
+          },
+          "mapUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "showSupportEmail": {
+            "type": "boolean"
+          },
+          "showSupportPhone": {
+            "type": "boolean"
+          },
+          "showWhatsapp": {
+            "type": "boolean"
+          },
+          "showContactAddress": {
+            "type": "boolean"
+          },
+          "showWorkingHours": {
+            "type": "boolean"
+          },
+          "showMap": {
+            "type": "boolean"
+          },
+          "defaultTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "titleTemplate": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultOpenGraphImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "allowIndexing": {
+            "type": "boolean"
+          },
+          "facebookUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "instagramUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "tiktokUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "youtubeUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "xUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "pinterestUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/StorefrontStatus"
+          },
+          "statusMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "showOutOfStockProducts": {
+            "type": "boolean"
+          },
+          "showProductsWithoutPrice": {
+            "type": "boolean"
+          },
+          "defaultProductSort": {
+            "$ref": "#/components/schemas/StorefrontProductSort"
+          },
+          "defaultProductSortDescending": {
+            "type": "boolean"
+          },
+          "showCompareAtPrice": {
+            "type": "boolean"
+          },
+          "showStockWarning": {
+            "type": "boolean"
+          },
+          "lowStockThreshold": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishedCollectionShowcaseItemDto": {
+        "required": [
+          "displayOrder",
+          "id",
+          "isFeatured",
+          "name",
+          "productCount",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "maxLength": 150,
+            "type": "string"
+          },
+          "url": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "productCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "imageUrl": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishedCollectionShowcaseItemDtoPagedResult": {
+        "required": [
+          "hasNextPage",
+          "hasPreviousPage",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishedCollectionShowcaseItemDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishedProductFacetItemDto": {
+        "required": [
+          "id",
+          "name",
+          "productCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "productCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "PublishedProductListItemDto": {
         "required": [
           "averageRating",
           "id",
+          "isAvailable",
+          "isLowStock",
           "ratingCount",
           "title",
           "url"
@@ -18825,6 +21107,17 @@
           },
           "mainImage": {
             "$ref": "#/components/schemas/ProductImageDto"
+          },
+          "isAvailable": {
+            "type": "boolean"
+          },
+          "lowestAvailableStock": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "isLowStock": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -18871,6 +21164,71 @@
           "hasNextPage": {
             "type": "boolean",
             "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishedProductSearchSuggestionItemDto": {
+        "required": [
+          "id",
+          "isAvailable",
+          "title",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "brandName": {
+            "type": "string",
+            "nullable": true
+          },
+          "price": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "compareAtPrice": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageAlt": {
+            "type": "string",
+            "nullable": true
+          },
+          "isAvailable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishedProductSearchSuggestionsDto": {
+        "required": [
+          "hasMore",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishedProductSearchSuggestionItemDto"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -20981,6 +23339,25 @@
         },
         "additionalProperties": false
       },
+      "StorefrontProductSort": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "StorefrontStatus": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
       "TagDto": {
         "required": [
           "id",
@@ -21410,6 +23787,339 @@
         },
         "additionalProperties": false
       },
+      "UpdateStoreContactRequest": {
+        "required": [
+          "expectedConcurrencyToken",
+          "showContactAddress",
+          "showMap",
+          "showSupportEmail",
+          "showSupportPhone",
+          "showWhatsapp",
+          "showWorkingHours"
+        ],
+        "type": "object",
+        "properties": {
+          "supportEmail": {
+            "maxLength": 320,
+            "minLength": 0,
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "supportPhone": {
+            "maxLength": 30,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "whatsappNumber": {
+            "maxLength": 30,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "contactAddress": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "workingHours": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "mapUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "showSupportEmail": {
+            "type": "boolean"
+          },
+          "showSupportPhone": {
+            "type": "boolean"
+          },
+          "showWhatsapp": {
+            "type": "boolean"
+          },
+          "showContactAddress": {
+            "type": "boolean"
+          },
+          "showWorkingHours": {
+            "type": "boolean"
+          },
+          "showMap": {
+            "type": "boolean"
+          },
+          "expectedConcurrencyToken": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateStoreIdentityRequest": {
+        "required": [
+          "displayName",
+          "expectedConcurrencyToken"
+        ],
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "maxLength": 150,
+            "minLength": 0,
+            "type": "string"
+          },
+          "shortDescription": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "darkLogoUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "faviconUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "defaultShareImageUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "expectedConcurrencyToken": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateStoreLegalRequest": {
+        "required": [
+          "expectedConcurrencyToken"
+        ],
+        "type": "object",
+        "properties": {
+          "legalCompanyName": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "taxOffice": {
+            "maxLength": 150,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "taxNumber": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "nationalIdentityNumber": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "mersisNumber": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "tradeRegistryNumber": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "maxLength": 150,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "maxLength": 150,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "district": {
+            "maxLength": 150,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "addressLine": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "postalCode": {
+            "maxLength": 20,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "expectedConcurrencyToken": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateStoreSeoRequest": {
+        "required": [
+          "allowIndexing",
+          "expectedConcurrencyToken"
+        ],
+        "type": "object",
+        "properties": {
+          "defaultTitle": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "titleTemplate": {
+            "maxLength": 250,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "defaultDescription": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "defaultOpenGraphImageUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "allowIndexing": {
+            "type": "boolean"
+          },
+          "facebookUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "instagramUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "tiktokUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "youtubeUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "xUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "pinterestUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "expectedConcurrencyToken": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateStorefrontPreferencesRequest": {
+        "required": [
+          "defaultProductSort",
+          "defaultProductSortDescending",
+          "expectedConcurrencyToken",
+          "lowStockThreshold",
+          "showCompareAtPrice",
+          "showOutOfStockProducts",
+          "showProductsWithoutPrice",
+          "showStockWarning",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/StorefrontStatus"
+          },
+          "statusMessage": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "showOutOfStockProducts": {
+            "type": "boolean"
+          },
+          "showProductsWithoutPrice": {
+            "type": "boolean"
+          },
+          "defaultProductSort": {
+            "$ref": "#/components/schemas/StorefrontProductSort"
+          },
+          "defaultProductSortDescending": {
+            "type": "boolean"
+          },
+          "showCompareAtPrice": {
+            "type": "boolean"
+          },
+          "showStockWarning": {
+            "type": "boolean"
+          },
+          "lowStockThreshold": {
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "expectedConcurrencyToken": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdateTaxRateRequest": {
         "required": [
           "name",
@@ -21543,6 +24253,45 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "ValidationProblemDetails": {
+        "required": [
+          "errors"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "additionalProperties": { }
       }
     },
     "securitySchemes": {
@@ -21621,6 +24370,9 @@
       "name": "GuestOrders"
     },
     {
+      "name": "GuestSession"
+    },
+    {
       "name": "InventoryCostLayers"
     },
     {
@@ -21651,6 +24403,9 @@
       "name": "ProductVariants"
     },
     {
+      "name": "PublishedProductFacets"
+    },
+    {
       "name": "PurchaseInvoices"
     },
     {
@@ -21667,6 +24422,9 @@
     },
     {
       "name": "StockReservationMaintenance"
+    },
+    {
+      "name": "StoreSettings"
     },
     {
       "name": "Tags"

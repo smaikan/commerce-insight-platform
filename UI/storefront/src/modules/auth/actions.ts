@@ -49,7 +49,7 @@ export async function registerAction(state: AuthActionState, formData: FormData)
     return authErrorState(
       error,
       revision,
-      { firstName, lastName, email, phoneNumber: phoneNumber ?? "" },
+      { firstName, lastName, email, phoneNumber: phoneNumber ?? "", legalConsent: true },
       "Hesap şu anda oluşturulamadı.",
     );
   }

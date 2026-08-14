@@ -11,6 +11,7 @@ describe("legal page", () => {
         eyebrow="Yasal"
         title="Örnek Politika"
         summary="Örnek açıklama"
+        lastUpdated="14 Ağustos 2026"
         sections={[
           { id: "first", title: "Birinci bölüm", content: <p>Birinci içerik</p> },
           { id: "second", title: "İkinci bölüm", content: <p>İkinci içerik</p> },
@@ -23,5 +24,6 @@ describe("legal page", () => {
     expect(html).toContain('id="first-title"');
     expect(html).toContain('aria-labelledby="second-title"');
     expect(html).toContain('id="main-content"');
+    expect(html).toContain("14 Ağustos 2026");
   });
 });

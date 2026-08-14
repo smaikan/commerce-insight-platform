@@ -1,11 +1,36 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { apiPostMock } = vi.hoisted(() => ({ apiPostMock: vi.fn() }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/api/client", () => ({ apiPost: apiPostMock }));
 
-import { claimGuestSession } from "@/modules/auth/api";
+import { claimGuestSession, requestPasswordReset, resetCustomerPassword } from "@/modules/auth/api";
+
+beforeEach(() => apiPostMock.mockReset());
+
+describe("password reset API contract", () => {
+  // Burada forgot-password çağrısının yalnız normalize edilmiş e-posta gövdesini gönderdiğini doğruluyorum.
+  it("posts the forgot-password payload", async () => {
+    apiPostMock.mockResolvedValueOnce(undefined);
+
+    await requestPasswordReset({ email: "user@example.com" });
+
+    expect(apiPostMock).toHaveBeenCalledWith("/api/auth/forgot-password", { email: "user@example.com" });
+  });
+
+  // Burada reset-password çağrısının yalnız token ve yeni parola alanlarını gönderdiğini doğruluyorum.
+  it("posts only the reset-password contract fields", async () => {
+    apiPostMock.mockResolvedValueOnce(undefined);
+
+    await resetCustomerPassword({ token: "fixture-token", newPassword: "secret7" });
+
+    expect(apiPostMock).toHaveBeenCalledWith("/api/auth/reset-password", {
+      token: "fixture-token",
+      newPassword: "secret7",
+    });
+  });
+});
 
 describe("guest session claim contract", () => {
   // Burada login claim cevabının cart ve favoriteCount alanlarıyla authoritative biçimde korunduğunu doğruluyorum.

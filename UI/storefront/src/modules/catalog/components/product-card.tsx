@@ -6,8 +6,14 @@ import type { PublishedProduct } from "@/modules/catalog/types";
 
 const ratingFormatter = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-// Burada ürün kartını 4:5 medya oranı ve gerçek API alanlarıyla taranabilir bir bağlantı olarak sunuyorum.
-export function ProductCard({ product }: { product: PublishedProduct }) {
+// Burada ürün kartını 4:5 medya oranı, gerçek API alanları ve yalnız ilk kart için öncelikli görsel yükleme desteğiyle sunuyorum.
+export function ProductCard({
+  product,
+  isLcpCandidate = false,
+}: {
+  product: PublishedProduct;
+  isLcpCandidate?: boolean;
+}) {
   const hasDiscount =
     product.price !== null &&
     product.price !== undefined &&
@@ -28,6 +34,8 @@ export function ProductCard({ product }: { product: PublishedProduct }) {
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-[1.015]"
               sizes="(min-width: 1280px) 19rem, (min-width: 1024px) 24vw, (min-width: 768px) 31vw, 46vw"
+              loading={isLcpCandidate ? "eager" : "lazy"}
+              fetchPriority={isLcpCandidate ? "high" : undefined}
             />
           ) : (
             <div className="flex size-full items-center justify-center px-5 text-center text-sm text-ink-muted">

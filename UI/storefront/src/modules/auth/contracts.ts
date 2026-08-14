@@ -5,6 +5,8 @@ export type RegisterPayload = components["schemas"]["RegisterUserCommand"];
 export type AuthResult = components["schemas"]["AuthResultDto"];
 export type AuthTokens = components["schemas"]["AuthTokensDto"];
 export type RegisterResult = components["schemas"]["RegisterUserResultDto"];
+export type ForgotPasswordPayload = components["schemas"]["CreatePasswordResetTokenCommand"];
+export type ResetPasswordPayload = components["schemas"]["ResetPasswordCommand"];
 
 // Burada token cevabını çerez yazmadan önce alan, tarih ve kullanıcı şekli bakımından çalışma zamanında doğruluyorum.
 export function parseAuthResult(value: unknown): AuthResult {

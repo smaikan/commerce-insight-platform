@@ -7,6 +7,12 @@ type ApiRequestOptions = {
   revalidate?: number | false;
   tags?: string[];
   signal?: AbortSignal;
+  cache?: RequestCache;
+};
+
+type ApiPostOptions = {
+  signal?: AbortSignal;
+  headers?: Record<string, string>;
 };
 
 const DEFAULT_TIMEOUT_MS = 8_000;
@@ -21,14 +27,16 @@ export function internalApiUrl(path: string): URL {
 export async function apiGet<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const timeoutSignal = AbortSignal.timeout(DEFAULT_TIMEOUT_MS);
   const signal = options.signal ? AbortSignal.any([options.signal, timeoutSignal]) : timeoutSignal;
+  const next = options.cache === "no-store" ? undefined : {
+    revalidate: options.revalidate ?? 60,
+    tags: options.tags,
+  };
   const response = await fetch(internalApiUrl(path), {
     method: "GET",
     headers: { Accept: "application/json" },
     signal,
-    next: {
-      revalidate: options.revalidate ?? 60,
-      tags: options.tags,
-    },
+    cache: options.cache,
+    next,
   });
 
   if (!response.ok) {
@@ -42,4 +50,38 @@ export async function apiGet<T>(path: string, options: ApiRequestOptions = {}): 
   }
 
   return (await response.json()) as T;
+}
+
+// Burada public POST isteklerini otomatik tekrar yapmadan, boş başarı gövdelerini ve ProblemDetails hatalarını güvenli biçimde işliyorum.
+export async function apiPost<T>(path: string, body?: unknown, options: ApiPostOptions = {}): Promise<T> {
+  const headers = new Headers({ Accept: "application/json", ...options.headers });
+  if (body !== undefined) headers.set("Content-Type", "application/json");
+
+  const timeoutSignal = AbortSignal.timeout(DEFAULT_TIMEOUT_MS);
+  const signal = options.signal ? AbortSignal.any([options.signal, timeoutSignal]) : timeoutSignal;
+  const response = await fetch(internalApiUrl(path), {
+    method: "POST",
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+    cache: "no-store",
+    signal,
+  });
+
+  if (!response.ok) {
+    const contentType = response.headers.get("content-type") || "";
+    const responseBody = contentType.includes("json") ? await response.json().catch(() => null) : null;
+    throw new ApiError(normalizeApiProblem(
+      response.status,
+      responseBody,
+      response.headers.get("Retry-After") || undefined,
+    ));
+  }
+
+  if (response.status === 202 || response.status === 204 || response.status === 205) {
+    return undefined as T;
+  }
+
+  const contentLength = response.headers.get("content-length");
+  if (contentLength === "0") return undefined as T;
+  return await response.json() as T;
 }

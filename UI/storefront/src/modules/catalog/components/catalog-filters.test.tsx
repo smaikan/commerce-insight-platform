@@ -40,4 +40,20 @@ describe("catalog filters", () => {
     expect(markup).toContain("Tüm koleksiyonlar");
     expect(markup).toContain("Tüm ürün türleri");
   });
+
+  // Burada sınıflandırma sayfasında yolun sahibi olan filtrenin yinelenmediğini ve diğer filtrelerin aynı yolda kaldığını doğruluyorum.
+  it("keeps classification filters on their own route", () => {
+    const markup = renderToStaticMarkup(
+      <CatalogFilters
+        facets={facets}
+        view={{ page: 1, sort: "popular", brandId, collectionId }}
+        urlOptions={{ basePath: "/brand/serantis", omitFilter: "brandId" }}
+      />,
+    );
+
+    expect(markup).toContain('action="/brand/serantis"');
+    expect(markup).not.toContain('name="brand"');
+    expect(markup).not.toContain("Marka: SERANTIS filtresini kaldır");
+    expect(markup).toContain("/brand/serantis?sort=popular");
+  });
 });

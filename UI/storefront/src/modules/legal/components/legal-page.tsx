@@ -13,10 +13,11 @@ type LegalPageProps = {
   summary: string;
   sections: LegalSection[];
   notice?: ReactNode;
+  lastUpdated?: string;
 };
 
 // Burada uzun yasal metinleri masaüstünde içindekiler, mobilde doğal okuma sırasıyla erişilebilir ve sakin bir düzende sunuyorum.
-export function LegalPage({ eyebrow, title, summary, sections, notice }: LegalPageProps) {
+export function LegalPage({ eyebrow, title, summary, sections, notice, lastUpdated = "13 Ağustos 2026" }: LegalPageProps) {
   return (
     <main id="main-content" className="flex-1 pb-16 sm:pb-20">
       <header className="border-b border-line bg-surface">
@@ -30,7 +31,7 @@ export function LegalPage({ eyebrow, title, summary, sections, notice }: LegalPa
             <p className="text-xs font-bold tracking-[0.12em] text-brand-700 uppercase">{eyebrow}</p>
             <h1 className="mt-3 text-3xl font-black tracking-[-0.035em] text-brand-950 sm:text-4xl">{title}</h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-ink-muted sm:text-base">{summary}</p>
-            <p className="mt-4 text-xs font-semibold text-ink-muted">Son güncelleme: 13 Ağustos 2026</p>
+            <p className="mt-4 text-xs font-semibold text-ink-muted">Son güncelleme: {lastUpdated}</p>
           </div>
         </div>
       </header>

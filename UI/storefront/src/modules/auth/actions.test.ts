@@ -87,6 +87,17 @@ describe("login action", () => {
 });
 
 describe("register action", () => {
+  // Burada zorunlu yasal onay eksikken kayıt API'sine hiçbir istek gönderilmediğini doğruluyorum.
+  it("does not register without legal consent", async () => {
+    const formData = validRegistration();
+    formData.delete("legalConsent");
+
+    const result = await registerAction(initialAuthState, formData);
+
+    expect(result).toMatchObject({ status: "error", fieldErrors: { legalConsent: expect.any(String) } });
+    expect(mocks.registerCustomer).not.toHaveBeenCalled();
+  });
+
   // Burada başarılı kaydın aynı kimlik bilgileriyle otomatik login yapıp HttpOnly oturumu kurduktan sonra ana sayfaya yöneldiğini doğruluyorum.
   it("creates a session and redirects home after registration", async () => {
     await expect(registerAction(initialAuthState, validRegistration())).rejects.toThrow("redirect:/");
@@ -142,6 +153,7 @@ function validRegistration(): FormData {
     phoneNumber: "",
     password: "secret7",
     confirmPassword: "secret7",
+    legalConsent: "accepted",
   }).forEach(([key, value]) => formData.set(key, value));
   return formData;
 }

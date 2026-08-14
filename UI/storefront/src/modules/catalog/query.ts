@@ -23,6 +23,13 @@ const SORT_QUERY: Record<CatalogSort, Pick<PublishedProductQuery, "SortBy" | "De
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export type CatalogFilterKey = "brandId" | "collectionId" | "typeId";
+
+export type CatalogUrlOptions = {
+  basePath?: string;
+  omitFilter?: CatalogFilterKey;
+};
+
 // Burada paylaşılabilir katalog görünümünü güvenli sayfa ve belgeli sıralama değerlerine indiriyorum.
 export function parseCatalogView(searchParams: CatalogSearchParams): CatalogView {
   const rawPage = firstValue(searchParams.page);
@@ -56,33 +63,64 @@ export function toPublishedProductQuery(view: CatalogView): PublishedProductQuer
 }
 
 // Burada sayfalama ve sıralama linklerinin yalnız anlamlı parametreleri taşımasını sağlıyorum.
-export function catalogHref(view: CatalogView): string {
+export function catalogHref(view: CatalogView, options: CatalogUrlOptions = {}): string {
   const query = new URLSearchParams();
   if (view.page > 1) query.set("page", String(view.page));
   if (view.sort !== "newest") query.set("sort", view.sort);
-  if (view.brandId) query.set("brand", view.brandId);
-  if (view.collectionId) query.set("collection", view.collectionId);
-  if (view.typeId) query.set("type", view.typeId);
+  if (view.brandId && options.omitFilter !== "brandId") query.set("brand", view.brandId);
+  if (view.collectionId && options.omitFilter !== "collectionId") query.set("collection", view.collectionId);
+  if (view.typeId && options.omitFilter !== "typeId") query.set("type", view.typeId);
   const suffix = query.toString();
-  return suffix ? `/products?${suffix}` : "/products";
+  const basePath = options.basePath || "/products";
+  return suffix ? `${basePath}?${suffix}` : basePath;
 }
 
 // Burada yalnız sıralamayı canonical URL'den çıkarıp filtrelenmiş ürün kümesini değiştirmeden koruyorum.
-export function catalogCanonicalHref(view: CatalogView): string {
-  return catalogHref({ ...view, sort: "newest" });
+export function catalogCanonicalHref(view: CatalogView, options: CatalogUrlOptions = {}): string {
+  return catalogHref({ ...view, sort: "newest" }, options);
+}
+
+// Burada bozuk, yinelenen veya sınıflandırma yolunda gereksiz kalan sorgu parametrelerini temiz URL'ye yönlendirmek üzere saptıyorum.
+export function catalogSearchParamsNeedRedirect(
+  searchParams: CatalogSearchParams,
+  view: CatalogView,
+  options: CatalogUrlOptions = {},
+): boolean {
+  const actualQuery = searchParamsToString(searchParams);
+  const expectedQuery = new URLSearchParams(catalogHref(view, options).split("?", 2)[1] || "");
+  expectedQuery.sort();
+  return actualQuery !== expectedQuery.toString();
 }
 
 export function hasCatalogFilters(view: CatalogView): boolean {
   return Boolean(view.brandId || view.collectionId || view.typeId);
 }
 
-export type CatalogFilterKey = "brandId" | "collectionId" | "typeId";
-
 // Burada tek bir sınıflandırma filtresini kaldırırken sıralamayı ve diğer filtreleri koruyup sonucu ilk sayfaya döndürüyorum.
-export function catalogHrefWithoutFilter(view: CatalogView, filter: CatalogFilterKey): string {
+export function catalogHrefWithoutFilter(
+  view: CatalogView,
+  filter: CatalogFilterKey,
+  options: CatalogUrlOptions = {},
+): string {
   const nextView = { ...view, page: 1 };
   delete nextView[filter];
-  return catalogHref(nextView);
+  return catalogHref(nextView, options);
+}
+
+// Burada gelen sorgu nesnesini anahtar sırasından bağımsız, yinelenen değerleri koruyan karşılaştırılabilir bir metne çeviriyorum.
+function searchParamsToString(searchParams: CatalogSearchParams): string {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (Array.isArray(value)) {
+      value.forEach((item) => query.append(key, item));
+    } else if (value !== undefined) {
+      query.append(key, value);
+    }
+  }
+
+  query.sort();
+  return query.toString();
 }
 
 // Burada çok değerli search param içinden yalnız ilk metin değerini okuyorum.

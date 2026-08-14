@@ -6,9 +6,11 @@ import {
   parseAuthResult,
   parseRegisterResult,
   type AuthResult,
+  type ForgotPasswordPayload,
   type LoginPayload,
   type RegisterPayload,
   type RegisterResult,
+  type ResetPasswordPayload,
 } from "@/modules/auth/contracts";
 
 const DEVICE_NAME = "Storefront Web";
@@ -35,6 +37,16 @@ export async function registerCustomer(payload: RegisterPayload): Promise<Regist
 // Burada refresh oturumunu backend tarafında geçersizleştirip gövdesiz başarı cevabını ortak API sınırından geçiriyorum.
 export async function logoutCustomer(refreshToken: string): Promise<void> {
   await apiPost<void>("/api/auth/logout", { refreshToken });
+}
+
+// Burada kullanıcı varlığını açığa çıkarmayan parola bağlantısı isteğini güncel 202 sözleşmesine gönderiyorum.
+export async function requestPasswordReset(payload: ForgotPasswordPayload): Promise<void> {
+  await apiPost<void>("/api/auth/forgot-password", payload);
+}
+
+// Burada fragmenttan alınan tek kullanımlık tokenı yalnız parola sıfırlama request gövdesinde API'ye iletiyorum.
+export async function resetCustomerPassword(payload: ResetPasswordPayload): Promise<void> {
+  await apiPost<void>("/api/auth/reset-password", payload);
 }
 
 // Burada başarılı login sonrasında ortak guest cart ve favorites sessionını bearer tokenla tek atomik çağrıda claim ediyorum.
