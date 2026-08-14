@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/api/client";
 import type { AdminSession } from "@/lib/auth/contracts";
 import type {
   AccountUser,
+  AdminStoreSettings,
   ChangeEmailRequest,
   ChangePasswordRequest,
   CreateShippingMethodRequest,
@@ -14,10 +15,39 @@ import type {
   TaxRate,
   TaxRatePage,
   UpdateProfileRequest,
+  UpdateStoreContactRequest,
+  UpdateStoreIdentityRequest,
+  UpdateStoreLegalRequest,
+  UpdateStoreSeoRequest,
+  UpdateStorefrontPreferencesRequest,
   UpdateShippingMethodRequest,
   UpdateTaxRateRequest,
   UserSession,
 } from "@/modules/settings/types";
+
+export function getAdminStoreSettings(session: AdminSession): Promise<AdminStoreSettings> {
+  return apiRequest("/api/store-settings/admin", { accessToken: session.accessToken });
+}
+
+export function updateStoreIdentity(payload: UpdateStoreIdentityRequest, session: AdminSession): Promise<AdminStoreSettings> {
+  return apiRequest("/api/store-settings/identity", { method: "PUT", body: payload, accessToken: session.accessToken });
+}
+
+export function updateStoreContact(payload: UpdateStoreContactRequest, session: AdminSession): Promise<AdminStoreSettings> {
+  return apiRequest("/api/store-settings/contact", { method: "PUT", body: payload, accessToken: session.accessToken });
+}
+
+export function updateStoreLegal(payload: UpdateStoreLegalRequest, session: AdminSession): Promise<AdminStoreSettings> {
+  return apiRequest("/api/store-settings/legal", { method: "PUT", body: payload, accessToken: session.accessToken });
+}
+
+export function updateStoreSeo(payload: UpdateStoreSeoRequest, session: AdminSession): Promise<AdminStoreSettings> {
+  return apiRequest("/api/store-settings/seo", { method: "PUT", body: payload, accessToken: session.accessToken });
+}
+
+export function updateStorefrontPreferences(payload: UpdateStorefrontPreferencesRequest, session: AdminSession): Promise<AdminStoreSettings> {
+  return apiRequest("/api/store-settings/storefront", { method: "PUT", body: payload, accessToken: session.accessToken });
+}
 
 // Burada tüm kargo yöntemlerini belgeli sayfalama parametreleriyle okuyorum.
 export function getShippingMethods(query: SettingsListQuery, session: AdminSession): Promise<ShippingMethodPage> {

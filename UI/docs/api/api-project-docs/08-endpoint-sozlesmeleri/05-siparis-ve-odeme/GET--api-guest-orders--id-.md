@@ -1,6 +1,6 @@
 # GET /api/guest-orders/{id}
 
-Guest session'ın grant aldığı tek siparişin kalem, müşteri, shipping/billing, kargo ve ödeme snapshot'larını döndürür.
+Guest session'ın grant aldığı tek siparişin kalem, müşteri, shipping/billing, kargo ve ödeme snapshot'larını döndürür. Ürün medya snapshot'ları ve kargo takip geçmişi için [ortak OrderDto sözleşmesine](ORDER-DTO-VE-KARGO-TAKIP-SOZLESMESI.md), varyant adı/değeri için [varyant snapshot sözleşmesine](../04-sepet/SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md) bakın.
 
 ## İstek sözleşmesi
 

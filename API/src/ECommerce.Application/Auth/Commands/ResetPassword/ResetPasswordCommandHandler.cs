@@ -14,6 +14,7 @@ public sealed class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordC
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada parola sıfırlama işleminin doğrulama ve kalıcılık bağımlılıklarını hazırlıyorum.
     public ResetPasswordCommandHandler(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
@@ -43,7 +44,7 @@ public sealed class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordC
             securityToken.User.Status != UserStatus.Active ||
             !securityToken.CanBeUsed(utcNow))
         {
-            throw new UnauthorizedException("Password reset token is invalid.");
+            throw new InvalidPasswordResetTokenException();
         }
 
         var activeRefreshTokens = await _userRepository.GetActiveRefreshTokensForUpdateAsync(

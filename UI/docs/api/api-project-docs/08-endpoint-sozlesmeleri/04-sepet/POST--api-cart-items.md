@@ -41,6 +41,7 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
                   "productVariantId":  "00000000-0000-0000-0000-000000000001",
                   "productTitle":  "string",
                   "variantName":  "string",
+                  "variantValue":  "string",
                   "sku":  "string",
                   "quantity":  1,
                   "unitPrice":  1,
@@ -59,4 +60,6 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
     "updatedAt":  "2026-07-29T12:00:00Z"
 }
 ```
+
+`variantName` ve `variantValue` nullable ve en fazla 150 karakterdir. Varyantsız üründe ikisi de `null` döner. Ayrıntı: [varyant snapshot sözleşmesi](SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md).
 

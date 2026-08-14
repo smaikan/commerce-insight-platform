@@ -51,6 +51,12 @@ Guest’te session/grant, idempotency ve protected magic-link outbox kayıtları
 
 ## OrderDto
 
+Sipariş kartları için `OrderItemDto`, checkout anındaki `productUrl`, `imageUrl` ve `imageAlt` snapshot'larını taşır. `productUrl` mutlak URL değil ürün slug'ıdır; frontend `/products/${encodeURIComponent(productUrl)}` rotasını kurar. Görsel veya eski snapshot yoksa ilgili alanlar `null` olabilir.
+
+`OrderItemDto.variantName` ve `variantValue`, checkout anındaki seçimi ayrı ve değişmez snapshot alanlarıyla taşır. Varyantsız veya migration öncesi siparişlerde ikisi de `null` olabilir. Frontend canlı ürün detayına giderek bu bilgiyi yeniden üretmemelidir. Ayrıntı: [Sepet ve sipariş varyant snapshot sözleşmesi](../08-endpoint-sozlesmeleri/04-sepet/SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md).
+
+Teslimat takibi için `OrderDto` üzerinde `shippingCarrier`, `trackingNumber`, `trackingUrl`, `shippedAt` ve `deliveredAt` bulunur. Bu alanlar kargoya verilmemiş/eski siparişlerde nullable'dır. `shippingMethodName` checkout ücretlendirme yöntemidir ve gerçek taşıyıcı olan `shippingCarrier` ile karıştırılmamalıdır. Ayrıntılı frontend sözleşmesi: [OrderDto ürün medya ve kargo takip sözleşmesi](../08-endpoint-sozlesmeleri/05-siparis-ve-odeme/ORDER-DTO-VE-KARGO-TAKIP-SOZLESMESI.md).
+
 OrderDto `customer`, `shippingAddress`, `billingAddress`, `shippingMethodName`, `shippingTotal`, `items`, `payments`, `reservationExpiresAt`, `status` ve bütün backend toplamlarını döndürür. Guest adreslerinde `sourceAddressId=null` olur. Üye siparişinde `UserId` response’a açılmaz; guest siparişte veritabanı sahipliği null’dır.
 
 Sıfır toplamlı tam kupon siparişi payment oluşturmadan `Paid` olabilir ve stok rezervasyon süresi taşımaz. Pozitif toplamlı sipariş 15 dakika rezervasyon alır.

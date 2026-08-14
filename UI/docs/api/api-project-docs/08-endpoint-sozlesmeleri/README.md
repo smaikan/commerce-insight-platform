@@ -1,6 +1,17 @@
 ﻿# API endpoint sözleşmeleri
 
-Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte tutulur. Güncel runtime sözleşmesi **238 endpoint** yayınlar; frontend işlev alanları aşağıda gruplandırılmıştır. Her ayrıntı dosyasında işlev, parametreler, request body örneği ve başarı/hata sözleşmesi vardır.
+Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte tutulur. Güncel runtime sözleşmesi **267 endpoint** yayınlar; frontend işlev alanları aşağıda gruplandırılmıştır. Her ayrıntı dosyasında işlev, parametreler, request body örneği ve başarı/hata sözleşmesi vardır.
+
+## 13 Mağaza ayarları
+
+- [Ortak StoreSettings sözleşmesi](13-magaza-ayarlari/STORE-SETTINGS-SOZLESMESI.md)
+- [GET /api/store-settings](13-magaza-ayarlari/GET--api-store-settings.md)
+- [GET /api/store-settings/admin](13-magaza-ayarlari/GET--api-store-settings-admin.md)
+- [PUT /api/store-settings/identity](13-magaza-ayarlari/PUT--api-store-settings-identity.md)
+- [PUT /api/store-settings/contact](13-magaza-ayarlari/PUT--api-store-settings-contact.md)
+- [PUT /api/store-settings/legal](13-magaza-ayarlari/PUT--api-store-settings-legal.md)
+- [PUT /api/store-settings/seo](13-magaza-ayarlari/PUT--api-store-settings-seo.md)
+- [PUT /api/store-settings/storefront](13-magaza-ayarlari/PUT--api-store-settings-storefront.md)
 
 ## Guest checkout ve guest sipariş erişimi
 
@@ -196,6 +207,11 @@ Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte
 - [POST /api/product-images/by-product/{productId}](03-katalog-ve-etkilesim/POST--api-product-images-by-product--product-d-.md)
 - [GET /api/products](03-katalog-ve-etkilesim/GET--api-products.md)
 - [GET /api/products/published](03-katalog-ve-etkilesim/GET--api-products-published.md)
+- [Yayımlanmış ürün facet ortak sözleşmesi](03-katalog-ve-etkilesim/YAYIMLANMIS-URUN-FACET-SOZLESMESI.md)
+- [GET /api/products/published/facets/brands](03-katalog-ve-etkilesim/GET--api-products-published-facets-brands.md)
+- [GET /api/products/published/facets/collections](03-katalog-ve-etkilesim/GET--api-products-published-facets-collections.md)
+- [GET /api/products/published/facets/product-types](03-katalog-ve-etkilesim/GET--api-products-published-facets-product-types.md)
+- [GET /api/collections/published](03-katalog-ve-etkilesim/GET--api-collections-published.md)
 - [GET /api/products/by-collection/{collectionId}](03-katalog-ve-etkilesim/GET--api-products-by-collection--collection-id-.md)
 - [GET /api/products/by-tag/{tagId}](03-katalog-ve-etkilesim/GET--api-products-by-tag--tag-id-.md)
 - [GET /api/products/by-type/{typeId}](03-katalog-ve-etkilesim/GET--api-products-by-type--type-id-.md)
@@ -234,11 +250,13 @@ Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte
 
 ## 04 Sepet
 
+- [Sepet ve sipariş varyant snapshot sözleşmesi](04-sepet/SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md)
 - [DELETE /api/cart](04-sepet/DELETE--api-cart.md)
 - [GET /api/cart](04-sepet/GET--api-cart.md)
 - [POST /api/cart/items](04-sepet/POST--api-cart-items.md)
 - [DELETE /api/cart/items/{cartItemId}](04-sepet/DELETE--api-cart-items--cart-tem-d-.md)
 - [PUT /api/cart/items/{cartItemId}](04-sepet/PUT--api-cart-items--cart-tem-d-.md)
+- [POST /api/guest-session/claim](04-sepet/POST--api-guest-session-claim.md)
 - [POST /api/cart/merge-guest](04-sepet/POST--api-cart-merge-guest.md)
 
 ## 07 Yönetim, stok ve kampanya
@@ -276,6 +294,8 @@ Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte
 - [GET /api/orders/admin/{id}](05-siparis-ve-odeme/GET--api-orders-admin--id-.md)
 - [GET /api/orders/mine](05-siparis-ve-odeme/GET--api-orders-mine.md)
 - [POST /api/orders/reservations/expire](05-siparis-ve-odeme/POST--api-orders-reservations-expire.md)
+- [OrderDto ürün medya ve kargo takip sözleşmesi](05-siparis-ve-odeme/ORDER-DTO-VE-KARGO-TAKIP-SOZLESMESI.md)
+- [Sepet ve sipariş varyant snapshot sözleşmesi](04-sepet/SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md)
 
 ## 06 İade
 

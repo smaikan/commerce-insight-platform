@@ -28,8 +28,10 @@ Content-Type: application/json
 `200 OrderDto` döner. Müşteri, shipping/billing adresi, kargo adı/ücreti, ürün/fiyat/vergi/kupon değerleri snapshot'tır. Ayrı billing adresi bu üye sözleşmesinde alınmadığı için billing snapshot shipping snapshot'tan üretilir.
 
 ```json
-{"id":"3b1f64b5-d3be-4c71-a3c4-9699fd0d0d26","userId":42,"orderNumber":"ORD-20260803-001","status":1,"customer":{"firstName":"Ayşe","lastName":"Yılmaz","email":"ayse@example.com","phoneNumber":"+905551112233"},"shippingAddress":{"sourceAddressId":"d7df4362-ccaf-4c9f-8dfd-144959e52931","type":1,"city":"İstanbul"},"billingAddress":{"sourceAddressId":"d7df4362-ccaf-4c9f-8dfd-144959e52931","type":2,"city":"İstanbul"},"shippingMethodName":"Standart Kargo","shippingFee":49.90,"grandTotal":1299.90,"reservationExpiresAt":"2026-08-03T12:15:00Z","items":[],"payments":[]}
+{"id":"3b1f64b5-d3be-4c71-a3c4-9699fd0d0d26","orderNumber":"ORD-20260803-001","status":1,"customer":{"firstName":"Ayşe","lastName":"Yılmaz","email":"ayse@example.com","phoneNumber":"+905551112233"},"shippingAddress":{"sourceAddressId":"d7df4362-ccaf-4c9f-8dfd-144959e52931","city":"İstanbul"},"billingAddress":{"sourceAddressId":"d7df4362-ccaf-4c9f-8dfd-144959e52931","city":"İstanbul"},"shippingMethodName":"Standart Kargo","grandTotal":1299.90,"reservationExpiresAt":"2026-08-03T12:15:00Z","items":[{"variantSku":"SKU-PUDRA","variantName":"Renk","variantValue":"Pudra"}],"payments":[]}
 ```
+
+`OrderItemDto.variantName` ve `variantValue` checkout anındaki değişmez snapshot'lardır; varyantsız veya eski siparişte `null` olabilir. Ayrıntı: [varyant snapshot sözleşmesi](../04-sepet/SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md).
 
 Transaction içinde Order/snapshot/kalem/kupon kullanımı, negatif `Sale` StockMovement, 15 dakikalık rezervasyon, metrik, cart temizliği ve outbox kayıtları oluşur. Outbox e-postasının SMTP gönderimini beklemez. Sıfır toplamlı kupon siparişinde Order oluşur; payment ucu çağrılmaz.
 

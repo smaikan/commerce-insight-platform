@@ -32,7 +32,7 @@ Before adding a route, field, filter, enum, action or workflow, follow this orde
 
 OpenAPI wire format; It defines Markdown workflow and UI behavior. If source, OpenAPI and Markdown conflict, report the conflict at the file/operation level. Do not accept ready-made frontend contracts for endpoints that appear in the source but are not documented. Don't guess the missing contract.
 
-Updating API documentation before frontend integration is decided by the user. The Product list summary/main image and Orders search/customer fields are not used by the UI unless they appear specifically in the backend + OpenAPI + endpoint documents.
+The Product list `summary`/`mainImage` and Orders `search`/`customerName` contracts are now published in the backend, OpenAPI and endpoint documentation. Frontend integration uses only those documented fields and does not add list-row N+1 requests.
 
 ## 3. Mandatory skill guidance
 
@@ -209,19 +209,18 @@ Sidebar is not a controller list. Use a maximum of two visible hierarchy levels.
 
 ## 11. Dashboard rules
 
-There is no general dashboard aggregate endpoint. Because:
+`GET /api/dashboard/overview` is an AdminOnly operational-summary endpoint. It returns `totalOrderCount`, `pendingOrderCount`, `paidOrderCount`, `paidRevenue`, `activeProductCount`, `lowStockVariantCount` and `generatedAtUtc`.
 
-- Showing fake sales, customers, orders, stock or growth metric.
-- Presenting current page rows as a global total.
-- Do not produce fake trends, charts or comparisons.
-- Keep the Phase 1 dashboard limited to actual quick links, study entries, and clearly documented scoped counts, if any.
-- Endpoint, period, filter, scope, unit and failure state must be documented before adding metrics.
+- Show only these backend-provided, scoped values and display their generation time where it helps the operator.
+- Never present current-page rows as global totals or derive a metric in the browser.
+- Do not produce undocumented trends, comparisons or charts.
+- Loading, error and unavailable states remain explicit; endpoint scope and unit must be documented before adding any additional metric.
 
 ## 12. Products and Add Product
 
-Product ID `P...`; variant/image/relation IDs are UUID. Product list documented filters: page, search, type, brand, status, active, featured, sort and descending. Paging is server-side; The detail/image N+1 call is not made for each line.
+Product ID `P...`; variant/image/relation IDs are UUID. Product list documented filters: page, search, type, brand, collection, tag, status, active, featured, sort and descending. Paging is server-side; The detail/image N+1 call is not made for each line.
 
-The current list contract does not return the small summary and main image. The user has approved its inclusion in the backend; Until the current OpenAPI/Markdown comes out, do not use these fields or make up thumbnail.
+`GET /api/products` returns the backend-projected `summary` and `mainImage` fields in `ProductDto`. Use that single row projection for the thumbnail/summary and never make image/detail N+1 requests for the product table.
 
 The Add Product form is progressively divided into:
 
@@ -242,9 +241,9 @@ Phase 1:
 
 - Admin list: `GET /api/orders`.
 - Admin detail: `GET /api/orders/admin/{id}`; The `admin` segment in the API path is not the frontend URL prefix.
-- Available list filters: page, status, createdFromUtc, createdToUtc.
+- Available list filters: page, search, status, createdFromUtc, createdToUtc.
 - List/detail; status display; loading, empty, error, permission, 404 and pagination.
-- The current summary does not contain customer/search. The user has approved their addition to the backend; Do not add columns/filters or make detail N+1 before the current documents arrive.
+- `OrderSummaryDto.customerName` is nullable and the documented `search` parameter searches order number, customer name/surname and email. Render a null-safe customer fallback; do not make detail N+1 calls for list rows.
 - Generic status does not set endpoint refund/return workflow statuses. Adding an unsupported transition or operation.
 - Detail snapshot items, shipping addresses, payments, totals and lifecycle timestamps are shown as they come from the API.
 
@@ -405,9 +404,6 @@ An Admin slice is OK only if:
 ## 24. Known clearances and stopping conditions
 
 - OpenAPI auth security, success statuses, error responses and ProblemDetails schema are not up to date.
-- Product admin list summary/main image contract is not yet documented.
-- Orders list search/customer contract not yet documented.
-- There is no general dashboard aggregate endpoint.
 - There is no product upload/storage contract.
 - CurrentAccount does not support list search.
 - No generic Settings, generic Campaign and marketplace contract.

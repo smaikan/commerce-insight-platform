@@ -34,6 +34,15 @@ describe("product list query", () => {
     });
   });
 
+  // Burada filtre formundaki boş durum değerinin Taslak enumuna dönüşmeden Tüm durumlar olarak kaldığını doğruluyorum.
+  it("keeps an unchanged status filter empty", () => {
+    expect(parseProductListQuery({ search: "kolye", status: "" })).toMatchObject({
+      search: "kolye",
+      status: undefined,
+    });
+    expect(parseProductListQuery({ status: "   " }).status).toBeUndefined();
+  });
+
   // Burada sayfalama bağlantısının etkin ürün filtrelerini kaybetmediğini doğruluyorum.
   it("preserves filter state in pagination hrefs", () => {
     const brandId = "90889aa5-e32a-48d9-a16a-90d663def971";

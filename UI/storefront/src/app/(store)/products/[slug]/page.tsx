@@ -51,9 +51,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
       />
       <nav aria-label="İçerik yolu" className="mb-8 hidden text-xs font-semibold text-ink-muted md:block">
         <ol className="flex flex-wrap items-center gap-2">
-          <li><Link className="nav-link" href="/">Ana sayfa</Link></li>
+          <li><Link className="nav-link" href="/" prefetch={false}>Ana sayfa</Link></li>
           <li aria-hidden="true">/</li>
-          <li><Link className="nav-link" href="/products">Ürünler</Link></li>
+          <li><Link className="nav-link" href="/products" prefetch={false}>Ürünler</Link></li>
           <li aria-hidden="true">/</li>
           <li aria-current="page" className="line-clamp-1">{data.product.title}</li>
         </ol>

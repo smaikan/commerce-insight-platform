@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
 
 import { getCatalogFacets, getPublishedProducts } from "@/modules/catalog/api";
-import { CatalogFilters } from "@/modules/catalog/components/catalog-filters";
-import { CatalogPagination } from "@/modules/catalog/components/catalog-pagination";
-import { CatalogToolbar } from "@/modules/catalog/components/catalog-toolbar";
-import { ProductCard } from "@/modules/catalog/components/product-card";
+import { CatalogPageLayout } from "@/modules/catalog/components/catalog-page-layout";
 import {
   catalogCanonicalHref,
   catalogHref,
+  catalogSearchParamsNeedRedirect,
   hasCatalogFilters,
   parseCatalogView,
   toPublishedProductQuery,
@@ -22,65 +20,54 @@ type ProductsPageProps = {
 // Burada sayfalama için kendine ait canonical, sıralama kopyaları için temiz canonical ve noindex kararı üretiyorum.
 export async function generateMetadata({ searchParams }: ProductsPageProps): Promise<Metadata> {
   const view = parseCatalogView(await searchParams);
+  // Burada metadata akışından önce ileri sayfanın varlığını doğrulayıp not-found ve noindex sinyalini erkenden üretiyorum.
+  if (view.page > 1) {
+    const products = await getPublishedProducts(toPublishedProductQuery(view));
+    if (products.items.length === 0) notFound();
+  }
   const isFiltered = hasCatalogFilters(view);
-  const shouldNoIndex = isFiltered || view.sort !== "newest";
-  const canonical = isFiltered ? catalogCanonicalHref(view) : view.sort !== "newest" ? "/products" : catalogHref(view);
+  const shouldNoIndex = Boolean(view.search) || isFiltered || view.sort !== "newest";
+  const canonical = view.sort !== "newest" ? catalogCanonicalHref(view) : catalogHref(view);
+  // Burada görünür katalog başlığıyla metadata amacını aynı tutup tanıtım dili yerine gerçek filtreleme kapsamını açıklıyorum.
+  const baseTitle = view.search ? `“${view.search}” için arama sonuçları` : "Tüm ürünler";
+  const title = view.page > 1 ? `${baseTitle} · Sayfa ${view.page}` : baseTitle;
+  const description = view.search
+    ? `“${view.search}” aramasıyla eşleşen yayımdaki ürünleri inceleyin.`
+    : "Yayımdaki ürünleri marka, koleksiyon ve kategoriye göre inceleyin.";
 
   return {
-    title: view.page > 1 ? `Ürünler · Sayfa ${view.page}` : "Ürünler",
-    description: "Yayındaki ürünleri inceleyin; yeni, popüler veya önerilen sıraya göre keşfedin.",
+    title,
+    description,
     alternates: { canonical },
     robots: shouldNoIndex ? { index: false, follow: true } : { index: true, follow: true },
     openGraph: {
       type: "website",
       url: canonical,
-      title: view.page > 1 ? `Ürünler · Sayfa ${view.page}` : "Ürünler",
-      description: "Yayındaki ürünleri inceleyin; yeni, popüler veya önerilen sıraya göre keşfedin.",
+      title,
+      description,
     },
   };
 }
 
 // Burada katalog verisini sunucuda alıp crawl edilebilir ürün gridini ilk HTML içinde oluşturuyorum.
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
-  const view = parseCatalogView(await searchParams);
+  const rawSearchParams = await searchParams;
+  const view = parseCatalogView(rawSearchParams);
+  // Burada filtre formundan gelen boş/default parametreleri veri isteğinden önce temiz ve paylaşılabilir katalog URL'sine indiriyorum.
+  if (catalogSearchParamsNeedRedirect(rawSearchParams, view)) redirect(catalogHref(view));
   const [products, facets] = await Promise.all([
     getPublishedProducts(toPublishedProductQuery(view)),
     getCatalogFacets(),
   ]);
-  const hasFilters = hasCatalogFilters(view);
-
+  // Burada boş ve var olmayan ileri sayfaların indexlenebilir soft-404 üretmesini engelliyorum.
+  if (view.page > 1 && products.items.length === 0) notFound();
   return (
-    <main id="main-content" className="page-shell max-w-[80rem] flex-1 py-8 sm:py-12 lg:py-14">
-      <header className="max-w-2xl pb-7 sm:pb-9">
-        <p className="mb-3 text-xs font-bold tracking-[0.14em] text-brand-700 uppercase">Mağaza</p>
-        <h1 className="text-3xl font-semibold tracking-[-0.035em] text-ink sm:text-4xl">Ürünleri keşfet</h1>
-        <p className="mt-4 max-w-xl text-sm leading-6 text-ink-muted sm:text-base">
-          Güncel ürünleri sade bir katalogda inceleyin ve size uygun seçeneğe hızlıca ulaşın.
-        </p>
-      </header>
-
-      <CatalogFilters facets={facets} view={view} />
-      <CatalogToolbar view={view} totalCount={products.totalCount} />
-
-      {products.items.length > 0 ? (
-        <section className="mt-7 grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-6" aria-label="Ürün listesi">
-          {products.items.map((product) => <ProductCard key={product.id} product={product} />)}
-        </section>
-      ) : (
-        <section className="mt-10 rounded-xl border border-line bg-surface px-6 py-14 text-center">
-          <h2 className="text-lg font-semibold text-ink">Gösterilecek ürün bulunamadı</h2>
-          <p className="mt-2 text-sm text-ink-muted">
-            {hasFilters ? "Seçtiğiniz filtrelere uygun ürün bulunamadı." : "Yeni ürünler yayınlandığında burada görünecek."}
-          </p>
-          {hasFilters ? (
-            <Link className="focus-ring mt-5 inline-block text-sm font-bold text-brand-700 hover:text-brand-950" href="/products">
-              Tüm ürünleri göster
-            </Link>
-          ) : null}
-        </section>
-      )}
-
-      <CatalogPagination page={products.pageNumber} totalPages={products.totalPages} view={view} />
-    </main>
+    <CatalogPageLayout
+      title={view.search ? `“${view.search}” için sonuçlar` : "Tüm ürünler"}
+      products={products}
+      facets={facets}
+      view={view}
+      emptyDescription={view.search ? "Bu aramayla eşleşen yayımlanmış ürün bulunamadı." : "Yeni ürünler yayınlandığında burada görünecek."}
+    />
   );
 }

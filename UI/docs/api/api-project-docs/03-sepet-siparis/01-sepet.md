@@ -2,7 +2,7 @@
 
 ## Sahiplik ve cookie
 
-Cart endpointleri anonymous çalışır. JWT varsa User cart her zaman guest cookie’den önceliklidir. JWT yoksa API 256 bit rastgele `ecommerce_guest_cart` cookie’si üretir: Secure, HttpOnly, SameSite=Lax, `/api/cart` path, 30 gün. Frontend cookie değerini okuyamaz veya üretmez; Next.js BFF upstream `Set-Cookie` değerini storefront origin’e güvenli seçeneklerle aktarır.
+Cart endpointleri anonymous çalışır. JWT varsa User cart her zaman guest cookie’den önceliklidir. JWT yoksa API 256 bit rastgele `ecommerce_guest_cart` cookie’si üretir: Secure, HttpOnly, SameSite=Lax, `/api` path, 30 gün. Bu ortak session hem guest cart hem guest favorites sahibi olur. Frontend cookie değerini client JavaScript ile okuyamaz veya üretmez; Next.js BFF upstream `Set-Cookie` değerini storefront origin’e güvenli seçeneklerle aktarır.
 
 | Method | Endpoint | Açıklama |
 | --- | --- | --- |
@@ -11,7 +11,8 @@ Cart endpointleri anonymous çalışır. JWT varsa User cart her zaman guest coo
 | PUT | `/api/cart/items/{cartItemId}` | Adet güncelle |
 | DELETE | `/api/cart/items/{cartItemId}?expectedConcurrencyToken=...` | Kalem sil |
 | DELETE | `/api/cart?expectedConcurrencyToken=...` | Cart temizle |
-| POST | `/api/cart/merge-guest` | JWT sonrası guest cart’ı üyeye bir kez birleştir |
+| POST | `/api/guest-session/claim` | JWT sonrası guest cart ve favorileri tek işlemde claim et |
+| POST | `/api/cart/merge-guest` | Geriye uyumlu claim; response yalnız `CartDto` |
 | POST | `/api/cart/checkout/guest` | Guest checkout |
 
 ## Concurrency token yaşam döngüsü
@@ -33,6 +34,8 @@ Cart endpointleri anonymous çalışır. JWT varsa User cart her zaman guest coo
     "id": "02a...",
     "productId": "P00001",
     "productVariantId": "0f7...",
+    "variantName": "Renk",
+    "variantValue": "Pudra",
     "quantity": 2,
     "unitPrice": 499.90,
     "currentUnitPrice": 529.90,
@@ -52,9 +55,18 @@ Cart endpointleri anonymous çalışır. JWT varsa User cart her zaman guest coo
 
 Frontend request’te yalnız `productVariantId`, `quantity` ve concurrency token gönderebilir. Product ID, fiyat, vergi, stok ve toplam gönderemez.
 
-## Login merge ve checkout temizliği
+`variantName` ve `variantValue`, varyantlı üründe güncel seçimi ayrı alanlarda taşır. Varyantsız ürünlerde iki alan da `null` olur ve teknik `Default/Varsayılan` değeri müşteriye sızmaz. Ayrıntılı sözleşme: [Sepet ve sipariş varyant snapshot sözleşmesi](../08-endpoint-sozlesmeleri/04-sepet/SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md).
 
-Login sonrasında `POST /api/cart/merge-guest` JWT ile çağrılır. Backend guest cart miktarlarını üye cart’ına güvenli kurallarla birleştirir; başarılı cevap sonrası guest cart cookie silinir. Başarılı üye veya guest checkout cart kalemlerini aynı transaction’da temizler. Guest cart cookie kalabilir ancak arkasındaki cart boştur.
+## Login claim ve checkout temizliği
+
+Login sonrasında tercih edilen akış `POST /api/guest-session/claim` çağrısıdır. Mevcut `POST /api/cart/merge-guest` geriye uyumludur ve aynı atomik cart+favorites claim servisini çalıştırır.
+
+- Üye sepeti yok veya boşsa guest sepet içeriği güncel aktiflik, fiyat ve stok doğrulamasıyla benimsenir.
+- Üye sepeti doluysa üye sepeti aynen korunur; guest satırlar birleştirilmez ve guest sepet kaldırılır.
+- Üyenin favorisi yoksa guest favoriler sayaçları yeniden artırmadan devredilir.
+- Üyenin herhangi bir favorisi varsa üye listesi aynen korunur; guest favoriler birleştirilmez ve özet sayaçları düzeltilerek kaldırılır.
+
+Cart ile favorites tek serializable transaction içindedir. Başarısız işlem hiçbir kısmı kalıcılaştırmaz ve cookie retry için korunur. Başarılı response sonrasında `/api` ve eski `/api/cart` cookie path kayıtları silinir. Başarılı üye veya guest checkout cart kalemlerini aynı transaction’da temizler.
 
 ## Idempotency ve Next.js BFF
 

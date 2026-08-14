@@ -26,3 +26,17 @@ public sealed class CouponMembersOnlyException : ApiContractException
     {
     }
 }
+
+// Burada geçersiz veya süresi dolmuş parola sıfırlama tokenını tek ve güvenli hata sözleşmesiyle temsil ediyorum.
+public sealed class InvalidPasswordResetTokenException : ApiContractException
+{
+    // Burada token durumunu ayrıntılandırmadan istemciye kararlı 401 cevabı hazırlıyorum.
+    public InvalidPasswordResetTokenException()
+        : base(
+            401,
+            "invalid_or_expired_reset_token",
+            "Invalid password reset token",
+            "The password reset token is invalid or expired.")
+    {
+    }
+}

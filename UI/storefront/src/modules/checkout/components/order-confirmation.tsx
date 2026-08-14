@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { formatVariantLabel } from "@/lib/formatting/variant";
 import {
   confirmationProblemMessage,
   loadGuestOrder,
@@ -63,14 +64,7 @@ export function OrderConfirmation({ orderId, currency }: { orderId: string; curr
       <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
         <section className="overflow-hidden rounded-2xl border border-line bg-surface" aria-labelledby="confirmation-items-title">
           <div className="border-b border-line px-5 py-4 sm:px-6"><h2 id="confirmation-items-title" className="text-lg font-bold text-ink">Sipariş ürünleri</h2></div>
-          <ul className="divide-y divide-line">
-            {order.items.map((item) => (
-              <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-4 text-sm sm:px-6">
-                <span className="min-w-0"><span className="block font-bold text-ink">{item.productTitle}</span><span className="mt-1 block text-xs text-ink-muted">{item.variantSku} · {item.quantity} adet</span></span>
-                <span className="shrink-0 font-bold tabular-nums text-ink">{formatMoney(item.totalPrice, currency)}</span>
-              </li>
-            ))}
-          </ul>
+          <GuestOrderItems items={order.items} currency={currency} />
         </section>
 
         <aside className="space-y-6">
@@ -105,6 +99,28 @@ export function OrderConfirmation({ orderId, currency }: { orderId: string; curr
       </section>
       <div className="mt-7 text-center"><Link href="/products" className="focus-ring inline-flex min-h-12 items-center justify-center rounded-lg border border-brand-700 px-6 text-sm font-bold text-brand-700 hover:bg-surface-subtle">Alışverişe devam et</Link></div>
     </main>
+  );
+}
+
+// Burada guest sipariş kalemlerinin değişmez varyant snapshot'ını canlı ürün isteği veya SKU fallback'i olmadan gösteriyorum.
+export function GuestOrderItems({ items, currency }: { items: GuestOrder["items"]; currency: string }) {
+  return (
+    <ul className="divide-y divide-line">
+      {items.map((item) => {
+        const variantLabel = formatVariantLabel(item.variantName, item.variantValue);
+
+        return (
+          <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-4 text-sm sm:px-6">
+            <span className="min-w-0">
+              <span className="block font-bold text-ink">{item.productTitle}</span>
+              {variantLabel ? <span className="mt-1 block text-xs text-ink-muted">{variantLabel}</span> : null}
+              <span className="mt-1 block text-xs text-ink-muted">{item.quantity} adet</span>
+            </span>
+            <span className="shrink-0 font-bold tabular-nums text-ink">{formatMoney(item.totalPrice, currency)}</span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

@@ -1,5 +1,7 @@
 ﻿# PATCH /api/orders/{id}/status
 
+Ürün medya snapshot'ları ve kargo takip alanlarının ortak açıklaması: [OrderDto ürün medya ve kargo takip sözleşmesi](ORDER-DTO-VE-KARGO-TAKIP-SOZLESMESI.md).
+
 - İşlev alanı: **05 Sipariş ve ödeme**
 - İşlev: Kaynağın belirli durum veya alanlarını değiştirir.
 - Operation ID: `PATCH-/api/orders/{id}/status`
@@ -20,12 +22,20 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
 | Alan | Tip | Zorunlu |
 | --- | --- | --- |
 | `status` | integer (int32) | Evet |
+| `shippingCarrier` | string, max 150 | Yalnız `status=Shipped` için evet |
+| `trackingNumber` | string, max 100 | Yalnız `status=Shipped` için evet |
+| `trackingUrl` | string, URI, max 500 | Hayır |
 
 ```json
 {
-    "status":  0
+    "status":  4,
+    "shippingCarrier": "Yurtiçi Kargo",
+    "trackingNumber": "1234567890",
+    "trackingUrl": "https://www.example-cargo.test/track/1234567890"
 }
 ```
+
+`status=Shipped` isteği kargo bilgisini atomik saklar ve `shippedAt` değerini API üretir. `trackingUrl` doluysa mutlak HTTP/HTTPS olmalıdır. `Delivered` geçişinde `deliveredAt` yine API tarafından üretilir.
 
 ## Başarılı response (200)
 

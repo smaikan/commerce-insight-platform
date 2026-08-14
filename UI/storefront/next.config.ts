@@ -6,8 +6,19 @@ const imageHosts = (process.env.STOREFRONT_IMAGE_HOSTS || "res.cloudinary.com")
   .map((host) => host.trim().toLowerCase())
   .filter(Boolean);
 
-// Burada yapılandırılmış medya hostlarını Next.js görsel hattının kesin remote pattern listesine dönüştürüyorum.
+// Burada eski ürün yolunu HTML meta refresh yerine gerçek kalıcı HTTP yönlendirmesiyle canonical rotaya taşıyorum.
+const redirects: NonNullable<NextConfig["redirects"]> = async () => [
+  {
+    source: "/product/:slug",
+    destination: "/products/:slug",
+    permanent: true,
+  },
+];
+
+// Burada medya allowlist'ini, kalıcı yönlendirmeyi ve gereksiz framework başlığını tek Next.js yapılandırmasında tutuyorum.
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  redirects,
   images: {
     remotePatterns: imageHosts.map((hostname) => ({
       protocol: "https" as const,

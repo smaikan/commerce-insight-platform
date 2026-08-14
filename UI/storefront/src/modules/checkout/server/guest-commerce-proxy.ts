@@ -3,49 +3,15 @@ import "server-only";
 import { NextResponse } from "next/server";
 
 import { internalApiUrl } from "@/lib/api/client";
+import { appendAllowedGuestSetCookies, guestCookieHeader } from "@/lib/security/guest-cookie";
 import { siteConfig } from "@/lib/site-config";
 
-const CANONICAL_TOKEN_PATTERN = /^[0-9A-F]{64}$/;
-const ALLOWED_COOKIE_NAMES = new Set([
+const ALLOWED_COOKIE_NAMES = [
   "ecommerce_guest_cart",
   "ecommerce_guest_orders",
   "ecommerce_guest_csrf",
-]);
+] as const;
 const UPSTREAM_TIMEOUT_MS = 15_000;
-
-// Burada yalnız checkout ve guest order akışına ait canonical HttpOnly cookie'leri upstream isteğine taşıyorum.
-function guestCookieHeader(cookieHeader: string | null, names: string[]): string | undefined {
-  if (!cookieHeader) return undefined;
-
-  const cookies = new Map(
-    cookieHeader.split(";").map((part) => {
-      const separator = part.indexOf("=");
-      return separator < 0
-        ? [part.trim(), ""]
-        : [part.slice(0, separator).trim(), part.slice(separator + 1).trim()];
-    }),
-  );
-
-  const forwarded = names.flatMap((name) => {
-    const value = cookies.get(name);
-    return value && CANONICAL_TOKEN_PATTERN.test(value) ? [`${name}=${value}`] : [];
-  });
-
-  return forwarded.length ? forwarded.join("; ") : undefined;
-}
-
-// Burada birden fazla upstream Set-Cookie değerini yalnız bilinen guest cookie adları ve canonical token biçimiyle geri iletiyorum.
-function appendAllowedSetCookies(source: Headers, target: Headers) {
-  const getSetCookie = (source as Headers & { getSetCookie?: () => string[] }).getSetCookie;
-  const values = getSetCookie ? getSetCookie.call(source) : [source.get("set-cookie")].filter(Boolean) as string[];
-
-  for (const value of values) {
-    const match = /^([^=]+)=([^;]+)(?:;|$)/.exec(value);
-    if (match && ALLOWED_COOKIE_NAMES.has(match[1]) && CANONICAL_TOKEN_PATTERN.test(match[2])) {
-      target.append("Set-Cookie", value);
-    }
-  }
-}
 
 type GuestCommerceRequestInit = {
   method: "GET" | "POST";
@@ -89,7 +55,7 @@ export async function forwardGuestCommerceRequest(
   });
   const retryAfter = upstream.headers.get("retry-after");
   if (retryAfter) responseHeaders.set("Retry-After", retryAfter);
-  appendAllowedSetCookies(upstream.headers, responseHeaders);
+  appendAllowedGuestSetCookies(upstream.headers, responseHeaders, ALLOWED_COOKIE_NAMES);
 
   return new NextResponse(await upstream.arrayBuffer(), {
     status: upstream.status,

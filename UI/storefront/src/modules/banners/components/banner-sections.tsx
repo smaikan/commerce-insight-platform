@@ -75,7 +75,8 @@ export function BannerMedia({ item, priority = false, variant }: BannerMediaProp
       src={item.mediaUrl}
       alt={item.altText || ""}
       fill
-      preload={priority}
+      loading={priority ? "eager" : "lazy"}
+      fetchPriority={priority ? "high" : undefined}
       sizes={variant === "main" ? "(min-width: 1440px) 1440px, 100vw" : "(min-width: 1024px) 32vw, (min-width: 640px) 48vw, 78vw"}
     />
   );

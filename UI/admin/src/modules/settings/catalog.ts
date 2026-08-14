@@ -17,7 +17,7 @@ export const settingsGroups: SettingsGroup[] = [
     title: "Genel",
     description: "Mağaza kimliği ve bölgesel gösterim tercihleri.",
     options: [
-      { title: "Mağaza bilgileri", description: "İşletme adı, iletişim, adres ve yasal bilgiler.", status: "in-development" },
+      { title: "Mağaza ayarları", description: "Mağaza kimliği, iletişim, yasal bilgiler, SEO ve storefront tercihleri.", href: "/settings/store", status: "available" },
       { title: "Yerelleştirme", description: "Dil, saat dilimi, tarih ve sayı biçimleri.", status: "in-development" },
     ],
   },

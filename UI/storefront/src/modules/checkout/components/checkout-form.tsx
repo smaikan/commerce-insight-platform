@@ -24,7 +24,6 @@ import type {
   ShippingMethod,
 } from "@/modules/checkout/types";
 import {
-  getCartSnapshot,
   loadCart,
   subscribeToCart,
 } from "@/modules/cart/client/cart-api";
@@ -55,8 +54,8 @@ export function CheckoutForm({
   orderCreationEnabled: boolean;
 }) {
   const router = useRouter();
-  const initialCart = getCartSnapshot();
-  const [cartState, setCartState] = useState<CartState>(initialCart ? { kind: "ready", cart: initialCart } : { kind: "loading" });
+  // Burada SSR ve hydration'ın ilk görünümünü deterministik tutup paylaşılan client snapshot'ını effect sonrasında tüketiyorum.
+  const [cartState, setCartState] = useState<CartState>({ kind: "loading" });
   const [sameBillingAddress, setSameBillingAddress] = useState(true);
   const [selectedShippingMethodId, setSelectedShippingMethodId] = useState(shippingMethods[0]?.id || "");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});

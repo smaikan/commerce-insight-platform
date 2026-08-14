@@ -9,6 +9,8 @@ public interface IUserRepository
 {
     Task AddAsync(User user, CancellationToken cancellationToken = default);
     Task AddRefreshTokenAsync(UserRefreshToken refreshToken, CancellationToken cancellationToken = default);
+    // Burada yeni güvenlik tokenının açıkça ekleme olarak takip edilmesini talep ediyorum.
+    Task AddSecurityTokenAsync(UserSecurityToken securityToken, CancellationToken cancellationToken = default);
     Task<User?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<User?> GetByIdForUpdateAsync(long id, CancellationToken cancellationToken = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);

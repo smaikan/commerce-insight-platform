@@ -632,6 +632,8 @@ public sealed class ApiPipelineTests
             builder.UseSetting("Jwt:Issuer", "ECommerce.IntegrationTests");
             builder.UseSetting("Jwt:Audience", "ECommerce.IntegrationTests.Client");
             builder.UseSetting("Jwt:SecretKey", "integration-test-secret-key-at-least-32-bytes");
+            builder.UseSetting("Email:PasswordResetUrl", "https://store.test/reset-password");
+            builder.UseSetting("Email:Smtp:Password", "integration-test-smtp-secret");
             builder.UseSetting(
                 "DataProtection:KeyRingPath",
                 Path.Combine(Path.GetTempPath(), "ECommerce.IntegrationTests.DataProtection"));

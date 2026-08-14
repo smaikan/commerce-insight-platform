@@ -62,6 +62,10 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<GuestSessionCookieManager>();
 builder.Services.AddHostedService<UserTokenCleanupBackgroundService>();
 builder.Services.AddHostedService<EmailOutboxBackgroundService>();
+builder.Services.AddSingleton<IValidateOptions<EmailDeliveryOptions>, EmailDeliveryOptionsValidator>();
+builder.Services.AddOptions<EmailDeliveryOptions>()
+    .Bind(builder.Configuration.GetSection(EmailDeliveryOptions.SectionName))
+    .ValidateOnStart();
 builder.Services.AddOptions<OrderReservationOptions>()
     .Bind(builder.Configuration.GetSection(OrderReservationOptions.SectionName))
     .Validate(
@@ -259,6 +263,31 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    // Burada rate-limit reddini bütün endpointlerde aynı ProblemDetails sözleşmesiyle döndürüyorum.
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var problemDetails = ApiProblemDetailsResponse.Create(
+            context.HttpContext,
+            StatusCodes.Status429TooManyRequests,
+            "Too many requests",
+            "The request limit has been exceeded. Please try again later.",
+            ApiErrorCodes.RateLimitExceeded);
+        await ApiProblemDetailsResponse.WriteAsync(context.HttpContext, problemDetails, cancellationToken);
+    };
+    // Burada forgot/reset isteklerini aynı IP kovasında dakikada beş çağrıyla sınırlıyorum.
+    options.AddPolicy("password-reset", httpContext =>
+    {
+        var clientKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            $"password-reset:{clientKey}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
     options.AddPolicy("public-search", httpContext =>
     {
         var clientKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
@@ -324,9 +353,7 @@ builder.Services.AddRateLimiter(options =>
         var path = httpContext.Request.Path.Value ?? string.Empty;
         var isSensitiveAuthPath = path.Equals("/api/auth/login", StringComparison.OrdinalIgnoreCase) ||
             path.Equals("/api/auth/register", StringComparison.OrdinalIgnoreCase) ||
-            path.Equals("/api/auth/forgot-password", StringComparison.OrdinalIgnoreCase) ||
-            path.Equals("/api/auth/refresh-token", StringComparison.OrdinalIgnoreCase) ||
-            path.Equals("/api/auth/reset-password", StringComparison.OrdinalIgnoreCase);
+            path.Equals("/api/auth/refresh-token", StringComparison.OrdinalIgnoreCase);
 
         var clientKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         if (isSensitiveAuthPath)

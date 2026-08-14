@@ -4,28 +4,51 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 export type HeaderSessionState = "loading" | "guest" | "authenticated";
 
+type ResolvedHeaderSessionState = Exclude<HeaderSessionState, "loading">;
+
 const HeaderSessionContext = createContext<HeaderSessionState>("guest");
+
+let pendingHeaderSessionRequest: Promise<ResolvedHeaderSessionState> | null = null;
+
+// Burada React geliştirme modundaki çift effect çalıştırmasında aynı oturum isteğini paylaşarak gereksiz istek ve AbortError üretmiyorum.
+export function loadHeaderSessionState(): Promise<ResolvedHeaderSessionState> {
+  if (!pendingHeaderSessionRequest) {
+    pendingHeaderSessionRequest = fetch("/api/auth/session", {
+      credentials: "same-origin",
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (!response.ok) return "guest";
+
+        const result = await response.json() as { authenticated?: unknown };
+        return result.authenticated === true ? "authenticated" : "guest";
+      })
+      .catch(() => "guest" as const)
+      .finally(() => {
+        pendingHeaderSessionRequest = null;
+      });
+  }
+
+  return pendingHeaderSessionRequest;
+}
 
 // Burada public sayfaları cookie nedeniyle dinamikleştirmeden navbar ve favoriler için tek oturum durumu isteği paylaştırıyorum.
 export function HeaderSessionProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<HeaderSessionState>("loading");
 
   useEffect(() => {
-    const controller = new AbortController();
-    void fetch("/api/auth/session", {
-      credentials: "same-origin",
-      cache: "no-store",
-      signal: controller.signal,
-    })
-      .then(async (response) => response.ok ? response.json() as Promise<{ authenticated?: unknown }> : null)
-      .then((result) => setState(result?.authenticated === true ? "authenticated" : "guest"))
-      .catch((error: unknown) => {
-        // Burada farklı runtime'ların AbortError nesnelerini ortak name alanıyla ayırıp dev cleanup hatasını görünür duruma taşımıyorum.
-        const isAbortError = Boolean(error && typeof error === "object" && "name" in error && error.name === "AbortError");
-        if (!isAbortError) setState("guest");
-      });
+    let isMounted = true;
 
-    return () => controller.abort();
+    void loadHeaderSessionState().then((nextState) => {
+      // Burada istek tamamlanmadan provider kaldırılırsa eski bileşenin state'ini güncellemiyorum.
+      if (isMounted) {
+        setState(nextState);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return <HeaderSessionContext value={state}>{children}</HeaderSessionContext>;

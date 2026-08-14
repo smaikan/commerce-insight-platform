@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 
 import {
   cartErrorMessage,
-  getCartSnapshot,
   isConflictProblem,
   loadCart,
   mutateCart,
   subscribeToCart,
 } from "@/modules/cart/client/cart-api";
 import type { Cart } from "@/modules/cart/types";
+import { formatVariantLabel } from "@/lib/formatting/variant";
 
 type LoadState =
   | { kind: "loading" }
@@ -20,8 +20,8 @@ type LoadState =
 
 // Burada sepetin veri yükleme ve mutation durumlarını tek, dar Client Component sınırında yönetiyorum.
 export function CartView({ currency }: { currency: string }) {
-  const initialCart = getCartSnapshot();
-  const [state, setState] = useState<LoadState>(initialCart ? { kind: "ready", cart: initialCart } : { kind: "loading" });
+  // Burada sunucu HTML'i ile tarayıcının ilk render'ını aynı loading durumunda başlatıp hydration farkını önlüyorum.
+  const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ kind: "error" | "info"; message: string } | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -134,18 +134,10 @@ export function CartView({ currency }: { currency: string }) {
             const actionPrefix = `item:${item.id}`;
             const isThisPending = pendingAction?.startsWith(actionPrefix) ?? false;
             const canIncrease = item.isAvailable && item.quantity < item.availableStock;
-            const variantName = visibleVariantName(item.variantName);
-
             return (
               <article key={item.id} className={`p-5 sm:p-6 ${index > 0 ? "border-t border-line" : ""}`}>
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <h2 className="text-base font-bold leading-6 text-ink sm:text-lg">{item.productTitle || "Ürün"}</h2>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink-muted">
-                      {variantName ? <span>{variantName}</span> : null}
-                      {item.sku ? <span>Stok kodu: {item.sku}</span> : null}
-                    </div>
-                  </div>
+                  <CartItemIdentity item={item} />
                   <p className="shrink-0 text-right text-sm font-bold text-ink sm:text-base">{formatMoney(item.totalPrice, currency)}</p>
                 </div>
 
@@ -295,10 +287,16 @@ function removeItem(itemId: string, token: string): Promise<Cart> {
   });
 }
 
-function visibleVariantName(value: string | null | undefined): string | null {
-  const normalized = value?.trim();
-  if (!normalized || ["default", "varsayılan"].includes(normalized.toLocaleLowerCase("tr-TR"))) return null;
-  return normalized;
+// Burada sepet satırında ürün kimliğini ve yalnızca eksiksiz API varyant seçimini teknik SKU fallback'i olmadan sunuyorum.
+export function CartItemIdentity({ item }: { item: Cart["items"][number] }) {
+  const variantLabel = formatVariantLabel(item.variantName, item.variantValue);
+
+  return (
+    <div className="min-w-0">
+      <h2 className="text-base font-bold leading-6 text-ink sm:text-lg">{item.productTitle || "Ürün"}</h2>
+      {variantLabel ? <p className="mt-1 text-xs text-ink-muted">{variantLabel}</p> : null}
+    </div>
+  );
 }
 
 function formatMoney(value: number, currency: string): string {

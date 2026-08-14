@@ -77,7 +77,8 @@ function ProductImageFrame({ image, alt, primary = false }: { image: ProductImag
         src={image.imageUrl}
         alt={alt}
         fill
-        preload={primary}
+        loading={primary ? "eager" : "lazy"}
+        fetchPriority={primary ? "high" : undefined}
         className="object-cover"
         sizes={primary
           ? "(min-width: 1280px) 34rem, (min-width: 1024px) 50vw, 100vw"

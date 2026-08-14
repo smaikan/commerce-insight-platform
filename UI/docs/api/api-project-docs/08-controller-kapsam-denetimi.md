@@ -1,8 +1,24 @@
 # Controller Kapsam Denetimi ve Tam Endpoint Envanteri
 
+## 14 Ağustos 2026 ortak guest session ve favoriler güncellemesi
+
+Güncel runtime Swagger sözleşmesi **267 endpoint** yayınlar. Favori GET/POST/DELETE uçları JWT yanında ortak guest session sahipliğini destekler; yeni authenticated `POST /api/guest-session/claim` cart ve favorites verisini atomik claim eder. Anonymous favori operasyonları OpenAPI'de `security: []`, claim ise Bearer security taşır.
+
+## 13 Ağustos 2026 public koleksiyon vitrini güncellemesi
+
+Güncel runtime Swagger sözleşmesi **265 endpoint** yayınlar. Önceki 264 operasyona anonim `GET /api/collections/published` eklenmiştir. Collections envanteri 8'den 9 operasyona çıkmıştır. Endpoint OpenAPI'de `security: []` taşır ve sayfalı `PublishedCollectionShowcaseItemDto` kartlarını yayımlanmış ürün adedi ile etkili vitrin görseli üzerinden toplu döndürür.
+
+## 13 Ağustos 2026 StoreSettings güncellemesi
+
+Güncel runtime Swagger sözleşmesi **264 endpoint** yayınlar. Önceki 257 operasyona tek `StoreSettingsController` altında anonim public GET, AdminOnly admin GET ve beş AdminOnly section PUT olmak üzere 7 typed endpoint eklenmiştir. Public GET OpenAPI'de `security: []`; admin ve PUT uçları Bearer/AdminOnly sözleşmesindedir. Ayrıntılar `13-magaza-ayarlari/STORE-SETTINGS-SOZLESMESI.md` belgesindedir.
+
+## 12 Ağustos 2026 yayımlanmış ürün facet güncellemesi
+
+Güncel runtime Swagger sözleşmesi **257 endpoint** yayınlar. Önceki 254 operasyona `GET /api/products/published/facets/brands`, `/collections` ve `/product-types` olmak üzere 3 public facet endpointi eklenmiştir. Products envanteri 19'dan 22 operasyona çıkmıştır.
+
 ## 3 Ağustos 2026 guest checkout güncellemesi
 
-Güncel runtime Swagger keşfi **254 endpoint** bulur. Önceki sayımlara eklenen guest kapsamı 11 endpointtir:
+3 Ağustos sürümündeki runtime Swagger keşfi **254 endpoint** buluyordu. Önceki sayımlara eklenen guest kapsamı 11 endpointtir:
 
 | Route | Yetki | Başarı/bağlam |
 | --- | --- | --- |
@@ -14,13 +30,13 @@ Güncel runtime Swagger keşfi **254 endpoint** bulur. Önceki sayımlara eklene
 | `GET/POST /api/guest-orders/{id}/returns`, `GET .../{returnId}` | Guest session | İade liste/create/detail |
 | `POST /api/guest-orders/claim` | JWT + verified guest session + CSRF + Origin | Aynı e-postadaki sahipsiz siparişleri bağlar |
 
-Bu bölümde aşağıda görünen eski 206/40 sayıları tarihsel envanterdir; güncel OpenAPI ve controller audit için 254 sayısı kullanılır.
+Bu bölümde aşağıda görünen eski 206/40/257/264/265 sayıları tarihsel envanterdir; güncel OpenAPI ve controller audit için 267 sayısı kullanılır.
 
 Bu denetim 29 Temmuz 2026'da `API/src/ECommerce.API/Controllers` altındaki 33 controller doğrudan okunarak yapıldı. Route, HTTP fiili ve yetki için controller attribute'ları kaynak kabul edilmiştir.
 
 ## Sonuç
 
-- Güncel runtime Swagger sözleşmesinde **254 endpoint** bulunuyor; aşağıdaki alan tabloları yetki ve davranış denetimini özetler.
+- Güncel runtime Swagger sözleşmesinde **267 endpoint** bulunuyor; aşağıdaki alan tabloları yetki ve davranış denetimini özetler.
 - Eski fonksiyonel belgeler alanları anlatıyor; fakat her endpoint için ayrı request şeması ve başarılı JSON response örneği standardı yok. En büyük eksik muhasebe raporlarıdır: 28 route tek paragrafta özetlenmişti.
 - Bu belge route kaçırılmasını önleyen zorunlu kontrol listesidir. `Public`: token yok; `User`: JWT ve sahiplik; `Admin`: JWT + `AdminOnly`/Admin rolü. Sayfalı yanıt `PagedResult<T>`dir.
 
@@ -53,16 +69,16 @@ Bu denetim 29 Temmuz 2026'da `API/src/ECommerce.API/Controllers` altındaki 33 c
 
 | Kaynak | Yetki ve gerçek endpointler | Mantık / başarı |
 | --- | --- | --- |
-| Products (19) | Public: `GET /published`, `/by-url/{url}`, `/seo-index`, `/by-collection/{collectionId}`, `/by-tag/{tagId}`, `/by-type/{typeId}`, `/by-brand/{brandId}`. Admin: `GET /api/products`, `GET /{productId}`, `POST /`, `POST /bulk`, `DELETE /{productId}`, `PUT /performance-metrics`, `PUT /{productId}`, `PATCH /{productId}/status`, `/activation`, `/featured`, `/has-variants`, `PUT /{productId}/relations`. | Delete 204 ile idempotent soft-delete uygular; operasyon geçmişi korunur ve ürün katalog okumalarından gizlenir. Admin ve storefront listeleri tür, marka, koleksiyon ve etiket filtrelerini destekler. `P…` public product ID kullanılır. |
+| Products (22) | Public: `GET /published`, `/published/facets/brands`, `/published/facets/collections`, `/published/facets/product-types`, `/by-url/{url}`, `/seo-index`, `/by-collection/{collectionId}`, `/by-tag/{tagId}`, `/by-type/{typeId}`, `/by-brand/{brandId}`. Admin: `GET /api/products`, `GET /{productId}`, `POST /`, `POST /bulk`, `DELETE /{productId}`, `PUT /performance-metrics`, `PUT /{productId}`, `PATCH /{productId}/status`, `/activation`, `/featured`, `/has-variants`, `PUT /{productId}/relations`. | Delete 204 ile idempotent soft-delete uygular; operasyon geçmişi korunur ve ürün katalog okumalarından gizlenir. Admin ve storefront listeleri tür, marka, koleksiyon ve etiket filtrelerini destekler. Üç facet endpointi seçenekleri yayımlanmış ürün adetleriyle ve kendi boyut filtresini dışlayarak döndürür. `P…` public product ID kullanılır. |
 | Product variants (8) | Public: `GET /api/product-variants/{id}`, `GET /by-product/{productId}`. Admin: `POST /by-product/{productId}`, `PUT /{id}`, `PATCH /{id}/price`, `POST /{id}/stock-movements`, `PATCH /{id}/activation`, `DELETE /{id}`. | Detay/mutasyon `ProductVariantDto`, create 201, delete 204. Stok doğrudan set edilmez; hareket yazılır. |
 | Images (5) | Public: `GET /api/product-images/{id}`, `GET /by-product/{productId}`. Admin: `POST /by-product/{productId}`, `PUT /{id}`, `DELETE /{id}`. | `ProductImageDto`/liste, create 201, delete 204. |
 | Brands (7) | Public: `GET /api/brands`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `DELETE /{id}`. | Delete 204; bağlı ürün korunur ve `brandId=null` olur. |
-| Collections (8) | Public: `GET /api/collections`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `PATCH /{id}/featured`, `DELETE /{id}`. | Delete 204; ürün korunur, yalnız koleksiyon bağlantısı kaldırılır. |
+| Collections (9) | Public: `GET /api/collections`, `GET /published`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `PATCH /{id}/featured`, `DELETE /{id}`. | `/published` yalnız aktif ve yayımlanmış ürünü bulunan koleksiyonları adet ve etkili görselle toplu döndürür. Delete 204; ürün korunur, yalnız koleksiyon bağlantısı kaldırılır. |
 | MainBanners (3) | Public: `GET /api/main-banners`. Admin: `GET /admin`, `PUT /api/main-banners`. | En fazla 5 resim/video; tek aktif main seçimi ilk sıraya normalize edilir. |
 | AltBanner1–5 (15) | Her bölümde Public `GET /api/alt-banner-{1..5}`. Admin: ilgili `/admin` GET ve kök PUT. | Beş bağımsız bölümün her biri en fazla 5 resim/video taşır; bölüm güncellemeleri birbirini etkilemez. |
 | Tags (7) | Public: `GET /api/tags`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `DELETE /{id}`. | Delete 204; ürün korunur, yalnız etiket bağlantısı kaldırılır. |
 | Product types (7) | Public: `GET /api/product-types`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `DELETE /{id}`. | Delete 204; bağlı ürün korunur ve `typeId=null` olur. |
-| Engagement (9) | User: `GET /api/product-engagement/favorites`, `POST/DELETE /products/{productId}/favorites`, `PUT /products/{productId}/rating`, `POST /products/{productId}/reviews`, `POST /products/{productId}/activities`. Public: `GET /products/{productId}/reviews`. Admin: `PATCH /reviews/{reviewId}/approval`, `GET /products/{productId}/metrics`. | Favori, puan, inceleme, aktivite ve analitik. Favori/rating/activity çoğunlukla 204; inceleme 201; reviews sayfalıdır. |
+| Engagement (9) | Public/User: `GET /api/product-engagement/favorites`, `POST/DELETE /products/{productId}/favorites`. User: `PUT /products/{productId}/rating`, `POST /products/{productId}/reviews`, `POST /products/{productId}/activities`. Public: `GET /products/{productId}/reviews`. Admin: `PATCH /reviews/{reviewId}/approval`, `GET /products/{productId}/metrics`. | JWT favorileri kullanıcıya, anonim favoriler ortak guest session'a aittir. Guest mutation Origin+CSRF ister. Favori/rating/activity çoğunlukla 204; inceleme 201; reviews sayfalıdır. |
 | Stock movements (3) | Admin: `POST /api/stock-movements/bulk`, `GET /`, `GET /variants/{productVariantId}/balance`. | Atomik bulk hareket, defter `PagedResult<StockMovementDto>`, bakiye `StockBalanceDto`. |
 
 Brand/Collection/Tag/ProductType create 201, detay/mutasyon ilgili DTO, liste `PagedResult<…Dto>` döner. Bu dört grupta route içindeki `/{id}` kendi kök yoluna göredir.
@@ -75,7 +91,8 @@ Brand/Collection/Tag/ProductType create 201, detay/mutasyon ilgili DTO, liste `P
 | `POST /api/cart/items` | Public | `CartDto`; `{productVariantId,quantity,expectedConcurrencyToken?}`. |
 | `PUT /api/cart/items/{cartItemId}` | Public | `CartDto`; body'de quantity + expected token. |
 | `DELETE /api/cart/items/{cartItemId}?expectedConcurrencyToken=…`, `DELETE /api/cart?expectedConcurrencyToken=…` | Public | `CartDto`; satırı/sepeti concurrency korumasıyla temizler. |
-| `POST /api/cart/merge-guest` | User | `CartDto`; guest cookie sepetini hesaba taşır, cookie silinir. |
+| `POST /api/guest-session/claim` | User | `GuestSessionClaimDto`; guest sepet ve favorilerini tek transaction ile öncelik kuralına göre claim eder. |
+| `POST /api/cart/merge-guest` | User | Geriye uyumlu atomik claim; yalnız `CartDto` döndürür ve başarılıysa cookie silinir. |
 | `POST /api/orders` | User | 201 `OrderDto`; cart concurrency token, opsiyonel adres/kupon/kargo ile checkout. |
 | `GET /api/orders/mine`, `GET /api/orders/{id}` | User | Kendi sayfalı özetleri / `OrderDto`. |
 | `POST /api/orders/{id}/payments` | User | 201 `PaymentDto`; `{provider}` ve zorunlu `Idempotency-Key`. |

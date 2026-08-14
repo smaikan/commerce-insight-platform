@@ -1,5 +1,6 @@
 import { formatCurrency } from "@/lib/formatting/currency";
 import { siteConfig } from "@/lib/site-config";
+import { FavoriteButton } from "@/modules/favorites/components/favorite-button";
 import { ProductPurchasePanel } from "@/modules/product/components/product-purchase-panel";
 import type { Product } from "@/modules/product/types";
 
@@ -18,13 +19,10 @@ export function ProductSummary({ product }: { product: Product }) {
   return (
     <aside className="lg:col-start-2 lg:row-start-1 lg:self-start">
       {product.brandName ? <p className="text-xs font-bold tracking-[0.12em] text-brand-700 uppercase">{product.brandName}</p> : null}
-      <h1 className="mt-3 text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-ink sm:text-4xl">{product.title}</h1>
-
-      {product.ratingCount > 0 ? (
-        <p className="mt-4 text-sm text-ink-muted" aria-label={`${product.averageRating} puan, ${product.ratingCount} değerlendirme`}>
-          <span className="text-brand-700" aria-hidden="true">★</span> {product.averageRating.toFixed(1)} · {product.ratingCount} değerlendirme
-        </p>
-      ) : null}
+      <div className="mt-2.5 flex items-start gap-2 sm:gap-3">
+        <h1 className="min-w-0 pt-0.5 text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-ink sm:text-4xl">{product.title}</h1>
+        <FavoriteButton productId={product.id} productTitle={product.title} variant="detail" />
+      </div>
 
       <div className="mt-7 border-y border-line py-5">
         {minimumPrice !== null ? (

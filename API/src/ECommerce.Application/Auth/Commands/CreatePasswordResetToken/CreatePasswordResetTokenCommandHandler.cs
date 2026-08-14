@@ -41,16 +41,25 @@ public sealed class CreatePasswordResetTokenCommandHandler : IRequestHandler<Cre
     // Burada kullanıcı varlığını açığa çıkarmadan parola sıfırlama emailini hazırlıyorum.
     public async Task Handle(CreatePasswordResetTokenCommand request, CancellationToken cancellationToken)
     {
-        var user = await _userRepository.GetByEmailForUpdateAsync(request.Email, cancellationToken);
+        await _unitOfWork.ExecuteInSerializableTransactionAsync(async transactionCancellationToken =>
+        {
+            await CreateTokenWhenAllowedAsync(request.Email, transactionCancellationToken);
+            return true;
+        }, cancellationToken);
+    }
+
+    // Burada aynı e-posta için yakın zamanda üretilmiş tokenı koruyup gereksiz token ve outbox çoğalmasını engelliyorum.
+    private async Task CreateTokenWhenAllowedAsync(string email, CancellationToken cancellationToken)
+    {
+        var user = await _userRepository.GetByEmailForUpdateAsync(email, cancellationToken);
 
         if (user is null || user.Status != UserStatus.Active)
         {
             return;
         }
 
-        var rawToken = _randomTokenGenerator.GenerateToken();
         var utcNow = _dateTimeProvider.UtcNow;
-        var expiresAt = utcNow.AddMinutes(_authSettingsProvider.GetSettings().PasswordResetTokenMinutes);
+        var authSettings = _authSettingsProvider.GetSettings();
 
         var activeTokens = await _userRepository.GetActiveSecurityTokensForUpdateAsync(
             user.Id,
@@ -58,17 +67,26 @@ public sealed class CreatePasswordResetTokenCommandHandler : IRequestHandler<Cre
             utcNow,
             cancellationToken);
 
+        var cooldownThreshold = utcNow.AddSeconds(-authSettings.PasswordResetRequestCooldownSeconds);
+        if (activeTokens.Any(token => token.CreatedAt > cooldownThreshold))
+        {
+            return;
+        }
+
         foreach (var activeToken in activeTokens)
         {
             activeToken.Invalidate(utcNow);
         }
 
-        user.SecurityTokens.Add(new UserSecurityToken(
+        var rawToken = _randomTokenGenerator.GenerateToken();
+        var expiresAt = utcNow.AddMinutes(authSettings.PasswordResetTokenMinutes);
+        var securityToken = new UserSecurityToken(
             user.Id,
             UserSecurityTokenType.PasswordReset,
             _tokenHasher.Hash(rawToken),
             expiresAt,
-            utcNow));
+            utcNow);
+        await _userRepository.AddSecurityTokenAsync(securityToken, cancellationToken);
 
         await _outboxRepository.AddAsync(EmailOutboxMessage.CreatePasswordReset(
             user.Email,

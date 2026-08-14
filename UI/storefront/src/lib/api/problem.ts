@@ -7,8 +7,8 @@ export type ApiProblem = {
   code?: string;
   traceId?: string;
   timestamp?: string;
-  errors?: Record<string, string[]>;
   retryAfter?: string;
+  errors?: Record<string, string[]>;
 };
 
 // Burada API hatasını sunucu akışında taşıyıp yalnız güvenli ProblemDetails alanlarını koruyorum.
@@ -23,9 +23,9 @@ export class ApiError extends Error {
 }
 
 // Burada bilinmeyen hata gövdelerini güvenli ve serileştirilebilir ProblemDetails biçimine dönüştürüyorum.
-export function normalizeApiProblem(status: number, value: unknown, retryAfter?: string): ApiProblem {
+export function normalizeApiProblem(status: number, value: unknown, retryAfter?: string | null): ApiProblem {
   if (!value || typeof value !== "object") {
-    return { title: "İstek tamamlanamadı", status, retryAfter };
+    return { title: "İstek tamamlanamadı", status, retryAfter: retryAfter || undefined };
   }
 
   const source = value as Record<string, unknown>;
@@ -38,8 +38,8 @@ export function normalizeApiProblem(status: number, value: unknown, retryAfter?:
     code: typeof source.code === "string" ? source.code : undefined,
     traceId: typeof source.traceId === "string" ? source.traceId : undefined,
     timestamp: typeof source.timestamp === "string" ? source.timestamp : undefined,
+    retryAfter: retryAfter || undefined,
     errors: isValidationErrors(source.errors) ? source.errors : undefined,
-    retryAfter,
   };
 }
 

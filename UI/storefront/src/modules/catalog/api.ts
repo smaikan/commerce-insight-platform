@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { apiGet } from "@/lib/api/client";
 import type {
   BrandPage,
@@ -25,7 +27,7 @@ export async function getPublishedProducts(query: PublishedProductQuery): Promis
 }
 
 // Burada katalog facet seçeneklerini bağımsız public endpointlerden paralel ve paylaşımlı cache ile alıyorum.
-export async function getCatalogFacets(): Promise<CatalogFacets> {
+export const getCatalogFacets = cache(async (): Promise<CatalogFacets> => {
   const [brands, collections, productTypes] = await Promise.all([
     apiGet<BrandPage>("/api/brands?PageNumber=1&PageSize=100", {
       revalidate: 300,
@@ -50,4 +52,4 @@ export async function getCatalogFacets(): Promise<CatalogFacets> {
       .filter((productType) => productType.isActive)
       .sort((left, right) => left.name.localeCompare(right.name, "tr")),
   };
-}
+});

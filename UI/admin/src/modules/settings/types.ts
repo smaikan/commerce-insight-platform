@@ -14,6 +14,14 @@ export type UpdateProfileRequest = components["schemas"]["UpdateProfileCommand"]
 export type ChangeEmailRequest = components["schemas"]["ChangeEmailCommand"];
 export type ChangePasswordRequest = components["schemas"]["ChangePasswordCommand"];
 export type UserSession = components["schemas"]["UserSessionDto"];
+export type AdminStoreSettings = components["schemas"]["AdminStoreSettingsDto"];
+export type UpdateStoreIdentityRequest = components["schemas"]["UpdateStoreIdentityRequest"];
+export type UpdateStoreContactRequest = components["schemas"]["UpdateStoreContactRequest"];
+export type UpdateStoreLegalRequest = components["schemas"]["UpdateStoreLegalRequest"];
+export type UpdateStoreSeoRequest = components["schemas"]["UpdateStoreSeoRequest"];
+export type UpdateStorefrontPreferencesRequest = components["schemas"]["UpdateStorefrontPreferencesRequest"];
+export type StorefrontStatus = components["schemas"]["StorefrontStatus"];
+export type StorefrontProductSort = components["schemas"]["StorefrontProductSort"];
 
 // Burada sayfalı ayar listelerinin yalnızca belgeli URL durumunu taşıyorum.
 export type SettingsListQuery = {

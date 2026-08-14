@@ -4,26 +4,38 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import {
-  getCartSnapshot,
+  clearCartStateForOwnerChange,
   loadCart,
   subscribeToCart,
 } from "@/modules/cart/client/cart-api";
+import { useHeaderSession } from "@/modules/auth/components/header-session";
 
 // Burada header'ı hafif tutup sepet sayısını ortak client snapshot'ından, ek mutation isteği üretmeden gösteriyorum.
 export function CartIndicator() {
-  const [quantity, setQuantity] = useState<number | null>(() => getCartSnapshot()?.totalQuantity ?? null);
+  const session = useHeaderSession();
+  // Burada header'ın sunucu ve tarayıcı ilk render'ını eşitleyip sayacı hydration sonrasında ortak snapshot'tan dolduruyorum.
+  const [quantityState, setQuantityState] = useState<{
+    owner: "guest" | "authenticated";
+    quantity: number;
+  } | null>(null);
 
   useEffect(() => {
+    if (session === "loading") return;
+
+    // Burada çözülmüş guest/authenticated owner değişiminde eski sepet belleğini taşımadan otoriter sepeti yeniden okuyorum.
+    clearCartStateForOwnerChange();
+    const owner = session;
     let active = true;
-    const unsubscribe = subscribeToCart((cart) => setQuantity(cart.totalQuantity));
+    const unsubscribe = subscribeToCart((cart) => setQuantityState({ owner, quantity: cart.totalQuantity }));
 
     function readCart() {
-      void loadCart()
+      // Burada login merge veya oturum değişiminden kalabilecek eski client snapshot'ı yerine güncel CartDto'yu zorla okuyorum.
+      void loadCart(true)
         .then((cart) => {
-          if (active) setQuantity(cart.totalQuantity);
+          if (active) setQuantityState({ owner, quantity: cart.totalQuantity });
         })
         .catch(() => {
-          if (active) setQuantity(null);
+          if (active) setQuantityState(null);
         });
     }
 
@@ -37,13 +49,16 @@ export function CartIndicator() {
       if (idleId !== undefined) window.cancelIdleCallback(idleId);
       if (timeoutId !== undefined) window.clearTimeout(timeoutId);
     };
-  }, []);
+  }, [session]);
 
+  // Burada yeni owner'ın sepeti yüklenene kadar önceki kullanıcıya ait adedi göstermiyorum.
+  const quantity = quantityState?.owner === session ? quantityState.quantity : null;
   const accessibleQuantity = quantity ?? 0;
 
   return (
     <Link
       href="/cart"
+      prefetch={false}
       className="header-action relative inline-flex size-11 items-center justify-center p-0"
       aria-label={`Sepet, ${accessibleQuantity} ürün`}
     >

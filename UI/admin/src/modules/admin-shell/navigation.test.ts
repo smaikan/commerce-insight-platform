@@ -32,6 +32,15 @@ describe("admin navigation", () => {
     });
   });
 
+  // Burada Meta reklam alanını vitrin sonrasında, rota üretmeden geliştirme durumuyla konumlandırıyorum.
+  it("places Meta ads in a disabled marketing section", () => {
+    const storefrontIndex = navigationSections.findIndex((section) => section.label === "Vitrin");
+    expect(navigationSections[storefrontIndex + 1]).toEqual({
+      label: "Pazarlama",
+      items: [{ label: "Meta Reklam Yönetimi", status: "in-development" }],
+    });
+  });
+
   // Burada yalnız uzun ve henüz kullanıma açılmamış bölümlerin açılır tutulduğunu doğruluyorum.
   it("keeps primary operations visible and future groups collapsible", () => {
     expect(navigationSections.filter((section) => section.collapsible).map((section) => section.label)).toEqual([
@@ -50,6 +59,7 @@ describe("admin navigation", () => {
     expect(unavailableItems.every((item) => item.href === undefined)).toBe(true);
     expect(unavailableItems.some((item) => item.label === "Ürün Ekle")).toBe(false);
     expect(unavailableItems.filter((item) => item.status === "in-development").map((item) => item.label)).toEqual([
+      "Meta Reklam Yönetimi",
       "Genel Bakış",
       "Cari Hesaplar",
       "Alış Faturaları",

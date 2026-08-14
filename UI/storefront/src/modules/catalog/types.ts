@@ -36,6 +36,8 @@ export type CatalogSearchParams = Record<string, string | string[] | undefined>;
 export type CatalogView = {
   page: number;
   sort: CatalogSort;
+  hasExplicitSort?: boolean;
+  search?: string;
   brandId?: string;
   collectionId?: string;
   typeId?: string;

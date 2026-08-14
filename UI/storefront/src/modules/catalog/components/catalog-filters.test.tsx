@@ -56,4 +56,31 @@ describe("catalog filters", () => {
     expect(markup).not.toContain("Marka: SERANTIS filtresini kaldır");
     expect(markup).toContain("/brand/serantis?sort=popular");
   });
+
+  // Burada arama sonucu üzerinde filtre uygulanırken q ve açık kullanıcı sıralamasının hidden alanlarla korunduğunu doğruluyorum.
+  it("preserves search and explicit sorting in the filter form", () => {
+    const markup = renderToStaticMarkup(
+      <CatalogFilters facets={facets} view={{ page: 1, sort: "newest", hasExplicitSort: true, search: "inci kolye" }} />,
+    );
+
+    expect(markup).toContain('name="q" value="inci kolye"');
+    expect(markup).toContain('name="sort" value="newest"');
+  });
+
+  // Burada koleksiyon landing sayfasının sabit koleksiyon ID'sini URL'ye taşımadan diğer iki filtreyi aynı katalog tasarımında sunduğunu doğruluyorum.
+  it("keeps a classification filter fixed on its clean landing URL", () => {
+    const markup = renderToStaticMarkup(
+      <CatalogFilters
+        facets={facets}
+        view={{ page: 1, sort: "newest", collectionId }}
+        urlOptions={{ basePath: "/collection/aksesuarlar", omitFilter: "collectionId" }}
+      />,
+    );
+
+    expect(markup).toContain('action="/collection/aksesuarlar"');
+    expect(markup).toContain("Tüm markalar");
+    expect(markup).toContain("Tüm ürün türleri");
+    expect(markup).not.toContain("Tüm koleksiyonlar");
+    expect(markup).not.toContain(`value="${collectionId}"`);
+  });
 });

@@ -45,13 +45,22 @@ public sealed class SmtpEmailSender : IEmailSender
         CancellationToken cancellationToken = default)
     {
         var resetUrl = GetRequiredValue("Email:PasswordResetUrl");
-        var separator = resetUrl.Contains('?', StringComparison.Ordinal) ? '&' : '?';
-        var passwordResetLink = $"{resetUrl}{separator}token={Uri.EscapeDataString(rawToken)}";
+        var passwordResetLink = BuildPasswordResetLink(resetUrl, rawToken);
         var body = LoadTemplate(PasswordResetTemplateResource)
             .Replace("{{PasswordResetLink}}", HtmlEncoder.Default.Encode(passwordResetLink), StringComparison.Ordinal)
             .Replace("{{ExpiresAt}}", HtmlEncoder.Default.Encode(expiresAt.ToString("O")), StringComparison.Ordinal);
 
         await SendAsync(email, "Parola sıfırlama bağlantınız", body, cancellationToken);
+    }
+
+    // Burada hassas reset tokenını proxy, sunucu logu ve referrer üzerinden taşınmayan URL fragment'ına yerleştiriyorum.
+    internal static string BuildPasswordResetLink(string resetUrl, string rawToken)
+    {
+        var uriBuilder = new UriBuilder(resetUrl)
+        {
+            Fragment = $"token={Uri.EscapeDataString(rawToken)}"
+        };
+        return uriBuilder.Uri.AbsoluteUri;
     }
 
     // Burada hoş geldin template'ini güvenli kullanıcı bilgileriyle doldurup gönderiyorum.

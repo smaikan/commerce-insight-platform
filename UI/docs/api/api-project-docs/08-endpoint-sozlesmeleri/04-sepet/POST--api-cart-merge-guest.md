@@ -3,7 +3,7 @@
 - İşlev alanı: **04 Sepet**
 - İşlev: Yeni kaynak veya iş akışı adımı oluşturur/başlatır.
 - Operation ID: `POST-/api/cart/merge-guest`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Yetki: `User`; geçerli JWT zorunludur.
 - Content-Type: request body varsa `application/json` gönderin.
 - Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
@@ -27,6 +27,7 @@ Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, 
                   "productVariantId":  "00000000-0000-0000-0000-000000000001",
                   "productTitle":  "string",
                   "variantName":  "string",
+                  "variantValue":  "string",
                   "sku":  "string",
                   "quantity":  1,
                   "unitPrice":  1,
@@ -45,4 +46,16 @@ Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, 
     "updatedAt":  "2026-07-29T12:00:00Z"
 }
 ```
+
+`variantName` ve `variantValue` nullable ve en fazla 150 karakterdir. Varyantsız üründe ikisi de `null` döner. Ayrıntı: [varyant snapshot sözleşmesi](SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md).
+
+Bu endpoint geriye dönük uyumluluk içindir. Artık yalnız sepeti değil, aynı `ecommerce_guest_cart` session'ına ait sepet ve favorileri tek serializable transaction içinde claim eder; response yine yalnız `CartDto` döndürür. Yeni istemciler iki son durumu da almak için `POST /api/guest-session/claim` kullanmalıdır.
+
+- Üye sepeti yok veya boşsa guest sepet içeriği güncel aktiflik, fiyat ve stok kontrolünden sonra benimsenir.
+- Üye sepeti doluysa üye sepeti aynen korunur; guest sepet silinir ve ürünler birleştirilmez.
+- Üyenin favorisi yoksa guest favoriler owner değişikliğiyle devredilir; ürün sayaçları tekrar artırılmaz.
+- Üyenin en az bir favorisi varsa üye favorileri aynen korunur; guest favoriler kaldırılır ve güncel ürün sayaçları düzeltilir.
+- İşlem başarısızsa hiçbir alan kısmen claim edilmez ve cookie korunur. Başarılı response sonrasında API hem `/api` hem eski `/api/cart` path cookie'sini siler.
+
+Başarı/hata kodları: `200`, `400`, `401`, `409`.
 

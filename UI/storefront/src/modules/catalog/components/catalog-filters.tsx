@@ -43,6 +43,7 @@ export function CatalogFilters({
       value: facets.productTypes.find((productType) => productType.id === view.typeId)?.name || "Kullanılamıyor",
     });
   }
+  const hasFilters = activeFilters.length > 0;
 
   return (
     <section aria-labelledby="catalog-filters-heading">
@@ -68,17 +69,26 @@ export function CatalogFilters({
         <div className="border-t border-line py-5">
           <div className="mb-4 flex items-start justify-between gap-4">
             <p className="max-w-lg text-xs leading-5 text-ink-muted">Marka, koleksiyon ve ürün türünü birlikte seçebilirsiniz.</p>
-            {activeFilters.length > 0 ? (
-              <Link className="focus-ring shrink-0 text-sm font-semibold text-brand-700 hover:text-brand-950" href={catalogHref({ page: 1, sort: view.sort }, urlOptions)}>
+            {hasFilters ? (
+              <Link className="focus-ring shrink-0 text-sm font-semibold text-brand-700 hover:text-brand-950" href={catalogHref({ ...view, page: 1, brandId: undefined, collectionId: undefined, typeId: undefined }, urlOptions)} prefetch={false}>
                 Temizle
               </Link>
             ) : null}
           </div>
 
-          <form action={urlOptions?.basePath || "/products"} method="get" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto] lg:items-end">
-            {view.sort !== "newest" ? <input type="hidden" name="sort" value={view.sort} /> : null}
+          <form
+            action={urlOptions?.basePath || "/products"}
+            method="get"
+            className={`grid gap-3 sm:grid-cols-2 lg:items-end ${
+              urlOptions?.omitFilter
+                ? "lg:grid-cols-[repeat(2,minmax(0,1fr))_auto]"
+                : "lg:grid-cols-[repeat(3,minmax(0,1fr))_auto]"
+            }`}
+          >
+            {/* Burada filtre uygularken arama metnini ve yalnız kullanıcının açık sıralama seçimini kaybetmeden koruyorum. */}
+            {view.search ? <input type="hidden" name="q" value={view.search} /> : null}
+            {view.hasExplicitSort || view.sort !== "newest" ? <input type="hidden" name="sort" value={view.sort} /> : null}
 
-            {/* Burada yolun zaten temsil ettiği sınıflandırma filtresini ikinci kez seçilebilir olarak göstermiyorum. */}
             {urlOptions?.omitFilter !== "brandId" ? (
               <FilterSelect label="Marka" name="brand" emptyLabel="Tüm markalar" defaultValue={view.brandId}>
                 {facets.brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
@@ -110,6 +120,7 @@ export function CatalogFilters({
             <li key={filter.key}>
               <Link
                 href={catalogHrefWithoutFilter(view, filter.key, urlOptions)}
+                prefetch={false}
                 aria-label={`${filter.label}: ${filter.value} filtresini kaldır`}
                 className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-ink hover:border-brand-600"
               >

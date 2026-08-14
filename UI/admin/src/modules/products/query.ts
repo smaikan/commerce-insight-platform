@@ -96,7 +96,9 @@ function boundedInteger(value: string | undefined, fallback: number, min: number
 
 // Burada yalnız belgelenen enum sayılarının sorguya geçmesine izin veriyorum.
 function enumNumber<T extends number>(value: string | undefined, allowed: readonly T[]): T | undefined {
-  const parsed = Number(value);
+  const normalized = value?.trim();
+  if (!normalized) return undefined;
+  const parsed = Number(normalized);
   return allowed.includes(parsed as T) ? (parsed as T) : undefined;
 }
 

@@ -4,10 +4,10 @@ import {
   parseUpdateCartItemRequest,
 } from "@/modules/cart/request";
 import {
-  forwardGuestCartRequest,
+  forwardCartRequest,
   hasTrustedStorefrontOrigin,
   problemResponse,
-} from "@/modules/cart/server/guest-cart-proxy";
+} from "@/modules/cart/server/cart-proxy";
 
 type CartItemRouteContext = {
   params: Promise<{ cartItemId: string }>;
@@ -30,7 +30,7 @@ export async function PUT(request: Request, context: CartItemRouteContext) {
     return problemResponse(400, "Geçersiz sepet isteği", "Sepet satırı, adet ve sürüm bilgisi geçerli olmalıdır.", "validation_error");
   }
 
-  return forwardGuestCartRequest(request, `/api/cart/items/${cartItemId}`, {
+  return forwardCartRequest(request, `/api/cart/items/${cartItemId}`, {
     method: "PUT",
     body: JSON.stringify(value),
   });
@@ -48,7 +48,7 @@ export async function DELETE(request: Request, context: CartItemRouteContext) {
     return problemResponse(400, "Geçersiz sepet isteği", "Sepet satırı ve güncel sürüm bilgisi geçerli olmalıdır.", "validation_error");
   }
 
-  return forwardGuestCartRequest(
+  return forwardCartRequest(
     request,
     `/api/cart/items/${cartItemId}?expectedConcurrencyToken=${encodeURIComponent(value.expectedConcurrencyToken)}`,
     { method: "DELETE" },

@@ -2,6 +2,8 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Security;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace ECommerce.API.BackgroundServices;
 
@@ -177,12 +179,13 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
                 }
                 catch (Exception exception)
                 {
+                    var safeError = CreateSafeDeliveryError(exception);
                     var failed = await repository.FailClaimAsync(
                         message.Id,
                         claimToken,
                         _workerId,
                         clock.UtcNow,
-                        exception.Message,
+                        safeError,
                         cancellationToken);
 
                     if (failed)
@@ -190,28 +193,28 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
                         if (message.DeadLetteredAt.HasValue)
                         {
                             _logger.LogError(
-                                exception,
-                                "E-posta en fazla {MaximumDeliveryAttempts} denemeden sonra dead-letter durumuna alındı. OutboxId: {OutboxId}, Type: {EmailType}",
+                                "E-posta en fazla {MaximumDeliveryAttempts} denemeden sonra dead-letter durumuna alındı. OutboxId: {OutboxId}, Type: {EmailType}, Error: {SafeError}",
                                 EmailOutboxMessage.MaximumDeliveryAttempts,
                                 message.Id,
-                                message.Type);
+                                message.Type,
+                                safeError);
                         }
                         else
                         {
                             _logger.LogWarning(
-                                exception,
-                                "E-posta gönderilemedi ve yeniden deneme planlandı. OutboxId: {OutboxId}, Type: {EmailType}",
+                                "E-posta gönderilemedi ve yeniden deneme planlandı. OutboxId: {OutboxId}, Type: {EmailType}, Error: {SafeError}",
                                 message.Id,
-                                message.Type);
+                                message.Type,
+                                safeError);
                         }
                     }
                     else
                     {
                         _logger.LogWarning(
-                            exception,
-                            "E-posta gönderim hatası kaydedilemedi çünkü lease artık worker'a ait değil. OutboxId: {OutboxId}, Type: {EmailType}",
+                            "E-posta gönderim hatası kaydedilemedi çünkü lease artık worker'a ait değil. OutboxId: {OutboxId}, Type: {EmailType}, Error: {SafeError}",
                             message.Id,
-                            message.Type);
+                            message.Type,
+                            safeError);
                     }
                 }
             }
@@ -316,6 +319,14 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
                 cancellationToken),
             _ => throw new InvalidOperationException($"Email outbox type '{message.Type}' is not supported.")
         };
+    }
+
+    // Burada SMTP hata ayrıntısını e-posta ve token değerlerini açığa çıkarmayan kısa bir parmak izine dönüştürüyorum.
+    private static string CreateSafeDeliveryError(Exception exception)
+    {
+        var fingerprint = Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(exception.Message)).AsSpan(0, 8));
+        return $"{exception.GetType().Name}:{fingerprint}";
     }
 
     // Burada kısa ömürlü mesajlarda SMTP çağrısının token geçerlilik süresini aşmamasını sağlıyorum.

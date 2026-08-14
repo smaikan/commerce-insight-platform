@@ -41,6 +41,12 @@ export const navigationSections: NavigationSection[] = [
     ],
   },
   {
+    label: "Pazarlama",
+    items: [
+      { label: "Meta Reklam Yönetimi", status: "in-development" },
+    ],
+  },
+  {
     label: "Muhasebe",
     collapsible: true,
     status: "in-development",

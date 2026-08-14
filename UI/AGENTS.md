@@ -72,6 +72,8 @@ Resource priority:
 
 API documentation is the source of the frontend contract. An endpoint that is present in the source code but not in the OpenAPI and endpoint documentation cannot be accepted as a "canned contract" by the frontend. In such a case, stop, report the difference at the file/route level and establish integration without updating the document.
 
+Frontend geliştirmesi sırasında yeni bir API sözleşmesi eksikliği veya API iyileştirme önerisi tespit edildiğinde `API-IMPROVEMENT-RECOMMENDATIONS.md` aynı çalışma kapsamında güncellenir. Kayıt; değişmeyen kimlik, öncelik, durum, etkilenen arayüz, problem, önerilen sözleşme ve kabul ölçütlerini içermeden yalnız konuşma içinde bırakılmaz.
+
 The following are definitely not predictable:
 
 - Endpoint, query parameter, filter or sort field.
@@ -220,7 +222,7 @@ In Phase 1, the sidebar represents the following information architecture. Group
 
 | Group | Item | URL/location | Status | Contract note |
 | --- | --- | --- | --- | --- |
-| Overview | Dashboard | `/dashboard` | Phase 1 | There is no general dashboard metric endpoint; Showing a fake card. |
+| Overview | Dashboard | `/dashboard` | Phase 1 | `GET /api/dashboard/overview` provides the documented operational summary; only its scoped values may be shown. |
 | Commerce | Orders | `/orders` | Phase 1 | E-commerce `Order`; Accounting is not sales. |
 | Commerce | Products | `/products` | Phase 1 | API product list. |
 | Commerce | Add Product | `/products/new` | Phase 1 | There may be a secondary item/quick action under Products in the sidebar. |
@@ -305,6 +307,7 @@ Phase 1 product list uses `GET /api/products`. Documented query fields:
 - `pageNumber`, `pageSize`
 - `search`
 - `typeId`, `brandId`
+- `collectionId`, `tagId`
 - `status`, `isActive`, `isFeatured`
 - `sortBy`, `descending`
 
@@ -314,8 +317,7 @@ Phase 1 product list uses `GET /api/products`. Documented query fields:
 - Loading, empty dataset, no filtered result, API error and retry situations are separate.
 - Server pagination is used; Not all products are transferred to the client.
 - No separate detail calls are made for the list line.
-- Returns the current endpoint `PagedResult<ProductDto>` and carries the variants/tags graph; There is no separate `ProductSummaryDto`. The user approved adding a small product list summary and main-image area to the backend before Phase 1. First the API/OpenAPI/endpoint documentation is updated; The frontend uses these fields only after the updated contract is published. The missing contract is not hidden with N+1 image/detail fetch.
-- Current Product DTO does not contain images in the list. Thumbnail is not created until the newly documented main-image agreement arrives.
+- `PagedResult<ProductDto>` includes the backend-projected `summary` and `mainImage` fields. The list renders this single image projection and never makes N+1 image/detail requests for product rows.
 
 ### Add Product
 
@@ -348,9 +350,9 @@ Phase 1 admin Orders:
 
 - List: `GET /api/orders`.
 - Detail: `GET /api/orders/admin/{id}`.
-- List query only supports `pageNumber`, `pageSize`, `status`, `createdFromUtc`, `createdToUtc`.
-- Available `OrderSummaryDto`: `id`, `orderNumber`, `status`, `grandTotal`, `itemCount`, `createdAt`, `paidAt`.
-- There is no customer name/ID and free-text search agreement in the current list response. The user has approved the addition of documented search/customer fields to the Orders list by the backend before Phase 1. These columns and filters will not be applied until the API/OpenAPI and endpoint documentation is updated; The detail N+1 call is not made.
+- List query supports only `pageNumber`, `pageSize`, `search`, `status`, `createdFromUtc`, `createdToUtc`.
+- Available `OrderSummaryDto`: `id`, `orderNumber`, `status`, `grandTotal`, `itemCount`, `createdAt`, `paidAt`, `customerName`.
+- Free-text `search` is documented for order number, customer name/surname and email. `customerName` can be null when no customer snapshot exists; the UI must not use detail N+1 requests for list rows.
 - Sort or payment filter is still not documented; Additionally, it will not be displayed on the UI until an approved API contract is created.
 - Shows detail, immutable item and shipping address snapshots, payments, totals and lifecycle timestamps as they come from the API.
 - Phase 1 default is list, filter, pagination, status display, detail, loading/empty/error state. When status mutation is also requested, the exact transition rules are validated again.
@@ -555,14 +557,14 @@ A frontend slice is OK only if:
 
 Application order:
 
-1. Update API/OpenAPI/endpoint documentation first: known drift, product list summary + main image and Orders search/customer contracts are completed before frontend integration.
+1. Validate the current API/OpenAPI/endpoint documentation before integration; product list summary/main image and Orders search/customer contracts are available in the current published contract.
 2. Verify BFF qualification via current auth documentation and API-side `AGENTS.md`; If there is a missing contract, report it without making up the auth behavior and stop.
 3. Install the required approved OpenAPI generation, form validation and browser/accessibility testing tools within the scope of the relevant implementation.
 4. Small provisional Tailwind v4 neutral + moderate blue token foundation, central application config and temporary text wordmark.
 5. Protected route gate with `/login`, root redirect agreement and BFF login/refresh/logout.
 6. Admin shell: responsive sidebar, topbar, page frame and noindex layout.
-7. Dashboard entry: real quick links/operational entry without verified metric.
-8. Products list: filter/sort/pagination/summary/main-image and statuses in the updated list contract.
+7. Dashboard entry: `GET /api/dashboard/overview` values, their documented scope and quick operational links; fake metrics/charts remain prohibited.
+8. Products list: documented filter/sort/pagination, summary/main-image projection and statuses.
 9. Add Product: progressive groups, real variant model, server validation and partial image workflow.
 10. Orders list/detail: documented filter/pagination and real summary/detail fields with updated search/customer support.
 11. Lint, type-check, unit tests, production build, mobile/accessibility/runtime verification.
@@ -590,15 +592,14 @@ This order is not automatic authorization. Each new phase requires separate user
 | OpenAPI auth security | Global Bearer security is also applied to public AuthController operations; `security: []` no override. | Keep runtime `[AllowAnonymous]` behavior; Report contract gap. |
 | Auth success/error schema | OpenAPI shows missing register/logout/forgot/reset exact success statuses and ProblemDetails error schemas. | Authenticate with Controller + auth docs; Generated error type is fake. |
 | Generated endpoint docs | Some files show create/logout status as `200`, array as object and some list responses as empty. | Code generation without cross-checking Controller/OpenAPI/functional docs. |
-| Product list DTO | `GET /api/products` uses optimized projection but carries variants/tags with `PagedResult<ProductDto>`; There is no summary/main image contract. | User approved the addition of small admin summary + main image. Do not use until backend and docs are updated; Don't do N+1. |
+| Product list DTO | `GET /api/products` returns `PagedResult<ProductDto>` with the backend-projected `summary` and `mainImage`. | Use the documented projection; do not issue image/detail N+1 requests. |
 | Public product cache/scope | It uses the same product list/detail controller public and 30-second output cache; There is no separate endpoint for admin. | Adding aggressive frontend cache without clearing admin freshness and unpublished-data scope with the backend. |
 | Product route/SEO | Current frontend `/product/[slug]`, canonical `/products/{slug}`; by-url/seo-index is only in the new source, not in OpenAPI. | Freeze storefront route strategy; Wait for docs update and user decision. |
 | Phase 1 root route | Decided: current app is Admin Panel; There is no `/admin` prefix. | `/` redirects to `/login` or `/dashboard` depending on the session status; protected route and login reverse redirect rules are applied. |
 | Product images | There is only URL-based ProductImage CRUD; There is no upload/storage contract. | Inventing upload UI/provider; Use URL workflow or request a new contract. |
-| Product list thumbnail | Product list DTO image is not returned. | Placeholder does not present as the real product image; Request backend projection decision instead of N+1. |
 | Variant docs | The general catalog create example omits the `value` field; The verbose endpoint and resource says `name + value` is mandatory. | Use detailed endpoint/source model; docs report drift. |
-| Orders search/customer | Current Admin list only status/date/page filter; There is no customer in summary. | User approved adding search/customer fields to the backend. Don't use it in UI until updated API/docs are released. |
-| Dashboard metrics | There is no general dashboard aggregate endpoint. | Showing fake metric/chart; Limit it to entry/quick links until the dashboard contract arrives. |
+| Orders search/customer | `GET /api/orders` supports `search`; `OrderSummaryDto.customerName` is nullable. | Search only the documented order/customer fields and render an explicit fallback for a null customer name. |
+| Dashboard metrics | `GET /api/dashboard/overview` returns documented operational counts, paid revenue and `generatedAtUtc`. | Show only the endpoint's scoped values; never derive global totals or fabricate trends/charts. |
 | Campaigns | Only Coupon API certified; There is no general campaign model. | Campaigns parent planned; Only Coupon capability can be a real page. |
 | Accounting Overview | There is no aggregate overview endpoint. | Disabled placeholder; Not turning report lines into fake total cards. |
 | Settings | There is no General Settings endpoint; ShippingMethod and TaxRate are separate. | Creating a generic settings page; wait for scope decision. |
@@ -614,7 +615,7 @@ This order is not automatic authorization. Each new phase requires separate user
 ### Recorded user decisions
 
 1. Backend OpenAPI and endpoint documentation will be updated before frontend integration.
-2. Summary + main image will be added to the Product admin list, search + customer agreements will be added to the Orders list on the backend; The frontend will only use the new documented contract.
+2. Product-list `summary`/`mainImage` and order-list `search`/`customerName` agreements are published; the frontend uses only these documented shapes.
 3. Allowed `openapi-typescript`, appropriate form validation and browser/accessibility testing dependencies.
 4. Planned/future sidebar groups will be pop-up; child elements will be visible but will remain disabled and labeled “Scheduled/Coming Soon” until applied.
 5. Provisional neutral + moderate blue token foundation and plain icon approach approved.

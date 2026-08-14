@@ -6,7 +6,12 @@ Storefront katalog endpointleri Public; yönetim listesi ve yazma endpointleri A
 
 | Method | Endpoint | Yetki | Amaç |
 | --- | --- | --- | --- |
-| GET | `/api/products/published?pageNumber=1&pageSize=24&typeId=...&brandId=...&collectionId=...&tagId=...&sortBy=0&descending=true` | Public | Filtrelenebilir storefront ürün kartları |
+| GET | `/api/products/published?Search=şönil&pageNumber=1&pageSize=24&typeId=...&brandId=...&collectionId=...&tagId=...&sortBy=0&descending=true` | Public | Arama ve taxonomy filtreli storefront ürün kartları |
+| GET | `/api/products/published/search-suggestions?Query=şönil&Limit=10` | Public | Navbar için COUNT üretmeyen kompakt canlı ürün önerileri |
+| GET | `/api/products/published/facets/brands?TypeId=...&BrandId=...&CollectionId=...&TagId=...` | Public | Marka seçenekleri ve yayımlanmış ürün adetleri; `BrandId` sayımdan dışlanır |
+| GET | `/api/products/published/facets/collections?TypeId=...&BrandId=...&CollectionId=...&TagId=...` | Public | Koleksiyon seçenekleri ve yayımlanmış ürün adetleri; `CollectionId` sayımdan dışlanır |
+| GET | `/api/products/published/facets/product-types?TypeId=...&BrandId=...&CollectionId=...&TagId=...` | Public | Ürün türü seçenekleri ve yayımlanmış ürün adetleri; `TypeId` sayımdan dışlanır |
+| GET | `/api/collections/published?PageNumber=1&PageSize=20` | Public | Koleksiyon vitrin kartları; ürün adedi, canonical `url` ve etkili görsel tek sayfalı response içindedir |
 | GET | `/api/products?pageNumber=1&pageSize=20&search=shirt&typeId=...&brandId=...&collectionId=...&tagId=...&status=...&isFeatured=false&sortBy=0&descending=true` | Admin | Filtrelenebilir operasyon ürün listesi |
 | GET | `/api/products/by-collection/{collectionId}` | Public | Koleksiyondaki yayındaki ürünler |
 | GET | `/api/products/by-tag/{tagId}` | Public | Etikete bağlı yayındaki ürünler |
@@ -52,7 +57,11 @@ Storefront katalog endpointleri Public; yönetim listesi ve yazma endpointleri A
 
 Admin ürün listesi `Search`, `TypeId`, `BrandId`, `CollectionId`, `TagId`, `Status`, `IsActive`, `IsFeatured`, `SortBy` ve `Descending` filtrelerini destekler. Varsayılan sıralama `CreatedAt descending`dir; son eklenen ürün ilk gelir.
 
-Storefront listesi `TypeId`, `BrandId`, `CollectionId` ve `TagId` filtrelerini destekler ve mevcut runtime davranışında yalnız `Status=Active` ile `IsActive=true` olan ürünleri döner. Birden fazla sınıflandırma filtresi gönderildiğinde koşullar AND mantığıyla uygulanır. Ayrı `by-*` endpointleri aynı storefront kart sözleşmesini, sayfalama ve sıralama seçeneklerini kullanır. `SortBy` seçenekleri `Newest=0`, `Popularity=1`, `DisplayOrder=2` ve `Title=3` değerleridir. Varsayılan `Newest` + `Descending=true` olduğundan son eklenen ürün ilk gelir.
+Storefront listesi `TypeId`, `BrandId`, `CollectionId` ve `TagId` filtrelerini destekler ve yalnız `Status=Active` ile `IsActive=true` ürünleri döner. Birden fazla sınıflandırma filtresi AND mantığıyla uygulanır. StoreSettings `showOutOfStockProducts` ve `showProductsWithoutPrice` tercihleri SQL'de sayfalama öncesinde uygulanır; `totalCount` doğru filtrelenmiş toplamdır. Ayrı `by-*` endpointleri aynı storefront kart sözleşmesini kullanır. `SortBy` seçenekleri `Newest=0`, `Popularity=1`, `DisplayOrder=2`, `Title=3`; query parametresi yoksa StoreSettings varsayılanı, açıkça gönderilmişse client seçimi uygulanır. Kart DTO'su `isAvailable`, varyant-bazlı `lowestAvailableStock` ve `isLowStock` alanlarını taşır.
+
+Storefront filtre seçeneklerinin adetleri ürün listesinin mevcut sayfasından veya seçenek başına ek ürün isteğinden türetilmez. Marka, koleksiyon ve ürün türü facetleri yukarıdaki üç ayrı endpointten alınır. Her endpoint kendi boyut filtresini yok sayar, diğer boyutları AND mantığıyla uygular ve yalnız aktif, en az bir yayımlanmış ürünü bulunan seçenekleri `PublishedProductFacetItemDto[]` olarak döndürür. Ayrıntılar için [yayımlanmış ürün facet ortak sözleşmesine](../08-endpoint-sozlesmeleri/03-katalog-ve-etkilesim/YAYIMLANMIS-URUN-FACET-SOZLESMESI.md) bakın.
+
+Public canlı arama başlık, marka, tür, koleksiyon, etiket ve MainSku alanlarını ortak normalize read model üzerinden arar. Çok kelimeli sorgular AND'dir. `Search` kullanılıp `SortBy` gönderilmezse relevance; explicit sıralama gönderilirse client tercihi uygulanır. Suggestion endpointi tek SQL ve `Limit+1` kullanır, `COUNT` üretmez, output cache'e alınmaz ve IP başına dakikada 120 istekle sınırlıdır. Ayrıntılı frontend sözleşmesi için [search suggestions belgesine](../08-endpoint-sozlesmeleri/03-katalog-ve-etkilesim/GET--api-products-published-search-suggestions.md) bakın.
 
 ## Varyant
 
@@ -79,6 +88,7 @@ POST   /api/brands                 POST /api/brands/bulk
 PUT    /api/brands/{id}             PATCH /api/brands/{id}/activation
 DELETE /api/brands/{id}
 GET    /api/collections             GET /api/collections/{id}
+GET    /api/collections/published
 POST   /api/collections             POST /api/collections/bulk
 PUT    /api/collections/{id}        PATCH /api/collections/{id}/activation
 PATCH  /api/collections/{id}/featured
@@ -98,6 +108,8 @@ Collection ayrıca `PATCH /api/collections/{id}/featured` kullanır. Her koleksi
 ```json
 { "name": "Yaz Koleksiyonu", "url": "yaz-koleksiyonu", "description": "...", "displayOrder": 1, "imageUrl": "https://cdn.example.com/collections/yaz.jpg" }
 ```
+
+Storefront `/collections` sayfası genel `GET /api/collections` listesini, facet cevabını ve koleksiyon başına ürün sorgusunu birleştirmez. Bunun yerine `GET /api/collections/published` kullanır. Bu public sayfalı sözleşme yalnız aktif ve görünür yayımlanmış ürünü bulunan koleksiyonları; `id`, `name`, `url`, `productCount`, `isFeatured`, `displayOrder` ve nullable etkili `imageUrl` alanlarıyla döndürür. Görselde koleksiyon kaydı önceliklidir; yoksa backend'in kararlı sırasındaki ilk ürünün ana görseli, o da yoksa `null` döner. Ayrıntılar için [public koleksiyon vitrini sözleşmesine](../08-endpoint-sozlesmeleri/03-katalog-ve-etkilesim/GET--api-collections-published.md) bakın.
 
 Brand body `{name,url,description,isActive,imageUrl}` biçimindedir. Marka `imageUrl` alanı da opsiyoneldir; alan atlanır, `null` veya boş gönderilirse değer `null` olarak saklanır. Marka ve koleksiyon görsel URL'leri en fazla 500 karakterdir. ProductType body `{name,description}`, Tag body `{name,url}`. GET listeleri paged DTO döner; yazma Admin'dir, okuma Public'dir.
 
@@ -144,9 +156,9 @@ Body:
 
 | Method | Endpoint | Yetki | Body |
 | --- | --- | --- | --- |
-| GET | `/api/product-engagement/favorites?pageNumber=1&pageSize=20` | User | Kullanıcının favorileri |
-| POST | `/api/product-engagement/products/{productPublicId}/favorites` | User | body yok |
-| DELETE | `/api/product-engagement/products/{productPublicId}/favorites` | User | body yok |
+| GET | `/api/product-engagement/favorites?pageNumber=1&pageSize=20` | Public/User | JWT user veya ortak guest session favorileri |
+| POST | `/api/product-engagement/products/{productPublicId}/favorites` | Public/User | body yok; guest için Origin + `X-Guest-CSRF` |
+| DELETE | `/api/product-engagement/products/{productPublicId}/favorites` | Public/User | body yok; guest için Origin + `X-Guest-CSRF` |
 | PUT | `/api/product-engagement/products/{productPublicId}/rating` | User | `{ "ratingValue": 1..5 }` |
 | POST | `/api/product-engagement/products/{productPublicId}/reviews` | User | `{ "comment": "...", "title": "...", "ratingValue": 1..5 }` |
 | GET | `/api/product-engagement/products/{productPublicId}/reviews?pageNumber=1&pageSize=20` | Public | Onaylı yorumlar |
@@ -155,3 +167,5 @@ Body:
 | POST | `/api/product-engagement/products/{productPublicId}/activities` | User | `{ "activityType": 0, "productVariantId": "guid", "quantity": 1 }` |
 
 Activity enum: `0 Click`, `1 AddToCart`, `2 Purchase`. Add-to-cart/purchase counters güvenilir Cart/Order akışlarından da güncellenir; frontend aynı olayı iki kez göndermemelidir.
+
+Guest favorites ve guest cart aynı `ecommerce_guest_cart` HttpOnly cookie'sini (`Path=/api`) kullanır. JWT varsa guest cookie yok sayılır. Guest mutationlarda BFF cookie tokenını sunucu tarafında `X-Guest-CSRF` header'ına kopyalar ve trusted `Origin` iletir; token client JavaScript, log veya analytics'e açılmaz. Login sonrasında `/api/guest-session/claim`, iki veri alanını tek transaction ile ve union yapmadan öncelik kurallarına göre claim eder.

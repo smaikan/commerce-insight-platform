@@ -33,6 +33,14 @@ public sealed class UserRepository : IUserRepository
         await _context.UserRefreshTokens.AddAsync(refreshToken, cancellationToken);
     }
 
+    // Burada yeni güvenlik tokenının GUID kimliğine rağmen EF tarafından ekleme olarak izlenmesini sağlıyorum.
+    public async Task AddSecurityTokenAsync(
+        UserSecurityToken securityToken,
+        CancellationToken cancellationToken = default)
+    {
+        await _context.UserSecurityTokens.AddAsync(securityToken, cancellationToken);
+    }
+
     // Burada kullanıcıyı okuma amaçlı takip etmeden getiriyorum.
     public Task<User?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {

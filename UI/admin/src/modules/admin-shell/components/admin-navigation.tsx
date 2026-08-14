@@ -40,7 +40,12 @@ function NavigationItems({ section, pathname, onNavigate }: { section: Navigatio
                 aria-disabled="true"
                 className="block min-h-10 rounded-md border-l-2 border-transparent py-2 pl-6 pr-3 text-sm leading-5 text-sidebar-muted"
               >
-                {item.label}
+                <span className="block whitespace-normal break-words">{item.label}</span>
+                {section.status !== item.status ? (
+                  <span className="mt-0.5 block text-[11px] leading-4 text-sidebar-muted">
+                    {navigationStatusLabel(item.status)}
+                  </span>
+                ) : null}
               </span>
             )}
           </li>

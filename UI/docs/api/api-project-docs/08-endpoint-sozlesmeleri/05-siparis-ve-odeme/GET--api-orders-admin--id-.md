@@ -1,5 +1,7 @@
 ﻿# GET /api/orders/admin/{id}
 
+Response içindeki ürün medya snapshot'ları ve kargo takip geçmişi için [ortak OrderDto sözleşmesine](ORDER-DTO-VE-KARGO-TAKIP-SOZLESMESI.md), varyant adı/değeri için [varyant snapshot sözleşmesine](../04-sepet/SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md) bakın.
+
 - İşlev alanı: **05 Sipariş ve ödeme**
 - İşlev: Kaynağı veya filtrelenmiş kaynak listesini okur.
 - Operation ID: `GET-/api/orders/admin/{id}`

@@ -1,13 +1,13 @@
 import { parseCartConcurrencyRequest } from "@/modules/cart/request";
 import {
-  forwardGuestCartRequest,
+  forwardCartRequest,
   hasTrustedStorefrontOrigin,
   problemResponse,
-} from "@/modules/cart/server/guest-cart-proxy";
+} from "@/modules/cart/server/cart-proxy";
 
-// Burada browser'ın guest sepetini backend cookie değerini görmeden okumasını sağlıyorum.
+// Burada browser'ın kullanıcı veya misafir sepetini hassas sahiplik bilgisini görmeden okumasını sağlıyorum.
 export async function GET(request: Request) {
-  return forwardGuestCartRequest(request, "/api/cart", { method: "GET" });
+  return forwardCartRequest(request, "/api/cart", { method: "GET" });
 }
 
 // Burada sepeti temizleme isteğini aynı-origin ve güncel concurrency token doğrulamasından sonra iletiyorum.
@@ -21,7 +21,7 @@ export async function DELETE(request: Request) {
     return problemResponse(400, "Geçersiz sepet isteği", "Güncel sepet sürümü bulunamadı.", "validation_error");
   }
 
-  return forwardGuestCartRequest(
+  return forwardCartRequest(
     request,
     `/api/cart?expectedConcurrencyToken=${encodeURIComponent(value.expectedConcurrencyToken)}`,
     { method: "DELETE" },

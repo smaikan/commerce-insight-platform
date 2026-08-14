@@ -36,6 +36,8 @@ export function parseCatalogView(searchParams: CatalogSearchParams): CatalogView
   const page = Number.parseInt(rawPage || "1", 10);
   const rawSort = firstValue(searchParams.sort);
   const sort = isCatalogSort(rawSort) ? rawSort : "newest";
+  const search = optionalSearch(searchParams.q);
+  const hasExplicitSort = isCatalogSort(rawSort) && (Boolean(search) || rawSort !== "newest");
 
   const brandId = optionalUuid(searchParams.brand);
   const collectionId = optionalUuid(searchParams.collection);
@@ -44,6 +46,8 @@ export function parseCatalogView(searchParams: CatalogSearchParams): CatalogView
   return {
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
     sort,
+    ...(hasExplicitSort ? { hasExplicitSort: true } : {}),
+    ...(search ? { search } : {}),
     ...(brandId ? { brandId } : {}),
     ...(collectionId ? { collectionId } : {}),
     ...(typeId ? { typeId } : {}),
@@ -52,10 +56,13 @@ export function parseCatalogView(searchParams: CatalogSearchParams): CatalogView
 
 // Burada UI görünümünü OpenAPI'nin sayfalama ve numeric enum sorgusuna dönüştürüyorum.
 export function toPublishedProductQuery(view: CatalogView): PublishedProductQuery {
+  // Burada aramada açık kullanıcı sıralaması yoksa SortBy göndermeyip backend relevance sırasını koruyorum.
+  const shouldSendSort = !view.search || view.hasExplicitSort || view.sort !== "newest";
   return {
     PageNumber: view.page,
     PageSize: CATALOG_PAGE_SIZE,
-    ...SORT_QUERY[view.sort],
+    ...(shouldSendSort ? SORT_QUERY[view.sort] : {}),
+    ...(view.search ? { Search: view.search } : {}),
     ...(view.brandId ? { BrandId: view.brandId } : {}),
     ...(view.collectionId ? { CollectionId: view.collectionId } : {}),
     ...(view.typeId ? { TypeId: view.typeId } : {}),
@@ -65,8 +72,9 @@ export function toPublishedProductQuery(view: CatalogView): PublishedProductQuer
 // Burada sayfalama ve sıralama linklerinin yalnız anlamlı parametreleri taşımasını sağlıyorum.
 export function catalogHref(view: CatalogView, options: CatalogUrlOptions = {}): string {
   const query = new URLSearchParams();
+  if (view.search) query.set("q", view.search);
   if (view.page > 1) query.set("page", String(view.page));
-  if (view.sort !== "newest") query.set("sort", view.sort);
+  if (view.hasExplicitSort || view.sort !== "newest") query.set("sort", view.sort);
   if (view.brandId && options.omitFilter !== "brandId") query.set("brand", view.brandId);
   if (view.collectionId && options.omitFilter !== "collectionId") query.set("collection", view.collectionId);
   if (view.typeId && options.omitFilter !== "typeId") query.set("type", view.typeId);
@@ -77,10 +85,14 @@ export function catalogHref(view: CatalogView, options: CatalogUrlOptions = {}):
 
 // Burada yalnız sıralamayı canonical URL'den çıkarıp filtrelenmiş ürün kümesini değiştirmeden koruyorum.
 export function catalogCanonicalHref(view: CatalogView, options: CatalogUrlOptions = {}): string {
-  return catalogHref({ ...view, sort: "newest" }, options);
+  return catalogHref({ ...view, sort: "newest", hasExplicitSort: false }, options);
 }
 
-// Burada bozuk, yinelenen veya sınıflandırma yolunda gereksiz kalan sorgu parametrelerini temiz URL'ye yönlendirmek üzere saptıyorum.
+export function hasCatalogFilters(view: CatalogView): boolean {
+  return Boolean(view.brandId || view.collectionId || view.typeId);
+}
+
+// Burada bozuk, yinelenen, gereksiz veya tanınmayan katalog parametrelerini tek temiz URL'ye yönlendirmek için saptıyorum.
 export function catalogSearchParamsNeedRedirect(
   searchParams: CatalogSearchParams,
   view: CatalogView,
@@ -91,11 +103,6 @@ export function catalogSearchParamsNeedRedirect(
   expectedQuery.sort();
   return actualQuery !== expectedQuery.toString();
 }
-
-export function hasCatalogFilters(view: CatalogView): boolean {
-  return Boolean(view.brandId || view.collectionId || view.typeId);
-}
-
 // Burada tek bir sınıflandırma filtresini kaldırırken sıralamayı ve diğer filtreleri koruyup sonucu ilk sayfaya döndürüyorum.
 export function catalogHrefWithoutFilter(
   view: CatalogView,
@@ -132,6 +139,12 @@ function firstValue(value: string | string[] | undefined): string | undefined {
 function optionalUuid(value: string | string[] | undefined): string | undefined {
   const candidate = firstValue(value)?.trim();
   return candidate && UUID_PATTERN.test(candidate) ? candidate : undefined;
+}
+
+// Burada katalog URL'sinden yalnız backend'in kabul ettiği normalize 2-100 karakterli arama metnini alıyorum.
+function optionalSearch(value: string | string[] | undefined): string | undefined {
+  const candidate = firstValue(value)?.trim().replace(/\s+/g, " ");
+  return candidate && candidate.length >= 2 && candidate.length <= 100 ? candidate : undefined;
 }
 
 // Burada kullanıcı URL'sindeki sıralama anahtarını desteklenen seçeneklerle sınırlandırıyorum.

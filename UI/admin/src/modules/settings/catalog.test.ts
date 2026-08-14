@@ -5,6 +5,7 @@ describe("settings catalog", () => {
   // Burada yalnızca uygulanmış ve gerçek rotası bulunan ayar seçeneklerinin etkin olduğunu doğruluyorum.
   it("exposes only implemented settings destinations", () => {
     expect(availableSettingsOptions.map((option) => [option.title, option.href])).toEqual([
+      ["Mağaza ayarları", "/settings/store"],
       ["Kargo yöntemleri", "/settings/shipping-methods"],
       ["Koleksiyonlar", "/collections"],
       ["Markalar", "/brands"],

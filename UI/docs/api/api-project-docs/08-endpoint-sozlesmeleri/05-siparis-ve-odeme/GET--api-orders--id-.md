@@ -1,5 +1,7 @@
 ﻿# GET /api/orders/{id}
 
+Response içindeki `items[].productUrl`, `items[].imageUrl`, `items[].imageAlt` ile `shippingCarrier`, `trackingNumber`, `trackingUrl`, `shippedAt`, `deliveredAt` alanları için [ortak OrderDto sözleşmesine](ORDER-DTO-VE-KARGO-TAKIP-SOZLESMESI.md) bakın. `items[].variantName` ve `items[].variantValue` için [varyant snapshot sözleşmesini](../04-sepet/SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md) kullanın.
+
 - İşlev alanı: **05 Sipariş ve ödeme**
 - İşlev: Kaynağı veya filtrelenmiş kaynak listesini okur.
 - Operation ID: `GET-/api/orders/{id}`

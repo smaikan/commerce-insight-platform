@@ -39,6 +39,8 @@ Başarılı response `AuthResultDto`:
 }
 ```
 
+Login veya register sonrasındaki ilk başarılı login cevabından sonra, tarayıcıda `ecommerce_guest_cart` cookie'si varsa access token ile `POST /api/guest-session/claim` çağrılmalıdır. Bu çağrı guest cart ve guest favorites verilerini tek transaction içinde claim eder. Üye tarafındaki alan boşsa guest veri benimsenir; doluysa üye verisi korunur ve guest veri birleştirilmez. Refresh token rotasyonunda claim tekrarlanmaz. Eski istemcilerin `POST /api/cart/merge-guest` çağrısı aynı atomik servisi çalıştırmaya devam eder.
+
 ### Token yenileme
 
 ```http

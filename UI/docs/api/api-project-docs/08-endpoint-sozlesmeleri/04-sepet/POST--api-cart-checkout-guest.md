@@ -63,9 +63,17 @@ Yeni işlem `201`, aynı key/body replay `200`; body `OrderDto`:
   "customer": {"firstName":"Ada","lastName":"Lovelace","email":"ada@example.com","phoneNumber":"+905551112233"},
   "shippingAddress": {"sourceAddressId":null,"title":"Ev","firstName":"Ada","lastName":"Lovelace","phoneNumber":"+905551112233","city":"İstanbul","district":"Kadıköy","fullAddress":"Örnek Sokak 1","postalCode":"34000"},
   "billingAddress": {"sourceAddressId":null,"title":"Ev","firstName":"Ada","lastName":"Lovelace","phoneNumber":"+905551112233","city":"İstanbul","district":"Kadıköy","fullAddress":"Örnek Sokak 1","postalCode":"34000"},
-  "items": [], "payments": [], "reservationExpiresAt": "2026-08-03T12:15:00Z", "createdAt": "2026-08-03T12:00:00Z"
+  "items": [{
+    "productTitle": "Ürün",
+    "variantSku": "SKU-PUDRA",
+    "variantName": "Renk",
+    "variantValue": "Pudra"
+  }],
+  "payments": [], "reservationExpiresAt": "2026-08-03T12:15:00Z", "createdAt": "2026-08-03T12:00:00Z"
 }
 ```
+
+`variantName` ve `variantValue` checkout anında sipariş kalemine snapshot'lanır; varyantsız üründe veya eski siparişte `null` olabilir. Ayrıntı: [varyant snapshot sözleşmesi](SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md).
 
 İlk başarı `ecommerce_guest_orders` ve `ecommerce_guest_csrf` cookie’lerini 7 gün, Secure/HttpOnly/SameSite=Lax/Path=/api olarak set eder. Cart transaction’da temizlenir. Kargo adı/ücreti, vergi, indirim, toplam ve stock-out backend kaynaklıdır. Order/item/customer/address/shipping snapshot, CouponUsage, tek Sale StockMovement/varyant, rezervasyon, grant, idempotency ve outbox aynı transaction’dadır. SMTP beklenmez.
 

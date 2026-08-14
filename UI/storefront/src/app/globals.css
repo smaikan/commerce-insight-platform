@@ -12,6 +12,14 @@
   --brand-950: #102d44;
   --danger: #a1394b;
   --success: #277257;
+  /* Burada footer'ı mağazanın mevcut mavi sistemiyle aynı marka ailesine bağlıyorum. */
+  --footer-background: #102d44;
+  --footer-foreground: #f7fbff;
+  --footer-muted: #b8cad8;
+  --footer-line: #294b65;
+  --footer-icon: #8fb0c7;
+  --footer-chip: #1c405b;
+  --whatsapp: #20c969;
 }
 
 @theme inline {
@@ -27,8 +35,16 @@
   --color-brand-950: var(--brand-950);
   --color-danger: var(--danger);
   --color-success: var(--success);
+  --color-footer: var(--footer-background);
+  --color-footer-ink: var(--footer-foreground);
+  --color-footer-muted: var(--footer-muted);
+  --color-footer-line: var(--footer-line);
+  --color-footer-icon: var(--footer-icon);
+  --color-footer-chip: var(--footer-chip);
+  --color-whatsapp: var(--whatsapp);
   --font-sans: var(--font-geist-sans);
   --shadow-panel: 0 18px 50px rgb(16 45 68 / 0.1);
+  --shadow-floating: 0 10px 24px rgb(0 0 0 / 0.2);
 }
 
 /* Burada sayfa genelinde mavimsi, sakin ve yüksek okunabilirlikli temel yüzeyi kuruyorum. */
@@ -42,6 +58,22 @@ body {
 .page-shell {
   width: min(100% - 2rem, 90rem);
   margin-inline: auto;
+}
+
+/* Burada footer bağlantılarının sakin rengini hover ve klavye odağında belirginleştiriyorum. */
+.footer-link {
+  border-radius: 0.25rem;
+  color: var(--footer-muted);
+  outline: none;
+  transition: color 160ms ease;
+}
+
+.footer-link:hover {
+  color: var(--footer-foreground);
+}
+
+.footer-link:focus-visible {
+  box-shadow: 0 0 0 2px var(--footer-background), 0 0 0 4px var(--brand-600);
 }
 
 @media (min-width: 40rem) {
@@ -101,6 +133,113 @@ body {
   background: var(--surface-subtle);
 }
 
+/* Burada duyuru metnini yalnız composited transform ile kesintisiz kaydırarak ana iş parçacığı maliyetini düşük tutuyorum. */
+.announcement-marquee-track {
+  animation: announcement-marquee-scroll 24s linear infinite;
+  will-change: transform;
+}
+
+.announcement-marquee-group {
+  min-width: 100vw;
+}
+
+/* Burada fareyle üzerine gelme veya görünür kontrolü seçme durumunda hareketi kalıcı ya da geçici olarak duraklatıyorum. */
+.announcement-strip:hover .announcement-marquee-track,
+.announcement-motion-toggle:checked ~ .announcement-marquee-track {
+  animation-play-state: paused;
+}
+
+/* Burada duraklatma seçiminin mevcut durumunu aynı kontrol içinde pause/play simgesiyle görünür kılıyorum. */
+.announcement-motion-toggle:checked ~ .announcement-motion-control .announcement-pause-icon {
+  display: none;
+}
+
+.announcement-motion-toggle:checked ~ .announcement-motion-control .announcement-play-icon {
+  display: block;
+}
+
+@keyframes announcement-marquee-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Burada yasal ve bilgilendirme metinlerinin paragraf, liste, tablo ve bağlantı ritmini dar okunabilir kolonda standartlaştırıyorum. */
+.legal-copy {
+  color: var(--ink-muted);
+  font-size: 0.9375rem;
+  line-height: 1.8;
+}
+
+.legal-copy > * + * {
+  margin-top: 1rem;
+}
+
+.legal-copy h3 {
+  color: var(--foreground);
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.legal-copy ul,
+.legal-copy ol {
+  padding-left: 1.25rem;
+}
+
+.legal-copy ul {
+  list-style: disc;
+}
+
+.legal-copy ol {
+  list-style: decimal;
+}
+
+.legal-copy li + li {
+  margin-top: 0.5rem;
+}
+
+.legal-copy a {
+  color: var(--brand-700);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.legal-copy a:focus-visible {
+  border-radius: 0.2rem;
+  outline: 2px solid var(--brand-600);
+  outline-offset: 3px;
+}
+
+.legal-copy strong {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.legal-copy dl {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 0.4fr) minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+  border-block: 1px solid var(--line);
+  padding-block: 1rem;
+}
+
+.legal-copy dt {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+@media (max-width: 39.99rem) {
+  .legal-copy dl {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .legal-copy dd + dt {
+    margin-top: 0.75rem;
+  }
+}
+
 /* Burada mobil navigasyonu sol kenardan gelen, arka plan etkileşimini kilitleyen hafif bir drawer olarak sunuyorum. */
 .mobile-navigation-dialog[open] {
   animation: mobile-navigation-enter 180ms ease-out;
@@ -108,6 +247,15 @@ body {
 
 .mobile-navigation-dialog::backdrop {
   background: rgb(16 45 68 / 0.35);
+}
+
+/* Burada tam ekran arama modalını düşük maliyetli bir opacity geçişiyle görünür kılıyorum. */
+.search-dialog[open] {
+  animation: search-dialog-enter 140ms ease-out;
+}
+
+.search-dialog::backdrop {
+  background: rgb(16 45 68 / 0.18);
 }
 
 @keyframes mobile-navigation-enter {
@@ -120,6 +268,17 @@ body {
   }
 }
 
+/* Burada arama modalının açılışında yerleşimi oynatmadan yalnız görünürlüğü değiştiriyorum. */
+@keyframes search-dialog-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 /* Burada mobil ürün carousel'inde scroll-snap davranışını korurken dekoratif scrollbar'ı gizliyorum. */
 .product-media-carousel {
   scrollbar-width: none;
@@ -127,6 +286,39 @@ body {
 
 .product-media-carousel::-webkit-scrollbar {
   display: none;
+}
+
+/* Burada modalın tek ve iki sıralı ürün vitrinlerinde yatay kaydırmayı korurken dekoratif scrollbar'ı gizliyorum. */
+.search-product-grid {
+  scrollbar-width: none;
+}
+
+.search-product-grid::-webkit-scrollbar {
+  display: none;
+}
+
+/* Burada hareket azaltma tercihinde kayan şeridi tamamen durdurup görsel tekrar ve kontrolü kaldırıyorum. */
+@media (prefers-reduced-motion: reduce) {
+  .announcement-strip {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .announcement-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .announcement-marquee-track {
+    animation: none;
+    transform: none;
+    will-change: auto;
+  }
+
+  .announcement-marquee-copy,
+  .announcement-motion-control,
+  .announcement-motion-toggle {
+    display: none;
+  }
 }
 
 /* Burada skip linki yalnız odaklandığında görünür kılarak ana içeriğe hızlı geçiş sağlıyorum. */
