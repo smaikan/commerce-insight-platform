@@ -26,6 +26,12 @@ public interface IOrderRepository
     // Burada siparişi yönetim durum değişikliği için ilişkileriyle takipli getirme sözleşmesini tanımlıyorum.
     Task<Order?> GetByIdForUpdateAsync(Guid orderId, CancellationToken cancellationToken = default);
 
+    // Burada sağlayıcı callback tokenına bağlı sipariş grafiğini güvenli sonuçlandırma için getiriyorum.
+    Task<Order?> GetByPaymentProviderTokenAsync(
+        string providerToken,
+        bool forUpdate,
+        CancellationToken cancellationToken = default);
+
     // Burada süresi geçmiş stok rezervasyonlarını sağlayıcı mutabakatından önce takip etmeden ve sınırlı getiriyorum.
     Task<IReadOnlyList<Order>> GetExpiredStockReservationsAsync(
         DateTime utcNow,

@@ -13,6 +13,7 @@ public sealed record ProductImageDto(
 
 public static class ProductImageDtoMapping
 {
+    // Burada ürün görselini public ürün kimliğiyle birlikte istemci DTO'suna dönüştürüyorum.
     public static ProductImageDto ToDto(this ProductImage image)
     {
         return new ProductImageDto(
@@ -22,5 +23,18 @@ public static class ProductImageDtoMapping
             image.AltText,
             image.DisplayOrder,
             image.IsMain);
+    }
+
+    // Burada katalog ve sepet cevapları için aynı deterministik ana görsel seçimini uyguluyorum.
+    public static ProductImageDto? ToMainImageDto(this IEnumerable<ProductImage> images)
+    {
+        ArgumentNullException.ThrowIfNull(images);
+
+        return images
+            .OrderByDescending(image => image.IsMain)
+            .ThenBy(image => image.DisplayOrder)
+            .ThenBy(image => image.Id)
+            .Select(image => image.ToDto())
+            .FirstOrDefault();
     }
 }

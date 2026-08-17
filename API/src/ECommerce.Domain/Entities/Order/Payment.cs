@@ -8,6 +8,9 @@ public sealed class Payment : BaseEntity
     public const int MaximumIdempotencyKeyLength = 80;
     public const int MaximumTransactionIdLength = 150;
     public const int MaximumFailureReasonLength = 500;
+    public const int MaximumProviderTokenLength = 500;
+    public const int MaximumConversationIdLength = 100;
+    public const int MaximumPaymentPageUrlLength = 1000;
     public const string IdempotencyKeyPattern = "^[A-Za-z0-9_-]+$";
 
     public Guid OrderId { get; private set; }
@@ -18,6 +21,11 @@ public sealed class Payment : BaseEntity
     public string? IdempotencyKey { get; private set; }
     public string? TransactionId { get; private set; }
     public string? FailureReason { get; private set; }
+    public string? ProviderToken { get; private set; }
+    public string? ProviderConversationId { get; private set; }
+    public string? PaymentPageUrl { get; private set; }
+    public DateTime? ProviderTokenExpiresAt { get; private set; }
+    public int? FraudStatus { get; private set; }
     public DateTime? PaidAt { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
@@ -75,8 +83,34 @@ public sealed class Payment : BaseEntity
         return normalizedValue;
     }
 
+    // Burada iyzico CheckoutForm oturumunu yalnız bekleyen ödeme denemesine bağlayıp tekrar çağrılabilir hale getiriyorum.
+    public void InitializeCheckoutForm(
+        string providerToken,
+        string conversationId,
+        string paymentPageUrl,
+        DateTime tokenExpiresAt)
+    {
+        if (Status != PaymentStatus.Pending)
+        {
+            throw new DomainException("Only pending payment can receive a checkout form session.");
+        }
+
+        if (tokenExpiresAt <= DateTime.UtcNow)
+        {
+            throw new DomainException("Checkout form expiration must be in the future.");
+        }
+
+        ProviderToken = NormalizeRequiredValue(providerToken, MaximumProviderTokenLength, "Provider token");
+        ProviderConversationId = NormalizeRequiredValue(
+            conversationId,
+            MaximumConversationIdLength,
+            "Provider conversation id");
+        PaymentPageUrl = NormalizeAbsoluteHttpUrl(paymentPageUrl);
+        ProviderTokenExpiresAt = tokenExpiresAt;
+    }
+
     // Burada yalnız bekleyen ödeme denemesini sağlayıcı işlem kimliğiyle başarılı olarak işaretliyorum.
-    public void MarkAsPaid(string transactionId)
+    public void MarkAsPaid(string transactionId, int? fraudStatus = null)
     {
         if (Status != PaymentStatus.Pending)
         {
@@ -88,6 +122,7 @@ public sealed class Payment : BaseEntity
         Status = PaymentStatus.Paid;
         FailureReason = null;
         PaidAt = DateTime.UtcNow;
+        FraudStatus = fraudStatus;
     }
 
     // Burada yalnız bekleyen ödeme denemesini güvenli hata özetiyle başarısız olarak işaretliyorum.
@@ -101,6 +136,17 @@ public sealed class Payment : BaseEntity
         Status = PaymentStatus.Failed;
         FailureReason = NormalizeRequiredValue(failureReason, MaximumFailureReasonLength, "Payment failure reason");
         TransactionId = NormalizeOptionalValue(transactionId, MaximumTransactionIdLength, "Payment transaction id");
+    }
+
+    // Burada sağlayıcının henüz kesinleştirmediği fraud durumunu ödeme beklemede kalırken kaydediyorum.
+    public void RecordFraudStatus(int fraudStatus)
+    {
+        if (Status != PaymentStatus.Pending || fraudStatus is < -1 or > 1)
+        {
+            throw new DomainException("Fraud status can only be recorded for a pending payment.");
+        }
+
+        FraudStatus = fraudStatus;
     }
 
     // Burada sağlayıcı tarafından güvenle çözümlenmiş zaman aşımı denemesini tekrar işlenemeyecek başarısız duruma taşıyorum.
@@ -154,6 +200,19 @@ public sealed class Payment : BaseEntity
         if (normalizedValue.Length > maximumLength)
         {
             throw new DomainException($"{fieldName} cannot exceed {maximumLength} characters.");
+        }
+
+        return normalizedValue;
+    }
+
+    // Burada ödeme sayfası adresini yalnız mutlak HTTP veya HTTPS kabul ederek saklıyorum.
+    private static string NormalizeAbsoluteHttpUrl(string value)
+    {
+        var normalizedValue = NormalizeRequiredValue(value, MaximumPaymentPageUrlLength, "Payment page URL");
+        if (!Uri.TryCreate(normalizedValue, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            throw new DomainException("Payment page URL must be an absolute HTTP or HTTPS URL.");
         }
 
         return normalizedValue;

@@ -50,6 +50,7 @@ public static class PersistenceServiceRegistration
         services.AddScoped<IPublishedProductSearchReader, PublishedProductSearchReader>();
         services.AddScoped<IPublishedProductFacetReader, PublishedProductFacetReader>();
         services.AddScoped<IPublishedCollectionShowcaseReader, PublishedCollectionShowcaseReader>();
+        services.AddScoped<IPublishedProductTypeShowcaseReader, PublishedProductTypeShowcaseReader>();
         services.AddScoped<IOrderListReader, OrderListReader>();
         services.AddScoped<IAdminDashboardReader, AdminDashboardReader>();
         services.AddScoped<IProductAnalyticsReader, ProductAnalyticsReader>();

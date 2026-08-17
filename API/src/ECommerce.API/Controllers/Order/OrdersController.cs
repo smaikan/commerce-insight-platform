@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
+using ECommerce.Application.Payments;
 
 namespace ECommerce.API.Controllers.Order;
 
@@ -102,6 +103,28 @@ public sealed class OrdersController : ControllerBase
             new CreatePaymentCommand(id, request.Provider, idempotencyKey ?? string.Empty),
             cancellationToken);
         return StatusCode(StatusCodes.Status201Created, payment);
+    }
+
+    // Burada kart verisini API'ye almadan üyenin iyzico hosted ödeme sayfasını başlatıyorum.
+    [EnableRateLimiting("payments")]
+    [HttpPost("{id:guid}/payments/iyzico/checkout-form")]
+    [ProducesResponseType<CheckoutFormSessionDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<CheckoutFormSessionDto>> InitializeIyzicoCheckoutForm(
+        Guid id,
+        [FromHeader(Name = "Idempotency-Key"), Required] string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new InitializeIyzicoCheckoutFormCommand(
+                id,
+                idempotencyKey ?? string.Empty,
+                HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1"),
+            cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, result);
     }
 
     // Burada kullanıcının yalnız ödeme öncesi kendi siparişini iptal etmesini sağlıyorum.

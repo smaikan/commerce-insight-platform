@@ -128,7 +128,8 @@ public sealed class ExpireStockReservationsCommandHandler
                     order.Id,
                     payment.Id,
                     payment.Amount,
-                    payment.IdempotencyKey),
+                    payment.IdempotencyKey,
+                    payment.ProviderToken),
                 cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

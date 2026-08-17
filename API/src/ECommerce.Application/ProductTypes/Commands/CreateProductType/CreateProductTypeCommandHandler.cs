@@ -11,6 +11,7 @@ public sealed class CreateProductTypeCommandHandler : IRequestHandler<CreateProd
     private readonly IProductTypeRepository _productTypeRepository;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada ürün türü yazma bağımlılıklarını hazırlıyorum.
     public CreateProductTypeCommandHandler(IProductTypeRepository productTypeRepository, IUnitOfWork unitOfWork)
     {
         _productTypeRepository = productTypeRepository;
@@ -25,7 +26,11 @@ public sealed class CreateProductTypeCommandHandler : IRequestHandler<CreateProd
             throw new ConflictException("Product type name already exists.");
         }
 
-        var productType = new ProductType(request.Name, request.Description, request.IsActive);
+        var productType = new ProductType(
+            request.Name,
+            request.Description,
+            request.IsActive,
+            request.ImageUrl);
 
         await _productTypeRepository.AddAsync(productType, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

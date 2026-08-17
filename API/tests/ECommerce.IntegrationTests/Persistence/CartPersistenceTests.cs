@@ -42,6 +42,9 @@ public sealed class CartPersistenceTests
         savedCart.SubTotal.Should().Be(251.00m);
         var savedItem = savedCart.Items.Single();
         savedItem.Product.Title.Should().Be("Product roundtrip");
+        savedItem.Product.Images.Should().ContainSingle();
+        savedItem.Product.Images.Single().ImageUrl.Should().Be("https://cdn.example.com/roundtrip-main.jpg");
+        savedItem.Product.Images.Single().IsMain.Should().BeTrue();
         savedItem.ProductVariant.Name.Should().Be("Variant roundtrip");
         readContext.ChangeTracker.Entries().Should().BeEmpty();
     }
@@ -360,6 +363,12 @@ public sealed class CartPersistenceTests
             $"PRODUCT-{normalizedSuffix}");
         context.Products.Add(product);
         await context.SaveChangesAsync();
+
+        context.ProductImages.Add(new ProductImage(
+            product,
+            $"https://cdn.example.com/{normalizedSuffix}-main.jpg",
+            isMain: true,
+            altText: $"Product {suffix}"));
 
         var variant = new ProductVariant(
             product.Id,

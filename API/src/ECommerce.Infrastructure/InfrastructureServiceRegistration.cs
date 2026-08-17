@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using StackExchange.Redis;
+using Microsoft.Extensions.Options;
 
 namespace ECommerce.Infrastructure;
 
@@ -28,6 +29,20 @@ public static class InfrastructureServiceRegistration
         services.AddSingleton<FakePaymentGateway>();
         services.AddSingleton<IPaymentGateway>(provider => provider.GetRequiredService<FakePaymentGateway>());
         services.AddSingleton<IPaymentGatewayReconciler>(provider => provider.GetRequiredService<FakePaymentGateway>());
+        services.AddSingleton<IValidateOptions<IyzicoOptions>, IyzicoOptionsValidator>();
+        services.AddOptions<IyzicoOptions>()
+            .Bind(configuration?.GetSection(IyzicoOptions.SectionName) ?? new ConfigurationBuilder().Build().GetSection(IyzicoOptions.SectionName))
+            .ValidateOnStart();
+        services.AddHttpClient<IyzicoCheckoutFormGateway>((provider, client) =>
+        {
+            var options = provider.GetRequiredService<IOptions<IyzicoOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/'));
+            client.Timeout = TimeSpan.FromSeconds(20);
+        });
+        services.AddScoped<ICheckoutFormGateway>(provider =>
+            provider.GetRequiredService<IyzicoCheckoutFormGateway>());
+        services.AddScoped<IPaymentGatewayReconciler>(provider =>
+            provider.GetRequiredService<IyzicoCheckoutFormGateway>());
         var dataProtectionBuilder = services
             .AddDataProtection()
             .SetApplicationName(configuration?["DataProtection:ApplicationName"] ?? "ECommerce.API");

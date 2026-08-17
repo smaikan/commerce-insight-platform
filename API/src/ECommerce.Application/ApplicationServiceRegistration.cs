@@ -10,6 +10,7 @@ using ECommerce.Application.GuestOrders;
 using ECommerce.Application.StoreSettings;
 using ECommerce.Application.GuestSessions.Services;
 using ECommerce.Application.Products.Engagement.Services;
+using ECommerce.Application.Payments;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,6 +48,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<OrderCheckoutOrchestrator>();
         services.AddScoped<GuestOrderAccessService>();
         services.AddScoped<GuestOrderOperationsService>();
+        services.AddScoped<CheckoutFormPaymentService>();
         services.AddScoped<IOrderNotificationService, OrderNotificationService>();
         services.AddScoped<ReturnInventoryService>();
 

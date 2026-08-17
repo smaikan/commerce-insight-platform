@@ -102,11 +102,6 @@ public static class ProductDtoMapping
                 .Select(image => image.ToDto())
                 .ToList(),
             product.Description,
-            product.Images
-                .OrderByDescending(image => image.IsMain)
-                .ThenBy(image => image.DisplayOrder)
-                .ThenBy(image => image.Id)
-                .Select(image => image.ToDto())
-                .FirstOrDefault());
+            product.Images.ToMainImageDto());
     }
 }

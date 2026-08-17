@@ -71,6 +71,7 @@ public sealed class CartRepository : ICartRepository
         return _context.Carts
             .Include(cart => cart.Items)
                 .ThenInclude(item => item.Product)
+                    .ThenInclude(product => product.Images)
             .Include(cart => cart.Items)
                 .ThenInclude(item => item.ProductVariant)
             .AsSplitQuery();

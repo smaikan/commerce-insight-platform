@@ -10,6 +10,7 @@ public sealed class UpdateProductTypeCommandHandler : IRequestHandler<UpdateProd
     private readonly IProductTypeRepository _productTypeRepository;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada ürün türü güncelleme bağımlılıklarını hazırlıyorum.
     public UpdateProductTypeCommandHandler(IProductTypeRepository productTypeRepository, IUnitOfWork unitOfWork)
     {
         _productTypeRepository = productTypeRepository;
@@ -33,6 +34,7 @@ public sealed class UpdateProductTypeCommandHandler : IRequestHandler<UpdateProd
 
         productType.Rename(request.Name);
         productType.SetDescription(request.Description);
+        productType.SetImageUrl(request.ImageUrl);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

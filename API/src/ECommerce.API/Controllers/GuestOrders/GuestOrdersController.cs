@@ -9,6 +9,8 @@ using ECommerce.Application.Returns.Dtos;
 using ECommerce.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ECommerce.Application.Payments;
+using System.ComponentModel.DataAnnotations;
 
 namespace ECommerce.API.Controllers.GuestOrders;
 
@@ -22,16 +24,19 @@ public sealed class GuestOrdersController : ControllerBase
     private readonly GuestOrderOperationsService _operations;
     private readonly ICurrentUserService _currentUser;
     private readonly IConfiguration _configuration;
+    private readonly CheckoutFormPaymentService _checkoutFormPayments;
 
     // Burada guest sipariş erişim ve self-service HTTP uçlarının bağımlılıklarını hazırlıyorum.
     public GuestOrdersController(
         GuestOrderAccessService access,
         GuestOrderOperationsService operations,
+        CheckoutFormPaymentService checkoutFormPayments,
         ICurrentUserService currentUser,
         IConfiguration configuration)
     {
         _access = access;
         _operations = operations;
+        _checkoutFormPayments = checkoutFormPayments;
         _currentUser = currentUser;
         _configuration = configuration;
     }
@@ -110,6 +115,31 @@ public sealed class GuestOrdersController : ControllerBase
 
         return Ok(await _operations.CreatePaymentAsync(
             RequireSession(), csrf, id, request.Provider, idempotencyKey, cancellationToken));
+    }
+
+    // Burada guest session ve CSRF korumasıyla iyzico hosted ödeme sayfasını başlatıyorum.
+    [HttpPost("{id:guid}/payments/iyzico/checkout-form")]
+    [AllowAnonymous]
+    [ProducesResponseType<CheckoutFormSessionDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<CheckoutFormSessionDto>> InitializeIyzicoCheckoutForm(
+        Guid id,
+        [FromHeader(Name = "Idempotency-Key"), Required] string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        EnsureTrustedOrigin();
+        var result = await _checkoutFormPayments.InitializeForGuestAsync(
+            RequireSession(),
+            RequireCsrf(),
+            id,
+            idempotencyKey ?? string.Empty,
+            HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1",
+            cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, result);
     }
 
     // Burada guest müşterinin ödeme öncesi siparişini CSRF ve origin korumasıyla iptal ediyorum.

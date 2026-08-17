@@ -12,6 +12,7 @@ public sealed class BulkCreateProductTypesCommandHandler
     private readonly IProductTypeRepository _productTypeRepository;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Burada toplu ürün türü yazma bağımlılıklarını hazırlıyorum.
     public BulkCreateProductTypesCommandHandler(
         IProductTypeRepository productTypeRepository,
         IUnitOfWork unitOfWork)
@@ -37,7 +38,11 @@ public sealed class BulkCreateProductTypesCommandHandler
         }
 
         var productTypes = request.ProductTypes
-            .Select(item => new ProductType(item.Name, item.Description, item.IsActive))
+            .Select(item => new ProductType(
+                item.Name,
+                item.Description,
+                item.IsActive,
+                item.ImageUrl))
             .ToList();
 
         await _productTypeRepository.AddRangeAsync(productTypes, cancellationToken);
@@ -46,6 +51,7 @@ public sealed class BulkCreateProductTypesCommandHandler
         return productTypes.Select(productType => productType.ToDto()).ToList();
     }
 
+    // Burada aynı toplu istekte yinelenen ürün türü adlarını engelliyorum.
     private static void EnsureNoDuplicates(IEnumerable<string> names)
     {
         var duplicates = names

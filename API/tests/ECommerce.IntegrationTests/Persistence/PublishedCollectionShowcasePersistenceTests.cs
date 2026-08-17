@@ -40,7 +40,7 @@ public sealed class PublishedCollectionShowcasePersistenceTests
             ImageUrl = "https://cdn.example.test/collection.webp"
         });
         result.Items[1].ProductCount.Should().Be(2);
-        result.Items[1].ImageUrl.Should().Be("https://cdn.example.test/first-main.webp");
+        result.Items[1].ImageUrl.Should().Be("https://cdn.example.test/second-main.webp");
         result.Items[2].ProductCount.Should().Be(1);
         result.Items[2].ImageUrl.Should().BeNull();
     }
@@ -119,7 +119,9 @@ public sealed class PublishedCollectionShowcasePersistenceTests
                 "https://cdn.example.test/first-main.webp");
             var secondFallbackProduct = CreateProduct(
                 "Beta product", "beta-product", "BETA", fallbackCollection, 1, ProductStatus.Active,
+                null,
                 "https://cdn.example.test/second-main.webp");
+            secondFallbackProduct.IncreaseTotalPurchaseCount(1);
             var noImageProduct = CreateProduct(
                 "No image product", "no-image-product", "NO-IMAGE", noImageCollection, 0, ProductStatus.Active);
             var inactiveCollectionProduct = CreateProduct(

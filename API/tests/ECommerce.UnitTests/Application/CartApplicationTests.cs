@@ -142,6 +142,16 @@ public sealed class CartApplicationTests
     public async Task GetCart_Should_Map_Current_Catalog_State()
     {
         var state = CreateCartState(quantity: 2, storedPrice: 10m, currentPrice: 12m, stock: 5);
+        state.Product.Images.Add(new ProductImage(
+            state.Product,
+            "https://cdn.example.com/cart-secondary.jpg",
+            displayOrder: 0));
+        state.Product.Images.Add(new ProductImage(
+            state.Product,
+            "https://cdn.example.com/cart-main.jpg",
+            displayOrder: 10,
+            isMain: true,
+            altText: "Sepet ana gorseli"));
         var carts = new Mock<ICartRepository>();
         carts.Setup(repository => repository.GetByOwnerAsync(
                 It.IsAny<CartOwner>(),
@@ -157,6 +167,11 @@ public sealed class CartApplicationTests
         result.HasPriceChanges.Should().BeTrue();
         result.HasUnavailableItems.Should().BeFalse();
         result.Items[0].ProductId.Should().StartWith("P");
+        var mainImage = result.Items[0].MainImage;
+        mainImage.Should().NotBeNull();
+        mainImage!.ImageUrl.Should().Be("https://cdn.example.com/cart-main.jpg");
+        mainImage.AltText.Should().Be("Sepet ana gorseli");
+        mainImage.IsMain.Should().BeTrue();
         result.Items[0].CurrentUnitPrice.Should().Be(12m);
         result.Items[0].PriceChanged.Should().BeTrue();
     }
@@ -205,6 +220,7 @@ public sealed class CartApplicationTests
         result.Items.Should().ContainSingle();
         result.Items[0].VariantName.Should().BeNull();
         result.Items[0].VariantValue.Should().BeNull();
+        result.Items[0].MainImage.Should().BeNull();
     }
 
     // Burada ilk misafir eklemesinin güvenilir varyant fiyatıyla sepet oluşturduğunu ve metriği aynı transactionda kaydettiğini doğruluyorum.

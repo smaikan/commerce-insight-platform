@@ -6,4 +6,5 @@ namespace ECommerce.Application.ProductTypes.Commands.UpdateProductType;
 public sealed record UpdateProductTypeCommand(
     Guid Id,
     string Name,
-    string? Description = null) : IRequest<ProductTypeDto>;
+    string? Description = null,
+    string? ImageUrl = null) : IRequest<ProductTypeDto>;

@@ -27,7 +27,7 @@ Response yalnız aktif koleksiyonları ve aşağıdaki yayın koşullarını sa�
 Koleksiyonlar `displayOrder` artan, `name` artan ve `id` artan sırasıyla döner. `imageUrl` aşağıdaki öncelikle backend tarafından üretilir:
 
 1. Koleksiyonun kendi `imageUrl` değeri varsa aynen kullanılır.
-2. Yoksa uygun ilk ürün `Product.DisplayOrder`, `Product.Title`, `Product.Id` artan sırasıyla seçilir. Bu ürünün görsellerinde `IsMain=true` önce, ardından `DisplayOrder` ve `Id` artan sırası kullanılır.
+2. Yoksa en popüler uygun ürün `Product.PopularityScore` azalan, eşitlikte `Product.Id` artan sırasıyla seçilir. Bu ürünün görsellerinde `IsMain=true` önce, ardından `DisplayOrder` ve `Id` artan sırası kullanılır.
 3. Koleksiyon görseli veya seçilen ürünün görseli yoksa açıkça `null` döner.
 
 Frontend isimden slug üretmez; `url` alanını koleksiyon landing bağlantısı olarak kullanır. Frontend ayrıca görsel önceliğini yeniden hesaplamaz ve koleksiyon başına ürün isteği yapmaz.

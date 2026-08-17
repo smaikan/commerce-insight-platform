@@ -6,6 +6,7 @@ namespace ECommerce.Persistence.Configurations;
 
 public sealed class ProductTypeConfiguration : IEntityTypeConfiguration<ProductType>
 {
+    // Burada ürün türünün tablo, alan ve indeks kurallarını tanımlıyorum.
     public void Configure(EntityTypeBuilder<ProductType> builder)
     {
         builder.ToTable("ProductTypes");
@@ -18,6 +19,9 @@ public sealed class ProductTypeConfiguration : IEntityTypeConfiguration<ProductT
 
         builder.Property(type => type.Description)
             .HasMaxLength(1000);
+
+        builder.Property(type => type.ImageUrl)
+            .HasMaxLength(ProductType.MaximumImageUrlLength);
 
         builder.HasIndex(type => type.Name)
             .IsUnique();

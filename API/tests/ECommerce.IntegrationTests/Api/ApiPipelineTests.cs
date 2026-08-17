@@ -60,6 +60,25 @@ public sealed class ApiPipelineTests
 
         using var document = JsonDocument.Parse(swagger);
         var paths = document.RootElement.GetProperty("paths");
+        var memberIyzico = paths.GetProperty("/api/orders/{id}/payments/iyzico/checkout-form")
+            .GetProperty("post");
+        var guestIyzico = paths.GetProperty("/api/guest-orders/{id}/payments/iyzico/checkout-form")
+            .GetProperty("post");
+        var callback = paths.GetProperty("/api/payments/iyzico/callback").GetProperty("post");
+        var webhook = paths.GetProperty("/api/payments/iyzico/webhook").GetProperty("post");
+        memberIyzico.GetProperty("responses").TryGetProperty("201", out _).Should().BeTrue();
+        memberIyzico.GetProperty("parameters").EnumerateArray()
+            .Single(parameter => parameter.GetProperty("name").GetString() == "Idempotency-Key")
+            .GetProperty("required").GetBoolean().Should().BeTrue();
+        guestIyzico.GetProperty("security").GetArrayLength().Should().Be(0);
+        callback.GetProperty("security").GetArrayLength().Should().Be(0);
+        callback.GetProperty("responses").TryGetProperty("303", out _).Should().BeTrue();
+        webhook.GetProperty("security").GetArrayLength().Should().Be(0);
+        webhook.GetProperty("responses").TryGetProperty("204", out _).Should().BeTrue();
+        var checkoutSchema = document.RootElement.GetProperty("components").GetProperty("schemas")
+            .GetProperty("CheckoutFormSessionDto");
+        checkoutSchema.GetProperty("required").EnumerateArray().Select(item => item.GetString())
+            .Should().Contain(["paymentId", "orderId", "provider", "status", "amount", "paymentPageUrl", "expiresAt"]);
         paths.TryGetProperty("/api/storefront-banners", out _).Should().BeFalse();
         foreach (var bannerPath in new[]
         {

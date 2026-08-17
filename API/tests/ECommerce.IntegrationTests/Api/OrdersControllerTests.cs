@@ -2,6 +2,7 @@ using System.Security.Claims;
 using ECommerce.API.Controllers.Order;
 using ECommerce.Application.Orders.Commands.CreateOrder;
 using ECommerce.Application.Orders.Dtos;
+using ECommerce.Application.Payments;
 using ECommerce.Domain.Enums;
 using ECommerce.Infrastructure.Payments;
 using FluentAssertions;
@@ -67,6 +68,35 @@ public sealed class OrdersControllerTests
             .Which.StatusCode.Should().Be(StatusCodes.Status201Created);
         sender.LastRequest.Should().BeOfType<ECommerce.Application.Orders.Commands.CreatePayment.CreatePaymentCommand>()
             .Which.IdempotencyKey.Should().Be(idempotencyKey);
+    }
+
+    // Burada iyzico form endpointinin kart verisi almadan header ve istemci IP'sini komuta taşıdığını doğruluyorum.
+    [Fact]
+    public async Task InitializeIyzicoCheckoutForm_Should_Send_Server_Controlled_Command()
+    {
+        var sender = new RecordingSender();
+        var controller = new OrdersController(sender)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
+        controller.HttpContext.Connection.RemoteIpAddress = System.Net.IPAddress.Loopback;
+        var orderId = Guid.NewGuid();
+
+        var result = await controller.InitializeIyzicoCheckoutForm(
+            orderId,
+            "iyzico_controller_key_0001",
+            CancellationToken.None);
+
+        result.Result.Should().BeOfType<ObjectResult>()
+            .Which.StatusCode.Should().Be(StatusCodes.Status201Created);
+        sender.LastRequest.Should().BeOfType<InitializeIyzicoCheckoutFormCommand>()
+            .Which.Should().Match<InitializeIyzicoCheckoutFormCommand>(command =>
+                command.OrderId == orderId &&
+                command.IdempotencyKey == "iyzico_controller_key_0001" &&
+                command.ClientIpAddress == "127.0.0.1");
     }
 
     // Burada kargo alanlarının admin durum endpointinden tip güvenli komuta eksiksiz taşındığını doğruluyorum.
@@ -146,6 +176,18 @@ public sealed class OrdersControllerTests
                     "fake_transaction_controller_001",
                     DateTime.UtcNow,
                     DateTime.UtcNow));
+            }
+
+            if (typeof(TResponse) == typeof(CheckoutFormSessionDto))
+            {
+                return Task.FromResult((TResponse)(object)new CheckoutFormSessionDto(
+                    Guid.NewGuid(),
+                    Guid.NewGuid(),
+                    PaymentProvider.Iyzico,
+                    PaymentStatus.Pending,
+                    10m,
+                    "https://sandbox-api.iyzipay.com/checkoutform/test",
+                    DateTime.UtcNow.AddMinutes(30)));
             }
 
             var response = new OrderDto(

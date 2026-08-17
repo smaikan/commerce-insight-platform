@@ -9,4 +9,5 @@ public sealed record BulkCreateProductTypesCommand(
 public sealed record BulkCreateProductTypeItem(
     string Name,
     string? Description = null,
-    bool IsActive = true);
+    bool IsActive = true,
+    string? ImageUrl = null);

@@ -238,6 +238,25 @@ public sealed class CartMutationFlowTests
             .VariantValue.Should().BeNull();
     }
 
+    // Burada sepet ekleme ve okuma cevaplarının ürünün ana görselini ek katalog isteği olmadan döndürdüğünü doğruluyorum.
+    [Fact]
+    public async Task Cart_Http_Responses_Should_Expose_Main_Product_Image()
+    {
+        await using var scenario = await CartScenario.CreateAsync();
+
+        var added = await PostItemAsync(scenario.Client, scenario.FirstVariantId, 1, null);
+        var read = await GetCartAsync(scenario.Client);
+
+        added.StatusCode.Should().Be(HttpStatusCode.OK);
+        added.Cart!.Items.Single().MainImage.Should().NotBeNull();
+        added.Cart.Items.Single().MainImage!.ImageUrl
+            .Should().Be("https://cdn.example.com/cart-product-one-main.jpg");
+        added.Cart.Items.Single().MainImage!.AltText.Should().Be("Cart product one");
+        read.StatusCode.Should().Be(HttpStatusCode.OK);
+        read.Cart!.Items.Single().MainImage.Should().BeEquivalentTo(
+            added.Cart.Items.Single().MainImage);
+    }
+
     // Burada guest checkout HTTP cevabının seçilen varyantı sipariş anındaki değişmez ad-değer snapshot'ıyla döndürdüğünü doğruluyorum.
     [Fact]
     public async Task Guest_Checkout_Should_Return_Variant_Name_And_Value_Snapshot()
@@ -502,6 +521,18 @@ public sealed class CartMutationFlowTests
                 status: ProductStatus.Active);
             context.Products.AddRange(firstProduct, secondProduct);
             await context.SaveChangesAsync();
+
+            context.ProductImages.AddRange(
+                new ProductImage(
+                    firstProduct,
+                    "https://cdn.example.com/cart-product-one-secondary.jpg",
+                    displayOrder: 0),
+                new ProductImage(
+                    firstProduct,
+                    "https://cdn.example.com/cart-product-one-main.jpg",
+                    displayOrder: 10,
+                    isMain: true,
+                    altText: "Cart product one"));
 
             var firstVariant = new ProductVariant(
                 firstProduct.Id,

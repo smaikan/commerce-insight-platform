@@ -41,7 +41,8 @@ public sealed record PaymentReconciliationRequest(
     Guid OrderId,
     Guid PaymentId,
     decimal Amount,
-    string IdempotencyKey);
+    string IdempotencyKey,
+    string? ProviderToken = null);
 
 // Burada sağlayıcının güvenli mutabakat sonucunun olası durumlarını tanımlıyorum.
 public enum PaymentReconciliationStatus

@@ -7,10 +7,13 @@ using ECommerce.Application.ProductTypes.Commands.UpdateProductType;
 using ECommerce.Application.ProductTypes.Dtos;
 using ECommerce.Application.ProductTypes.Queries.GetProductTypeById;
 using ECommerce.Application.ProductTypes.Queries.GetProductTypes;
+using ECommerce.Application.ProductTypes.Queries.GetPublishedProductTypeShowcase;
+using ECommerce.Application.Common.Models;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ECommerce.API.OutputCaching;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace ECommerce.API.Controllers.Product;
 
@@ -26,19 +29,35 @@ public sealed class ProductTypesController : ControllerBase
 
     // Burada ürün türü listesini herkese açık olarak sunuyorum.
     [AllowAnonymous, HttpGet]
-    public async Task<ActionResult> GetList([FromQuery] GetProductTypesQuery query, CancellationToken cancellationToken) => Ok(await _sender.Send(query, cancellationToken));
+    public async Task<ActionResult<PagedResult<ProductTypeDto>>> GetList(
+        [FromQuery] GetProductTypesQuery query,
+        CancellationToken cancellationToken) =>
+        Ok(await _sender.Send(query, cancellationToken));
+
+    // Burada storefront için aktif ve yayımlanmış ürünü bulunan kategori vitrinini toplu sunuyorum.
+    [AllowAnonymous, HttpGet("published")]
+    [OutputCache(PolicyName = "public-products")]
+    public async Task<ActionResult<PagedResult<PublishedProductTypeShowcaseItemDto>>> GetPublishedShowcase(
+        [FromQuery] GetPublishedProductTypeShowcaseQuery query,
+        CancellationToken cancellationToken) =>
+        Ok(await _sender.Send(query, cancellationToken));
 
     // Burada tek ürün türü kaydını herkese açık olarak sunuyorum.
     [AllowAnonymous, HttpGet("{id:guid}")]
     public async Task<ActionResult<ProductTypeDto>> GetById(Guid id, CancellationToken cancellationToken) => Ok(await _sender.Send(new GetProductTypeByIdQuery(id), cancellationToken));
 
     // Burada yalnız yöneticinin yeni ürün türü oluşturmasına izin veriyorum.
+    [ProducesResponseType(typeof(ProductTypeDto), StatusCodes.Status201Created)]
     [Authorize(Policy = AuthorizationPolicies.AdminOnly), HttpPost]
     public async Task<ActionResult<ProductTypeDto>> Create(CreateProductTypeCommand command, CancellationToken cancellationToken) => StatusCode(201, await _sender.Send(command, cancellationToken));
 
     // Burada yalnız yöneticinin ürün türlerini toplu oluşturmasına izin veriyorum.
+    [ProducesResponseType(typeof(IReadOnlyList<ProductTypeDto>), StatusCodes.Status201Created)]
     [Authorize(Policy = AuthorizationPolicies.AdminOnly), HttpPost("bulk")]
-    public async Task<ActionResult> BulkCreate(BulkCreateProductTypesCommand command, CancellationToken cancellationToken) => StatusCode(201, await _sender.Send(command, cancellationToken));
+    public async Task<ActionResult<IReadOnlyList<ProductTypeDto>>> BulkCreate(
+        BulkCreateProductTypesCommand command,
+        CancellationToken cancellationToken) =>
+        StatusCode(StatusCodes.Status201Created, await _sender.Send(command, cancellationToken));
 
     // Burada yalnız yöneticinin ürün türünü bağlı ürünleri koruyarak silmesine izin veriyorum.
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -51,7 +70,13 @@ public sealed class ProductTypesController : ControllerBase
 
     // Burada yalnız yöneticinin ürün türü alanlarını güncellemesine izin veriyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly), HttpPut("{id:guid}")]
-    public async Task<ActionResult<ProductTypeDto>> Update(Guid id, ProductTypeRequest request, CancellationToken cancellationToken) => Ok(await _sender.Send(new UpdateProductTypeCommand(id, request.Name, request.Description), cancellationToken));
+    public async Task<ActionResult<ProductTypeDto>> Update(
+        Guid id,
+        ProductTypeRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await _sender.Send(
+            new UpdateProductTypeCommand(id, request.Name, request.Description, request.ImageUrl),
+            cancellationToken));
 
     // Burada yalnız yöneticinin ürün türü aktifliğini değiştirmesine izin veriyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly), HttpPatch("{id:guid}/activation")]
@@ -59,4 +84,7 @@ public sealed class ProductTypesController : ControllerBase
 }
 
 // Burada ürün türü güncelleme HTTP gövdesini tanımlıyorum.
-public sealed record ProductTypeRequest(string Name, string? Description = null);
+public sealed record ProductTypeRequest(
+    string Name,
+    string? Description = null,
+    string? ImageUrl = null);

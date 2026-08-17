@@ -3048,6 +3048,9 @@ namespace ECommerce.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int?>("FraudStatus")
+                        .HasColumnType("int");
+
                     b.Property<string>("IdempotencyKey")
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
@@ -3058,10 +3061,25 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("PaymentPageUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("ProviderConversationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ProviderToken")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ProviderTokenExpiresAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -3079,6 +3097,14 @@ namespace ECommerce.Persistence.Migrations
                     b.HasIndex("OrderId", "IdempotencyKey")
                         .IsUnique()
                         .HasFilter("[IdempotencyKey] IS NOT NULL");
+
+                    b.HasIndex("Provider", "ProviderConversationId")
+                        .IsUnique()
+                        .HasFilter("[ProviderConversationId] IS NOT NULL");
+
+                    b.HasIndex("Provider", "ProviderToken")
+                        .IsUnique()
+                        .HasFilter("[ProviderToken] IS NOT NULL");
 
                     b.HasIndex("Provider", "TransactionId")
                         .IsUnique()
@@ -3467,6 +3493,10 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");

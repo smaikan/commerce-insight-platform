@@ -4,6 +4,7 @@ namespace ECommerce.Application.ProductTypes.Commands.BulkCreateProductTypes;
 
 public sealed class BulkCreateProductTypesCommandValidator : AbstractValidator<BulkCreateProductTypesCommand>
 {
+    // Burada toplu ürün türü isteğinin adet ve alan sınırlarını tanımlıyorum.
     public BulkCreateProductTypesCommandValidator()
     {
         RuleFor(command => command.ProductTypes)
@@ -20,6 +21,9 @@ public sealed class BulkCreateProductTypesCommandValidator : AbstractValidator<B
 
                 productType.RuleFor(item => item.Description)
                     .MaximumLength(1000);
+
+                productType.RuleFor(item => item.ImageUrl)
+                    .MaximumLength(ECommerce.Domain.Entities.ProductType.MaximumImageUrlLength);
             });
     }
 }

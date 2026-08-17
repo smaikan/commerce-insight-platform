@@ -66,6 +66,18 @@ public sealed class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(order => order.Id == orderId, cancellationToken);
     }
 
+    // Burada dış dünyaya açılmayan provider tokenıyla ödeme ve sipariş grafiğini tek sorgu akışında buluyorum.
+    public Task<Order?> GetByPaymentProviderTokenAsync(
+        string providerToken,
+        bool forUpdate,
+        CancellationToken cancellationToken = default)
+    {
+        var query = forUpdate ? CreateUpdateGraphQuery() : CreateReadGraphQuery();
+        return query.FirstOrDefaultAsync(
+            order => order.Payments.Any(payment => payment.ProviderToken == providerToken),
+            cancellationToken);
+    }
+
     // Burada kesin iptal edilebilir rezervasyonları belirsiz sağlayıcı denemelerinin önüne alıp kararlı sırayla takip etmeden getiriyorum.
     public async Task<IReadOnlyList<Order>> GetExpiredStockReservationsAsync(
         DateTime utcNow,

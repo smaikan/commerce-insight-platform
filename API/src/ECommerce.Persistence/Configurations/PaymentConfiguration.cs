@@ -39,12 +39,27 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.Property(payment => payment.FailureReason)
             .HasMaxLength(500);
 
+        builder.Property(payment => payment.ProviderToken)
+            .HasMaxLength(Payment.MaximumProviderTokenLength);
+
+        builder.Property(payment => payment.ProviderConversationId)
+            .HasMaxLength(Payment.MaximumConversationIdLength);
+
+        builder.Property(payment => payment.PaymentPageUrl)
+            .HasMaxLength(Payment.MaximumPaymentPageUrlLength);
+
         builder.HasIndex(payment => payment.OrderId);
         builder.HasIndex(payment => new { payment.OrderId, payment.IdempotencyKey })
             .HasFilter("[IdempotencyKey] IS NOT NULL")
             .IsUnique();
         builder.HasIndex(payment => new { payment.Provider, payment.TransactionId })
             .HasFilter("[TransactionId] IS NOT NULL")
+            .IsUnique();
+        builder.HasIndex(payment => new { payment.Provider, payment.ProviderToken })
+            .HasFilter("[ProviderToken] IS NOT NULL")
+            .IsUnique();
+        builder.HasIndex(payment => new { payment.Provider, payment.ProviderConversationId })
+            .HasFilter("[ProviderConversationId] IS NOT NULL")
             .IsUnique();
     }
 }
