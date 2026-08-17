@@ -14,6 +14,7 @@ public sealed record UpdateAddressCommand(
     string PhoneNumber,
     string City,
     string District,
+    string? Neighborhood,
     string FullAddress,
     string? PostalCode = null,
     bool IsDefault = false) : IRequest<AddressDto>;

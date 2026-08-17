@@ -61,6 +61,7 @@ public sealed class CreateAddressCommandHandler : IRequestHandler<CreateAddressC
             request.PhoneNumber,
             request.City,
             request.District,
+            request.Neighborhood,
             request.FullAddress,
             request.PostalCode,
             request.IsDefault);
@@ -70,3 +71,4 @@ public sealed class CreateAddressCommandHandler : IRequestHandler<CreateAddressC
         return address.ToDto();
     }
 }
+

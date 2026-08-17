@@ -72,6 +72,7 @@ public sealed class AddressApplicationTests
                 "05000000000",
                 "İzmir",
                 "Konak",
+                "Mahalle",
                 "Adres"),
             CancellationToken.None);
 
@@ -178,12 +179,14 @@ public sealed class AddressApplicationTests
                 string.Empty,
                 string.Empty,
                 string.Empty,
+                string.Empty,
                 new string('P', Address.MaximumPostalCodeLength + 1)))
             .IsValid.Should().BeFalse();
         new UpdateAddressCommandValidator()
             .Validate(new UpdateAddressCommand(
                 Guid.Empty,
                 (AddressType)99,
+                string.Empty,
                 string.Empty,
                 string.Empty,
                 string.Empty,
@@ -214,6 +217,7 @@ public sealed class AddressApplicationTests
             "05000000000",
             "İzmir",
             "Konak",
+            "Mahalle",
             "Alsancak Mahallesi 1. Sokak No: 1",
             "35220",
             isDefault);
@@ -233,6 +237,7 @@ public sealed class AddressApplicationTests
             "05000000000",
             "İzmir",
             "Konak",
+            "Mahalle",
             "Alsancak Mahallesi 1. Sokak No: 1",
             "35220",
             isDefault);
@@ -261,3 +266,5 @@ public sealed class AddressApplicationTests
         public long? UserId { get; }
     }
 }
+
+

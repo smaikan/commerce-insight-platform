@@ -35,9 +35,9 @@ public sealed class GuestCheckoutDomainTests
 
         order.SetCustomerSnapshot("Ada", "Lovelace", "ADA@EXAMPLE.COM", "+905551112233");
         order.SetGuestShippingAddressSnapshot(
-            "Ev", "Ada", "Lovelace", "+905551112233", "İstanbul", "Kadıköy", "Örnek Sokak 1", "34000");
+            "Ev", "Ada", "Lovelace", "+905551112233", "İstanbul", "Kadıköy", "Mahalle", "Örnek Sokak 1", "34000");
         order.SetBillingAddressSnapshot(
-            null, "Fatura", "Ada", "Lovelace", "+905551112233", "İstanbul", "Kadıköy", "Örnek Sokak 1", "34000");
+            null, "Fatura", "Ada", "Lovelace", "+905551112233", "İstanbul", "Kadıköy", "Mahalle", "Örnek Sokak 1", "34000");
 
         order.UserId.Should().BeNull();
         order.CustomerSnapshot!.Email.Should().Be("ada@example.com");
@@ -88,3 +88,6 @@ public sealed class GuestCheckoutDomainTests
         grant.GrantedAt.Should().Be(now.AddMinutes(2));
     }
 }
+
+
+

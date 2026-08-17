@@ -166,7 +166,7 @@ public sealed class OrderPaymentWorkflowPersistenceTests
 
         savedOrder.ShippingAddressSnapshot.Should().NotBeNull();
         savedOrder.ShippingAddressSnapshot!.SourceAddressId.Should().Be(sourceAddressId);
-        savedOrder.ShippingAddressSnapshot.FullAddress.Should().Be("Street 1");
+        savedOrder.ShippingAddressSnapshot.FullAddress.Should().Be("Full Address");
     }
 
     // Burada ürün medya snapshot'larıyla kargo takip geçmişinin ilişkisel depoda birlikte kalıcı olduğunu doğruluyorum.
@@ -315,6 +315,7 @@ public sealed class OrderPaymentWorkflowPersistenceTests
             "Izmir",
             "Konak",
             "Street 1",
+            "Full Address",
             "35220",
             isDefault);
     }

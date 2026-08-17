@@ -252,11 +252,11 @@ public sealed record GuestAddressRequest(
     string LastName,
     string PhoneNumber,
     string City,
-    string District,
+    string District, string? Neighborhood,
     string FullAddress,
     string? PostalCode = null)
 {
     // Burada HTTP adres modelini zorunlu shipping veya billing tipli Application girdisine dönüştürüyorum.
     public CheckoutAddressInput ToInput(AddressType type) => new(
-        null, type, Title, FirstName, LastName, PhoneNumber, City, District, FullAddress, PostalCode);
+        null, type, Title, FirstName, LastName, PhoneNumber, City, District, Neighborhood, FullAddress, PostalCode);
 }

@@ -186,6 +186,7 @@ public sealed class Order : AuditableEntity
         string phoneNumber,
         string city,
         string district,
+        string? neighborhood,
         string fullAddress,
         string? postalCode)
     {
@@ -199,6 +200,7 @@ public sealed class Order : AuditableEntity
             phoneNumber,
             city,
             district,
+            neighborhood,
             fullAddress,
             postalCode));
     }
@@ -212,6 +214,7 @@ public sealed class Order : AuditableEntity
         string phoneNumber,
         string city,
         string district,
+        string? neighborhood,
         string fullAddress,
         string? postalCode)
     {
@@ -225,6 +228,7 @@ public sealed class Order : AuditableEntity
             phoneNumber,
             city,
             district,
+            neighborhood,
             fullAddress,
             postalCode));
     }

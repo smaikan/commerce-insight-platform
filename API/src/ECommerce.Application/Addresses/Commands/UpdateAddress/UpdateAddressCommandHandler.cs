@@ -73,6 +73,7 @@ public sealed class UpdateAddressCommandHandler : IRequestHandler<UpdateAddressC
             request.PhoneNumber,
             request.City,
             request.District,
+            request.Neighborhood,
             request.FullAddress,
             request.PostalCode);
 
@@ -85,3 +86,4 @@ public sealed class UpdateAddressCommandHandler : IRequestHandler<UpdateAddressC
         return address.ToDto();
     }
 }
+

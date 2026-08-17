@@ -11,6 +11,7 @@ public sealed class OrderAddressSnapshot : BaseEntity
     public const int MaximumPhoneNumberLength = 30;
     public const int MaximumCityLength = 100;
     public const int MaximumDistrictLength = 100;
+    public const int MaximumNeighborhoodLength = 100;
     public const int MaximumFullAddressLength = 500;
     public const int MaximumPostalCodeLength = 20;
 
@@ -24,6 +25,7 @@ public sealed class OrderAddressSnapshot : BaseEntity
     public string PhoneNumber { get; private set; } = null!;
     public string City { get; private set; } = null!;
     public string District { get; private set; } = null!;
+    public string? Neighborhood { get; private set; }
     public string FullAddress { get; private set; } = null!;
     public string? PostalCode { get; private set; }
 
@@ -55,6 +57,7 @@ public sealed class OrderAddressSnapshot : BaseEntity
         PhoneNumber = CopyRequired(address.PhoneNumber, MaximumPhoneNumberLength, "Address phone number");
         City = CopyRequired(address.City, MaximumCityLength, "Address city");
         District = CopyRequired(address.District, MaximumDistrictLength, "Address district");
+        Neighborhood = CopyOptional(address.Neighborhood, MaximumNeighborhoodLength, "Address neighborhood");
         FullAddress = CopyRequired(address.FullAddress, MaximumFullAddressLength, "Address full address");
         PostalCode = CopyOptional(address.PostalCode, MaximumPostalCodeLength, "Address postal code");
     }
@@ -70,6 +73,7 @@ public sealed class OrderAddressSnapshot : BaseEntity
         string phoneNumber,
         string city,
         string district,
+        string? neighborhood,
         string fullAddress,
         string? postalCode)
     {
@@ -90,6 +94,7 @@ public sealed class OrderAddressSnapshot : BaseEntity
         PhoneNumber = CopyRequired(phoneNumber, MaximumPhoneNumberLength, "Address phone number");
         City = CopyRequired(city, MaximumCityLength, "Address city");
         District = CopyRequired(district, MaximumDistrictLength, "Address district");
+        Neighborhood = CopyOptional(neighborhood, MaximumNeighborhoodLength, "Address neighborhood");
         FullAddress = CopyRequired(fullAddress, MaximumFullAddressLength, "Address full address");
         PostalCode = CopyOptional(postalCode, MaximumPostalCodeLength, "Address postal code");
     }

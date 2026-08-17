@@ -18,9 +18,11 @@ public sealed class OrderAddressSnapshotConfiguration : IEntityTypeConfiguration
         builder.Property(snapshot => snapshot.PhoneNumber).HasMaxLength(OrderAddressSnapshot.MaximumPhoneNumberLength).IsRequired();
         builder.Property(snapshot => snapshot.City).HasMaxLength(OrderAddressSnapshot.MaximumCityLength).IsRequired();
         builder.Property(snapshot => snapshot.District).HasMaxLength(OrderAddressSnapshot.MaximumDistrictLength).IsRequired();
+        builder.Property(snapshot => snapshot.Neighborhood).HasMaxLength(OrderAddressSnapshot.MaximumNeighborhoodLength).IsRequired(false);
         builder.Property(snapshot => snapshot.FullAddress).HasMaxLength(OrderAddressSnapshot.MaximumFullAddressLength).IsRequired();
         builder.Property(snapshot => snapshot.PostalCode).HasMaxLength(OrderAddressSnapshot.MaximumPostalCodeLength);
         builder.HasIndex(snapshot => snapshot.SourceAddressId);
         builder.HasIndex(snapshot => new { snapshot.OrderId, snapshot.Type }).IsUnique();
     }
 }
+

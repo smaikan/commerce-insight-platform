@@ -15,7 +15,9 @@ public sealed class CreateAddressCommandValidator : AbstractValidator<CreateAddr
         RuleFor(command => command.PhoneNumber).NotEmpty().MaximumLength(Address.MaximumPhoneNumberLength);
         RuleFor(command => command.City).NotEmpty().MaximumLength(Address.MaximumCityLength);
         RuleFor(command => command.District).NotEmpty().MaximumLength(Address.MaximumDistrictLength);
+        RuleFor(command => command.Neighborhood).MaximumLength(Address.MaximumNeighborhoodLength);
         RuleFor(command => command.FullAddress).NotEmpty().MaximumLength(Address.MaximumFullAddressLength);
         RuleFor(command => command.PostalCode).MaximumLength(Address.MaximumPostalCodeLength);
     }
 }
+

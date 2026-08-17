@@ -49,6 +49,7 @@ public sealed class AddressesController : ControllerBase
                 request.PhoneNumber,
                 request.City,
                 request.District,
+                request.Neighborhood,
                 request.FullAddress,
                 request.PostalCode,
                 request.IsDefault),
@@ -73,6 +74,7 @@ public sealed class AddressesController : ControllerBase
                 request.PhoneNumber,
                 request.City,
                 request.District,
+                request.Neighborhood,
                 request.FullAddress,
                 request.PostalCode,
                 request.IsDefault),
@@ -105,7 +107,8 @@ public sealed record AddressRequest(
     string LastName,
     string PhoneNumber,
     string City,
-    string District,
+    string District, string? Neighborhood,
     string FullAddress,
     string? PostalCode = null,
     bool IsDefault = false);
+

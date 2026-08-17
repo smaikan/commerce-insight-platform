@@ -159,9 +159,7 @@ public sealed class CreateOrderCommandHandlerTests
             "Ada",
             "Yilmaz",
             "05000000000",
-            "Izmir",
-            "Konak",
-            "Street 1");
+            "Izmir", "Konak", "Mahalle", "Street 1");
         var coupon = new Coupon("SAVE20", CouponDiscountType.Percentage, 20m);
         var shippingMethod = new ShippingMethod("Standard", 0m);
         var carts = new Mock<ICartRepository>();
@@ -260,9 +258,7 @@ public sealed class CreateOrderCommandHandlerTests
             "Ada",
             "Yilmaz",
             "05000000000",
-            "Izmir",
-            "Konak",
-            "Street 1");
+            "Izmir", "Konak", "Mahalle", "Street 1");
         var shippingMethod = new ShippingMethod("Express", 15m);
         var carts = new Mock<ICartRepository>();
         var products = new Mock<IProductRepository>();
@@ -476,3 +472,6 @@ public sealed class CreateOrderCommandHandlerTests
         public DateTime UtcNow => new(2026, 7, 24, 12, 0, 0, DateTimeKind.Utc);
     }
 }
+
+
+

@@ -45,6 +45,10 @@ public sealed class AddressConfiguration : IEntityTypeConfiguration<Address>
             .HasMaxLength(100)
             .IsRequired();
 
+        builder.Property(address => address.Neighborhood)
+            .HasMaxLength(100)
+            .IsRequired(false);
+
         builder.Property(address => address.FullAddress)
             .HasMaxLength(500)
             .IsRequired();
@@ -58,3 +62,4 @@ public sealed class AddressConfiguration : IEntityTypeConfiguration<Address>
             .IsUnique();
     }
 }
+

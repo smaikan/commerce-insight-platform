@@ -53,6 +53,7 @@ public sealed class AddressTests
             "05000000000",
             "Ankara",
             "Çankaya",
+            "Mahalle",
             "Yeni adres",
             "06000");
 
@@ -79,7 +80,10 @@ public sealed class AddressTests
             "05000000000",
             city,
             "Konak",
+            "Mahalle",
             fullAddress,
             postalCode);
     }
 }
+
+

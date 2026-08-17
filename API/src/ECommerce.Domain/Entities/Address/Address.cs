@@ -11,6 +11,7 @@ public sealed class Address : AuditableEntity
     public const int MaximumPhoneNumberLength = 30;
     public const int MaximumCityLength = 100;
     public const int MaximumDistrictLength = 100;
+    public const int MaximumNeighborhoodLength = 100;
     public const int MaximumFullAddressLength = 500;
     public const int MaximumPostalCodeLength = 20;
 
@@ -22,6 +23,7 @@ public sealed class Address : AuditableEntity
     public string PhoneNumber { get; private set; } = null!;
     public string City { get; private set; } = null!;
     public string District { get; private set; } = null!;
+    public string? Neighborhood { get; private set; }
     public string FullAddress { get; private set; } = null!;
     public string? PostalCode { get; private set; }
     public bool IsDefault { get; private set; }
@@ -41,6 +43,7 @@ public sealed class Address : AuditableEntity
         string phoneNumber,
         string city,
         string district,
+        string? neighborhood,
         string fullAddress,
         string? postalCode = null,
         bool isDefault = false)
@@ -51,7 +54,7 @@ public sealed class Address : AuditableEntity
         }
 
         UserId = userId;
-        ApplyDetails(type, title, firstName, lastName, phoneNumber, city, district, fullAddress, postalCode);
+        ApplyDetails(type, title, firstName, lastName, phoneNumber, city, district, neighborhood, fullAddress, postalCode);
         IsDefault = isDefault;
     }
 
@@ -64,10 +67,11 @@ public sealed class Address : AuditableEntity
         string phoneNumber,
         string city,
         string district,
+        string? neighborhood,
         string fullAddress,
         string? postalCode = null)
     {
-        ApplyDetails(type, title, firstName, lastName, phoneNumber, city, district, fullAddress, postalCode);
+        ApplyDetails(type, title, firstName, lastName, phoneNumber, city, district, neighborhood, fullAddress, postalCode);
         MarkAsUpdated();
     }
 
@@ -94,6 +98,7 @@ public sealed class Address : AuditableEntity
         string phoneNumber,
         string city,
         string district,
+        string? neighborhood,
         string fullAddress,
         string? postalCode)
     {
@@ -104,6 +109,7 @@ public sealed class Address : AuditableEntity
         PhoneNumber = NormalizeRequired(phoneNumber, MaximumPhoneNumberLength, "Address phone number");
         City = NormalizeRequired(city, MaximumCityLength, "Address city");
         District = NormalizeRequired(district, MaximumDistrictLength, "Address district");
+        Neighborhood = NormalizeOptional(neighborhood, MaximumNeighborhoodLength, "Address neighborhood");
         FullAddress = NormalizeRequired(fullAddress, MaximumFullAddressLength, "Full address");
         PostalCode = NormalizeOptional(postalCode, MaximumPostalCodeLength, "Postal code");
     }

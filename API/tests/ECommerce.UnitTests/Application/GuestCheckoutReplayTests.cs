@@ -61,13 +61,13 @@ public sealed class GuestCheckoutReplayTests
     private static CreateGuestOrderCommand CreateCommand() => new(
         "cart", null, "192.0.2.1", null, "key", Guid.Parse("5f9c71b8-3535-4768-b67c-9036b194fcea"),
         new CheckoutCustomerInput("Ada", "Lovelace", "ada@example.com", "+905551112233"),
-        new CheckoutAddressInput(null, AddressType.Shipping, "Ev", "Ada", "Lovelace", "+905551112233", "Istanbul", "Kadikoy", "Ornek Sokak 1", "34000"),
+        new CheckoutAddressInput(null, AddressType.Shipping, "Ev", "Ada", "Lovelace", "+905551112233", "Istanbul", "Kadikoy", "Mahalle", "Ornek Sokak 1", "34000"),
         null, Guid.Parse("8d4d2a3d-8535-42fa-8528-896536562a5b"), "welcome");
 
     // Burada üretimdeki PII saklamayan istek parmak iziyle aynı sıralı metni hazırlıyorum.
     private static string CreateFingerprint() => string.Join('|',
         "5f9c71b835354768b67c9036b194fcea", "Ada", "Lovelace", "ada@example.com", "+905551112233",
-        "0~Ev~Ada~Lovelace~+905551112233~Istanbul~Kadikoy~Ornek Sokak 1~34000", "billing=fallback",
+        "0~Ev~Ada~Lovelace~+905551112233~Istanbul~Kadikoy~Mahalle~Sokak~Ornek Sokak 1~34000", "billing=fallback",
         "8d4d2a3d853542fa8528896536562a5b", "WELCOME");
 
     // Burada testin kullandığı hash değerini token servisinin güvenli üretim kuralıyla uyumlu hazırlıyorum.
@@ -97,3 +97,6 @@ public sealed class GuestCheckoutReplayTests
         public DateTime UtcNow => _now;
     }
 }
+
+
+

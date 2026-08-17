@@ -111,6 +111,7 @@ public sealed class AddressesControllerTests
             "05000000000",
             "襤zmir",
             "Konak",
+            null,
             "Alsancak Mahallesi 1. Sokak No: 1",
             "35220",
             isDefault);
@@ -180,17 +181,18 @@ public sealed class AddressesControllerTests
         }
 
         // Burada controller cevaplar覺 i癟in temsil簾 ve g羹venli adres DTO'su haz覺rl覺yorum.
-        private static AddressDto CreateAddressDto()
+                private static AddressDto CreateAddressDto()
         {
             return new AddressDto(
                 Guid.NewGuid(),
                 AddressType.Shipping,
                 "Ev",
                 "Ada",
-                "Y覺lmaz",
+                "Y�lmaz",
                 "05000000000",
-                "襤zmir",
+                "搐mir",
                 "Konak",
+                "Adres",
                 "Adres",
                 "35220",
                 false,
@@ -206,3 +208,4 @@ public sealed class AddressesControllerTests
         }
     }
 }
+

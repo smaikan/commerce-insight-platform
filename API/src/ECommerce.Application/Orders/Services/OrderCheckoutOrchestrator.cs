@@ -232,17 +232,13 @@ public sealed class OrderCheckoutOrchestrator
     // Burada guest teslimat adresini sipariş aggregate'ına ekliyorum.
     private static void SetGuestShippingSnapshot(Order order, CheckoutAddressInput address)
     {
-        order.SetGuestShippingAddressSnapshot(
-            address.Title, address.FirstName, address.LastName, address.PhoneNumber,
-            address.City, address.District, address.FullAddress, address.PostalCode);
+        order.SetGuestShippingAddressSnapshot(address.Title, address.FirstName, address.LastName, address.PhoneNumber, address.City, address.District, address.Neighborhood, address.FullAddress, address.PostalCode);
     }
 
     // Burada zorunlu billing snapshot'ını ayrı adres veya teslimat fallback'iyle ekliyorum.
     private static void SetBillingSnapshot(Order order, CheckoutAddressInput address)
     {
-        order.SetBillingAddressSnapshot(
-            address.SourceAddressId, address.Title, address.FirstName, address.LastName,
-            address.PhoneNumber, address.City, address.District, address.FullAddress, address.PostalCode);
+        order.SetBillingAddressSnapshot(address.SourceAddressId, address.Title, address.FirstName, address.LastName, address.PhoneNumber, address.City, address.District, address.Neighborhood, address.FullAddress, address.PostalCode);
     }
 
     // Burada güvenilir katalog ve fiyat snapshot'larını sipariş kalemlerine ekliyorum.
@@ -332,12 +328,14 @@ public sealed record CheckoutAddressInput(
     string LastName,
     string PhoneNumber,
     string City,
-    string District,
+    string District, string? Neighborhood,
     string FullAddress,
     string? PostalCode)
 {
     // Burada kayıtlı kullanıcı adresini ortak checkout snapshot girdisine dönüştürüyorum.
     public static CheckoutAddressInput FromAddress(Address address) => new(
         address.Id, address.Type, address.Title, address.FirstName, address.LastName,
-        address.PhoneNumber, address.City, address.District, address.FullAddress, address.PostalCode);
+        address.PhoneNumber, address.City, address.District, address.Neighborhood, address.FullAddress, address.PostalCode);
 }
+
+
