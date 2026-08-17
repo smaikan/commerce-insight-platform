@@ -7,25 +7,17 @@ type BannerMediaProps = {
   variant: "main" | "main-secondary" | "alternate";
 };
 
+import { HeroBannerCarousel } from "./hero-banner-carousel";
+
 // Burada seçili ana bannerı ilk sıraya alıp kalan aktif kayıtları erişilebilir yatay seçki olarak sunuyorum.
 export function MainBannerSection({ section }: { section?: BannerSection | null }) {
   if (!section?.items.length) return null;
   const items = orderMainItems(section.items);
-  const [primary, ...secondary] = items;
 
   return (
-    <section aria-labelledby="main-banner-heading" className="mx-auto w-full max-w-[90rem] px-4 pt-4 sm:px-6 sm:pt-6 lg:px-8">
+    <section aria-labelledby="main-banner-heading" className="w-full">
       <h2 id="main-banner-heading" className="sr-only">{section.name}</h2>
-      <BannerMedia item={primary} priority variant="main" />
-      {secondary.length ? (
-        <ul aria-label={`${section.name} diğer içerikleri`} className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
-          {secondary.map((item) => (
-            <li key={item.id} className="w-[78%] shrink-0 snap-start sm:w-[48%] lg:w-[32%]">
-              <BannerMedia item={item} variant="main-secondary" />
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <HeroBannerCarousel items={items} />
     </section>
   );
 }
@@ -57,7 +49,7 @@ export function AlternateBannerSection({ section }: { section?: BannerSection | 
 export function BannerMedia({ item, priority = false, variant }: BannerMediaProps) {
   const href = safeTargetUrl(item.targetUrl);
   const frameClass = variant === "main"
-    ? "aspect-[16/11] sm:aspect-[16/7] lg:aspect-[21/8]"
+    ? "h-[75vh] w-full"
     : "aspect-video";
   const media = item.mediaType === 2 ? (
     <video
@@ -75,18 +67,21 @@ export function BannerMedia({ item, priority = false, variant }: BannerMediaProp
       src={item.mediaUrl}
       alt={item.altText || ""}
       fill
+      draggable={false}
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : undefined}
       sizes={variant === "main" ? "(min-width: 1440px) 1440px, 100vw" : "(min-width: 1024px) 32vw, (min-width: 640px) 48vw, 78vw"}
     />
   );
 
+  const roundedClass = variant === "main" ? "rounded-none" : "rounded-xl";
+
   if (item.mediaType === 2) {
     return (
-      <div className={`relative overflow-hidden rounded-xl bg-surface-subtle ${frameClass}`}>
+      <div className={`relative overflow-hidden ${roundedClass} bg-surface-subtle ${frameClass}`}>
         {media}
         {href ? (
-          <a href={href} className="absolute right-3 top-3 inline-flex min-h-10 items-center rounded-lg bg-white/95 px-3 text-sm font-semibold text-zinc-950 shadow-sm outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2" aria-label={`${item.altText || item.name}: içeriğe git`}>
+          <a draggable={false} href={href} className="absolute right-3 top-3 inline-flex min-h-10 items-center rounded-lg bg-white/95 px-3 text-sm font-semibold text-zinc-950 shadow-sm outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2" aria-label={`${item.altText || item.name}: içeriğe git`}>
             İçeriğe git
           </a>
         ) : null}
@@ -95,11 +90,11 @@ export function BannerMedia({ item, priority = false, variant }: BannerMediaProp
   }
 
   return href ? (
-    <a href={href} className={`relative block overflow-hidden rounded-xl bg-surface-subtle outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 ${frameClass}`} aria-label={item.altText || item.name}>
+    <a draggable={false} href={href} className={`relative block overflow-hidden ${roundedClass} bg-surface-subtle outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 ${frameClass}`} aria-label={item.altText || item.name}>
       {media}
     </a>
   ) : (
-    <div className={`relative overflow-hidden rounded-xl bg-surface-subtle ${frameClass}`}>{media}</div>
+    <div className={`relative overflow-hidden ${roundedClass} bg-surface-subtle ${frameClass}`}>{media}</div>
   );
 }
 
@@ -112,11 +107,10 @@ function orderMainItems(items: BannerSectionItem[]): BannerSectionItem[] {
 function safeTargetUrl(value?: string | null): string | undefined {
   const target = value?.trim();
   if (!target) return undefined;
+  if (target.startsWith("http://") || target.startsWith("https://")) return target;
   if (target.startsWith("/") && !target.startsWith("//")) return target;
-  try {
-    const parsed = new URL(target);
-    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : undefined;
-  } catch {
-    return undefined;
-  }
+  // If it's a relative path without slash like 'products'
+  if (!target.includes("://") && !target.startsWith("//")) return `/${target}`;
+
+  return undefined;
 }
