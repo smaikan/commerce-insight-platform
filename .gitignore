@@ -24,6 +24,9 @@ API/**/*.nupkg
 API/**/*.snupkg
 
 API/**/appsettings.Local.json
+API/**/.env
+API/**/.env.*
+!API/**/.env.example
 API/**/*.db
 API/**/*.db-shm
 API/**/*.db-wal
