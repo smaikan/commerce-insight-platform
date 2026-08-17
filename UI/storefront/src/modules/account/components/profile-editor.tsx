@@ -6,6 +6,7 @@ import { useActionState, useState } from "react";
 import { updateProfileAction } from "@/modules/account/actions";
 import { ActionFeedback } from "@/modules/account/components/action-feedback";
 import { INITIAL_ACCOUNT_ACTION_STATE, type AccountUser } from "@/modules/account/contracts";
+import { PhoneField } from "@/components/storefront/phone-field";
 
 // Burada müşteri profilini önce okunabilir özet, isteğe bağlı olarak da dar kapsamlı düzenleme formu halinde sunuyorum.
 export function ProfileEditor({ user }: { user: AccountUser }) {
@@ -29,7 +30,7 @@ export function ProfileEditor({ user }: { user: AccountUser }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <ProfileField label="Ad" name="firstName" defaultValue={user.firstName} error={state.fieldErrors?.firstName} autoComplete="given-name" />
             <ProfileField label="Soyad" name="lastName" defaultValue={user.lastName} error={state.fieldErrors?.lastName} autoComplete="family-name" />
-            <ProfileField label="Telefon" name="phoneNumber" defaultValue={user.phoneNumber ?? ""} error={state.fieldErrors?.phoneNumber} autoComplete="tel" type="tel" />
+            <PhoneField variant="account" label="Telefon" name="phoneNumber" defaultValue={user.phoneNumber ?? ""} error={state.fieldErrors?.phoneNumber} autoComplete="tel" />
             <div>
               <p className="text-xs font-bold text-ink">E-posta</p>
               <p className="mt-2 min-h-11 border border-line bg-surface-subtle px-3 py-2.5 text-sm text-ink-muted">{user.email}</p>

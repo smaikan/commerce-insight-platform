@@ -34,6 +34,8 @@ import {
   subscribeToCart,
 } from "@/modules/cart/client/cart-api";
 import type { Cart } from "@/modules/cart/types";
+import { TurkiyeAddressFields } from "@/components/storefront/turkiye-address-fields";
+import { PhoneField } from "@/components/storefront/phone-field";
 
 type CartState =
   | { kind: "loading" }
@@ -252,95 +254,93 @@ export function CheckoutForm({
           ) : null}
 
           <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
-          {isMember ? (
-            <CheckoutSection title="Teslimat adresi" description="Hesabınızdaki teslimat adreslerinden birini seçin.">
-              {memberShippingAddresses.length > 0 ? (
+            {isMember ? (
+              <CheckoutSection title="Teslimat adresi" description="Hesabınızdaki teslimat adreslerinden birini seçin.">
+                {memberShippingAddresses.length > 0 ? (
+                  <fieldset>
+                    <legend className="sr-only">Teslimat adresi seçin</legend>
+                    <div className="grid gap-3">
+                      {memberShippingAddresses.map((address) => (
+                        <label key={address.id} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${selectedAddressId === address.id ? "border-brand-700 bg-surface-subtle" : "border-line bg-surface"}`}>
+                          <input
+                            type="radio"
+                            name="shippingAddressId"
+                            value={address.id}
+                            checked={selectedAddressId === address.id}
+                            onChange={() => setSelectedAddressId(address.id)}
+                            className="mt-1 size-4 shrink-0 accent-brand-700"
+                          />
+                          <span className="min-w-0 text-sm leading-6 text-ink-muted">
+                            <span className="block font-bold text-ink">{address.title}{address.isDefault ? " · Varsayılan" : ""}</span>
+                            <span className="block">{address.firstName} {address.lastName}</span>
+                            <span className="block">{address.fullAddress}</span>
+                            <span className="block">{address.district} / {address.city}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    {fieldErrors.shippingAddressId ? <p className="mt-2 text-sm font-semibold text-danger">{fieldErrors.shippingAddressId}</p> : null}
+                  </fieldset>
+                ) : (
+                  <div className="rounded-xl border border-danger/25 bg-danger/5 p-4 text-sm leading-6 text-danger">
+                    <p>Teslimat için hesabınıza bir teslimat adresi eklemeniz gerekiyor.</p>
+                    <Link href="/account/addresses" className="focus-ring mt-3 inline-flex min-h-11 items-center font-bold underline underline-offset-4">Adreslerime git</Link>
+                  </div>
+                )}
+              </CheckoutSection>
+            ) : (
+              <>
+                <CheckoutSection title="İletişim" description="Sipariş durumu ve erişim bağlantısı bu e-posta adresine gönderilir.">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <TextField name="customerEmail" label="E-posta" type="email" inputMode="email" autoComplete="email" maxLength={320} required error={fieldErrors.customerEmail} />
+                    <PhoneField name="customerPhoneNumber" label="Telefon" autoComplete="tel" required error={fieldErrors.customerPhoneNumber} />
+                  </div>
+                </CheckoutSection>
+
+                <CheckoutSection title="Teslimat adresi" description="Teslimatı alacak kişinin ve adresin bilgilerini girin.">
+                  <AddressFields prefix="shipping" errors={fieldErrors} />
+                </CheckoutSection>
+
+                <CheckoutSection title="Fatura adresi">
+                  <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-ink">
+                    <input type="checkbox" checked={sameBillingAddress} onChange={(event) => setSameBillingAddress(event.target.checked)} className="size-4 accent-brand-700" />
+                    Fatura adresim teslimat adresimle aynı
+                  </label>
+                  {!sameBillingAddress ? <div className="mt-5"><AddressFields prefix="billing" errors={fieldErrors} /></div> : null}
+                </CheckoutSection>
+              </>
+            )}
+
+            <CheckoutSection title="Kargo yöntemi" description="Kargo adı ve ücreti sipariş oluşturulurken API tarafından yeniden doğrulanır.">
+              {shippingMethods.length > 0 ? (
                 <fieldset>
-                  <legend className="sr-only">Teslimat adresi seçin</legend>
+                  <legend className="sr-only">Kargo yöntemi seçin</legend>
                   <div className="grid gap-3">
-                    {memberShippingAddresses.map((address) => (
-                      <label key={address.id} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${selectedAddressId === address.id ? "border-brand-700 bg-surface-subtle" : "border-line bg-surface"}`}>
+                    {shippingMethods.map((method) => (
+                      <label key={method.id} className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border p-4 ${selectedShippingMethodId === method.id ? "border-brand-700 bg-surface-subtle" : "border-line bg-surface"}`}>
                         <input
                           type="radio"
-                          name="shippingAddressId"
-                          value={address.id}
-                          checked={selectedAddressId === address.id}
-                          onChange={() => setSelectedAddressId(address.id)}
-                          className="mt-1 size-4 shrink-0 accent-brand-700"
+                          name="shippingMethodId"
+                          value={method.id}
+                          checked={selectedShippingMethodId === method.id}
+                          onChange={() => setSelectedShippingMethodId(method.id)}
+                          className="size-4 accent-brand-700"
                         />
-                        <span className="min-w-0 text-sm leading-6 text-ink-muted">
-                          <span className="block font-bold text-ink">{address.title}{address.isDefault ? " · Varsayılan" : ""}</span>
-                          <span className="block">{address.firstName} {address.lastName}</span>
-                          <span className="block">{address.fullAddress}</span>
-                          <span className="block">{address.district} / {address.city}</span>
-                        </span>
+                        <span className="min-w-0 flex-1 text-sm font-bold text-ink">{method.name}</span>
+                        <span className="shrink-0 text-sm font-semibold text-ink">{method.fixedFee === 0 ? "Ücretsiz" : formatMoney(method.fixedFee, currency)}</span>
                       </label>
                     ))}
                   </div>
-                  {fieldErrors.shippingAddressId ? <p className="mt-2 text-sm font-semibold text-danger">{fieldErrors.shippingAddressId}</p> : null}
+                  {fieldErrors.shippingMethodId ? <p className="mt-2 text-sm font-semibold text-danger">{fieldErrors.shippingMethodId}</p> : null}
                 </fieldset>
               ) : (
-                <div className="rounded-xl border border-danger/25 bg-danger/5 p-4 text-sm leading-6 text-danger">
-                  <p>Teslimat için hesabınıza bir teslimat adresi eklemeniz gerekiyor.</p>
-                  <Link href="/account/addresses" className="focus-ring mt-3 inline-flex min-h-11 items-center font-bold underline underline-offset-4">Adreslerime git</Link>
-                </div>
+                <p className="rounded-lg bg-danger/5 px-3 py-3 text-sm font-semibold text-danger">Şu anda kullanılabilir bir kargo yöntemi bulunmuyor.</p>
               )}
             </CheckoutSection>
-          ) : (
-            <>
-              <CheckoutSection title="İletişim" description="Sipariş durumu ve erişim bağlantısı bu e-posta adresine gönderilir.">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <TextField name="customerFirstName" label="Ad" autoComplete="given-name" maxLength={100} required error={fieldErrors.customerFirstName} />
-                  <TextField name="customerLastName" label="Soyad" autoComplete="family-name" maxLength={100} required error={fieldErrors.customerLastName} />
-                  <TextField name="customerEmail" label="E-posta" type="email" inputMode="email" autoComplete="email" maxLength={320} required error={fieldErrors.customerEmail} />
-                  <TextField name="customerPhoneNumber" label="Telefon" type="tel" inputMode="tel" autoComplete="tel" maxLength={30} required error={fieldErrors.customerPhoneNumber} />
-                </div>
-              </CheckoutSection>
 
-              <CheckoutSection title="Teslimat adresi" description="Teslimatı alacak kişinin ve adresin bilgilerini girin.">
-                <AddressFields prefix="shipping" errors={fieldErrors} />
-              </CheckoutSection>
-
-              <CheckoutSection title="Fatura adresi">
-                <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-ink">
-                  <input type="checkbox" checked={sameBillingAddress} onChange={(event) => setSameBillingAddress(event.target.checked)} className="size-4 accent-brand-700" />
-                  Fatura adresim teslimat adresimle aynı
-                </label>
-                {!sameBillingAddress ? <div className="mt-5"><AddressFields prefix="billing" errors={fieldErrors} /></div> : null}
-              </CheckoutSection>
-            </>
-          )}
-
-          <CheckoutSection title="Kargo yöntemi" description="Kargo adı ve ücreti sipariş oluşturulurken API tarafından yeniden doğrulanır.">
-            {shippingMethods.length > 0 ? (
-              <fieldset>
-                <legend className="sr-only">Kargo yöntemi seçin</legend>
-                <div className="grid gap-3">
-                  {shippingMethods.map((method) => (
-                    <label key={method.id} className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border p-4 ${selectedShippingMethodId === method.id ? "border-brand-700 bg-surface-subtle" : "border-line bg-surface"}`}>
-                      <input
-                        type="radio"
-                        name="shippingMethodId"
-                        value={method.id}
-                        checked={selectedShippingMethodId === method.id}
-                        onChange={() => setSelectedShippingMethodId(method.id)}
-                        className="size-4 accent-brand-700"
-                      />
-                      <span className="min-w-0 flex-1 text-sm font-bold text-ink">{method.name}</span>
-                      <span className="shrink-0 text-sm font-semibold text-ink">{method.fixedFee === 0 ? "Ücretsiz" : formatMoney(method.fixedFee, currency)}</span>
-                    </label>
-                  ))}
-                </div>
-                {fieldErrors.shippingMethodId ? <p className="mt-2 text-sm font-semibold text-danger">{fieldErrors.shippingMethodId}</p> : null}
-              </fieldset>
-            ) : (
-              <p className="rounded-lg bg-danger/5 px-3 py-3 text-sm font-semibold text-danger">Şu anda kullanılabilir bir kargo yöntemi bulunmuyor.</p>
-            )}
-          </CheckoutSection>
-
-          <CheckoutSection title="Kupon" description="Kupon opsiyoneldir ve uygunluğu sipariş oluşturulurken kontrol edilir.">
-            <TextField name="couponCode" label="Kupon kodu (opsiyonel)" autoComplete="off" maxLength={50} error={fieldErrors.couponCode} />
-          </CheckoutSection>
+            <CheckoutSection title="Kupon" description="Kupon opsiyoneldir ve uygunluğu sipariş oluşturulurken kontrol edilir.">
+              <TextField name="couponCode" label="Kupon kodu (opsiyonel)" autoComplete="off" maxLength={50} error={fieldErrors.couponCode} />
+            </CheckoutSection>
           </div>
         </div>
 
@@ -436,9 +436,7 @@ function AddressFields({ prefix, errors }: { prefix: "shipping" | "billing"; err
       <TextField name={`${prefix}Title`} label="Adres başlığı" autoComplete="off" maxLength={100} required error={errors[`${prefix}Title`]} className="sm:col-span-2" />
       <TextField name={`${prefix}FirstName`} label="Alıcı adı" autoComplete={`${autocompletePrefix} given-name`} maxLength={100} required error={errors[`${prefix}FirstName`]} />
       <TextField name={`${prefix}LastName`} label="Alıcı soyadı" autoComplete={`${autocompletePrefix} family-name`} maxLength={100} required error={errors[`${prefix}LastName`]} />
-      <TextField name={`${prefix}PhoneNumber`} label="Alıcı telefonu" type="tel" inputMode="tel" autoComplete={`${autocompletePrefix} tel`} maxLength={30} required error={errors[`${prefix}PhoneNumber`]} className="sm:col-span-2" />
-      <TextField name={`${prefix}City`} label="İl" autoComplete={`${autocompletePrefix} address-level1`} maxLength={100} required error={errors[`${prefix}City`]} />
-      <TextField name={`${prefix}District`} label="İlçe" autoComplete={`${autocompletePrefix} address-level2`} maxLength={100} required error={errors[`${prefix}District`]} />
+      <TurkiyeAddressFields prefix={prefix} errors={errors} variant="checkout" />
       <label htmlFor={`${prefix}FullAddress`} className="block sm:col-span-2">
         <span className="mb-2 block text-sm font-semibold text-ink">Açık adres<span className="ml-1 text-danger" aria-hidden="true">*</span></span>
         <textarea
@@ -485,14 +483,14 @@ function CheckoutMessage({ title, message, href, action }: { title: string; mess
 
 function checkoutRequestFromForm(form: FormData, sameBillingAddress: boolean, cart: Cart): { value: GuestCheckoutRequest | null; errors: FieldErrors } {
   const errors: FieldErrors = {};
-  const customerFirstName = requiredFormValue(form, "customerFirstName", "Ad", 100, errors);
-  const customerLastName = requiredFormValue(form, "customerLastName", "Soyad", 100, errors);
   const customerEmail = requiredFormValue(form, "customerEmail", "E-posta", 320, errors);
   const customerPhoneNumber = requiredFormValue(form, "customerPhoneNumber", "Telefon", 30, errors);
   if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) errors.customerEmail = "Geçerli bir e-posta adresi girin.";
 
-  const shippingAddress = addressFromForm(form, "shipping", errors);
-  const billingAddress = sameBillingAddress ? undefined : addressFromForm(form, "billing", errors);
+  const shippingAddress = addressFromForm(form, "shipping", errors, customerPhoneNumber);
+  const billingAddress = sameBillingAddress ? undefined : addressFromForm(form, "billing", errors, customerPhoneNumber);
+  const customerFirstName = shippingAddress?.firstName || "";
+  const customerLastName = shippingAddress?.lastName || "";
   const shippingMethodId = formValue(form, "shippingMethodId");
   if (!shippingMethodId) errors.shippingMethodId = "Bir kargo yöntemi seçin.";
   const couponCode = formValue(form, "couponCode");
@@ -540,19 +538,21 @@ function memberCheckoutRequestFromForm(form: FormData, cart: Cart): { value: Mem
   };
 }
 
-function addressFromForm(form: FormData, prefix: "shipping" | "billing", errors: FieldErrors): GuestAddressRequest | null {
+function addressFromForm(form: FormData, prefix: "shipping" | "billing", errors: FieldErrors, fallbackPhoneNumber: string): GuestAddressRequest | null {
   const title = requiredFormValue(form, `${prefix}Title`, "Adres başlığı", 100, errors);
   const firstName = requiredFormValue(form, `${prefix}FirstName`, "Alıcı adı", 100, errors);
   const lastName = requiredFormValue(form, `${prefix}LastName`, "Alıcı soyadı", 100, errors);
-  const phoneNumber = requiredFormValue(form, `${prefix}PhoneNumber`, "Alıcı telefonu", 30, errors);
+  const phoneNumber = fallbackPhoneNumber;
   const city = requiredFormValue(form, `${prefix}City`, "İl", 100, errors);
   const district = requiredFormValue(form, `${prefix}District`, "İlçe", 100, errors);
+  const neighborhood = formValue(form, `${prefix}Neighborhood`);
+  if (neighborhood.length > 100) errors[`${prefix}Neighborhood`] = "Mahalle en fazla 100 karakter olabilir.";
   const fullAddress = requiredFormValue(form, `${prefix}FullAddress`, "Açık adres", 500, errors);
   const postalCode = formValue(form, `${prefix}PostalCode`);
   if (postalCode.length > 20) errors[`${prefix}PostalCode`] = "Posta kodu en fazla 20 karakter olabilir.";
 
   return title && firstName && lastName && phoneNumber && city && district && fullAddress
-    ? { title, firstName, lastName, phoneNumber, city, district, fullAddress, ...(postalCode ? { postalCode } : {}) }
+    ? { title, firstName, lastName, phoneNumber, city, district, ...(neighborhood ? { neighborhood } : {}), fullAddress, ...(postalCode ? { postalCode } : {}) }
     : null;
 }
 
@@ -581,6 +581,7 @@ function mapApiFieldErrors(errors: Record<string, string[]> | undefined): FieldE
     "ShippingAddress.PhoneNumber": "shippingPhoneNumber",
     "ShippingAddress.City": "shippingCity",
     "ShippingAddress.District": "shippingDistrict",
+    "ShippingAddress.Neighborhood": "shippingNeighborhood",
     "ShippingAddress.FullAddress": "shippingFullAddress",
     "ShippingAddress.PostalCode": "shippingPostalCode",
     ShippingMethodId: "shippingMethodId",

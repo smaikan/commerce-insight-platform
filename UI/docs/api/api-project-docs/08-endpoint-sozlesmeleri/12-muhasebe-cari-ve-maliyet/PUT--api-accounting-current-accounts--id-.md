@@ -1,21 +1,21 @@
-ï»¿# PUT /api/accounting/current-accounts/{id}
+# PUT /api/accounting/current-accounts/{id}
 
-- Ä°ÅŸlev alanÄ±: **12 Muhasebe cari ve maliyet**
-- Ä°ÅŸlev: KaynaÄŸÄ±n gÃ¼ncellenebilir alanlarÄ±nÄ± deÄŸiÅŸtirir.
+- İşlev alanı: **12 Muhasebe cari ve maliyet**
+- İşlev: Kaynağın güncellenebilir alanlarını değiştirir.
 - Operation ID: `PUT-/api/accounting/current-accounts/{id}`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi iÃ§in `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
-- Content-Type: request body varsa `application/json` gÃ¶nderin.
-- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gÃ¶vde `ProblemDetails`tir.
+- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Content-Type: request body varsa `application/json` gönderin.
+- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
 ## Parametreler
 
-| Ad | Konum | Zorunlu | Åema |
+| Ad | Konum | Zorunlu | Şema |
 | --- | --- | --- | --- |
 | `id` | path | Evet | string (uuid) |
 
 ## Request body
 
-AÅŸaÄŸÄ±daki Ã¶rnek alan adlarÄ±nÄ± camelCase ile gÃ¶nderin.
+Aşağıdaki örnek alan adlarını camelCase ile gönderin.
 
 | Alan | Tip | Zorunlu |
 | --- | --- | --- |
@@ -37,6 +37,8 @@ AÅŸaÄŸÄ±daki Ã¶rnek alan adlarÄ±nÄ± camelCase ile gÃ¶nderin.
                     "country":  "string",
                     "city":  "string",
                     "district":  "string",
+    "neighborhood":  "string",
+    "neighborhood":  "string",
                     "neighborhood":  "string",
                     "addressLine":  "string",
                     "postalCode":  "string",
@@ -46,7 +48,7 @@ AÅŸaÄŸÄ±daki Ã¶rnek alan adlarÄ±nÄ± camelCase ile gÃ¶nderin.
 }
 ```
 
-## BaÅŸarÄ±lÄ± response (200)
+## Başarılı response (200)
 
 ```json
 {
@@ -64,10 +66,15 @@ AÅŸaÄŸÄ±daki Ã¶rnek alan adlarÄ±nÄ± camelCase ile gÃ¶nderin.
     "city":  "string",
     "district":  "string",
     "neighborhood":  "string",
+    "neighborhood":  "string",
+    "neighborhood":  "string",
     "addressLine":  "string",
     "postalCode":  "string",
     "isActive":  true,
     "userId":  "string"
 }
 ```
+
+
+
 

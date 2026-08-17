@@ -11424,6 +11424,8 @@ export interface components {
             phoneNumber: string;
             city: string;
             district: string;
+            neighborhood?: string;
+            street?: string;
             fullAddress: string;
             postalCode?: string | null;
             isDefault: boolean;
@@ -11440,6 +11442,8 @@ export interface components {
             phoneNumber: string;
             city: string;
             district: string;
+            neighborhood?: string;
+            street?: string;
             fullAddress: string;
             postalCode?: string | null;
             isDefault: boolean;
@@ -12474,6 +12478,8 @@ export interface components {
             phoneNumber: string;
             city: string;
             district: string;
+            neighborhood?: string;
+            street?: string;
             fullAddress: string;
             postalCode?: string | null;
         };
@@ -12628,6 +12634,8 @@ export interface components {
             phoneNumber: string;
             city: string;
             district: string;
+            neighborhood?: string;
+            street?: string;
             fullAddress: string;
             postalCode?: string | null;
         };

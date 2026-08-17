@@ -9,7 +9,7 @@ const refreshRequests = new Map<string, Promise<AuthResult>>();
 export async function loginWithPassword(email: string, password: string): Promise<AuthResult> {
   const payload = await apiRequest<unknown>("/api/auth/login", {
     method: "POST",
-    body: { email, password, deviceName: "SERANTIS Admin" },
+    body: { email, password, deviceName: "ELEVEN Admin" },
   });
   return parseAuthResult(payload);
 }
@@ -21,11 +21,24 @@ export function refreshWithToken(refreshToken: string): Promise<AuthResult> {
 
   const request = apiRequest<unknown>("/api/auth/refresh-token", {
     method: "POST",
-    body: { refreshToken, deviceName: "SERANTIS Admin" },
+    body: { refreshToken, deviceName: "ELEVEN Admin" },
   })
-    .then(parseAuthResult)
-    .finally(() => {
-      if (refreshRequests.get(refreshToken) === request) refreshRequests.delete(refreshToken);
+    .then((payload) => {
+      const result = parseAuthResult(payload);
+      // Başarılı işlemde race condition'ı önlemek için sonucu 5 saniye hafızada tutuyoruz
+      setTimeout(() => {
+        if (refreshRequests.get(refreshToken) === request) {
+          refreshRequests.delete(refreshToken);
+        }
+      }, 5000);
+      return result;
+    })
+    .catch((error) => {
+      // Hata durumunda hemen siliyoruz ki kalıcı olarak başarısız sonuç dönmesin ve tekrar denenebilsin
+      if (refreshRequests.get(refreshToken) === request) {
+        refreshRequests.delete(refreshToken);
+      }
+      throw error;
     });
   refreshRequests.set(refreshToken, request);
   return request;

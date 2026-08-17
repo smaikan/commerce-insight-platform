@@ -1,11 +1,11 @@
-ï»¿# POST /api/accounting/current-accounts
+# POST /api/accounting/current-accounts
 
-- Ä°ÅŸlev alanÄ±: **12 Muhasebe cari ve maliyet**
-- Ä°ÅŸlev: Yeni kaynak veya iÅŸ akÄ±ÅŸÄ± adÄ±mÄ± oluÅŸturur/baÅŸlatÄ±r.
+- İşlev alanı: **12 Muhasebe cari ve maliyet**
+- İşlev: Yeni kaynak veya iş akışı adımı oluşturur/başlatır.
 - Operation ID: `POST-/api/accounting/current-accounts`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi iÃ§in `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
-- Content-Type: request body varsa `application/json` gÃ¶nderin.
-- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gÃ¶vde `ProblemDetails`tir.
+- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Content-Type: request body varsa `application/json` gönderin.
+- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
 ## Parametreler
 
@@ -13,26 +13,26 @@ Path, query veya header parametresi yoktur.
 
 ## Request body
 
-AÅŸaÄŸÄ±daki Ã¶rnek alan adlarÄ±nÄ± camelCase ile gÃ¶nderin.
+Aşağıdaki örnek alan adlarını camelCase ile gönderin.
 
 | Alan | Tip | Zorunlu |
 | --- | --- | --- |
 | `code` | string | Evet |
 | `type` | integer (int32) | Evet |
 | `name` | string | Evet |
-| `tradeName` | string | HayÄ±r |
-| `nationalIdentityNumber` | string | HayÄ±r |
-| `taxNumber` | string | HayÄ±r |
-| `taxOffice` | string | HayÄ±r |
-| `phoneNumber` | string | HayÄ±r |
-| `email` | string | HayÄ±r |
-| `country` | string | HayÄ±r |
-| `city` | string | HayÄ±r |
-| `district` | string | HayÄ±r |
-| `neighborhood` | string | HayÄ±r |
-| `addressLine` | string | HayÄ±r |
-| `postalCode` | string | HayÄ±r |
-| `userId` | string | HayÄ±r |
+| `tradeName` | string | Hayır |
+| `nationalIdentityNumber` | string | Hayır |
+| `taxNumber` | string | Hayır |
+| `taxOffice` | string | Hayır |
+| `phoneNumber` | string | Hayır |
+| `email` | string | Hayır |
+| `country` | string | Hayır |
+| `city` | string | Hayır |
+| `district` | string | Hayır |
+| `neighborhood` | string | Hayır |
+| `addressLine` | string | Hayır |
+| `postalCode` | string | Hayır |
+| `userId` | string | Hayır |
 
 ```json
 {
@@ -49,13 +49,15 @@ AÅŸaÄŸÄ±daki Ã¶rnek alan adlarÄ±nÄ± camelCase ile gÃ¶nderin.
     "city":  "string",
     "district":  "string",
     "neighborhood":  "string",
+    "neighborhood":  "string",
+    "neighborhood":  "string",
     "addressLine":  "string",
     "postalCode":  "string",
     "userId":  "string"
 }
 ```
 
-## BaÅŸarÄ±lÄ± response (200)
+## Başarılı response (200)
 
 ```json
 {
@@ -73,10 +75,15 @@ AÅŸaÄŸÄ±daki Ã¶rnek alan adlarÄ±nÄ± camelCase ile gÃ¶nderin.
     "city":  "string",
     "district":  "string",
     "neighborhood":  "string",
+    "neighborhood":  "string",
+    "neighborhood":  "string",
     "addressLine":  "string",
     "postalCode":  "string",
     "isActive":  true,
     "userId":  "string"
 }
 ```
+
+
+
 

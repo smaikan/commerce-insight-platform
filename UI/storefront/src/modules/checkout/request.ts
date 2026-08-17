@@ -31,10 +31,11 @@ function parseAddress(value: unknown): GuestAddressRequest | null {
   const phoneNumber = requiredString(source.phoneNumber, 30);
   const city = requiredString(source.city, 100);
   const district = requiredString(source.district, 100);
+  const neighborhood = optionalString(source.neighborhood, 100);
   const fullAddress = requiredString(source.fullAddress, 500);
   const postalCode = optionalString(source.postalCode, 20);
 
-  if (!title || !firstName || !lastName || !phoneNumber || !city || !district || !fullAddress || postalCode === null) {
+  if (!title || !firstName || !lastName || !phoneNumber || !city || !district || neighborhood === null || !fullAddress || postalCode === null) {
     return null;
   }
 
@@ -45,6 +46,7 @@ function parseAddress(value: unknown): GuestAddressRequest | null {
     phoneNumber,
     city,
     district,
+    ...(neighborhood ? { neighborhood } : {}),
     fullAddress,
     ...(postalCode ? { postalCode } : {}),
   };

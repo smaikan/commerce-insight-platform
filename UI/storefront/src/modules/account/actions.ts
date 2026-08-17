@@ -216,14 +216,16 @@ function addressPayload(formData: FormData): { payload: AddressPayload | null; e
     firstName: fieldValue(formData, "firstName"),
     lastName: fieldValue(formData, "lastName"),
     phoneNumber: fieldValue(formData, "phoneNumber"),
-    city: fieldValue(formData, "city"),
-    district: fieldValue(formData, "district"),
+    city: fieldValue(formData, "City"),
+    district: fieldValue(formData, "District"),
     fullAddress: fieldValue(formData, "fullAddress"),
-    postalCode: fieldValue(formData, "postalCode"),
   };
+  const postalCode = fieldValue(formData, "postalCode");
+  const neighborhood = fieldValue(formData, "Neighborhood");
+
   const errors: Record<string, string> = {};
   for (const [key, value] of Object.entries(values)) {
-    if (key !== "postalCode" && !value) errors[key] = "Bu alan zorunludur.";
+    if (!value) errors[key] = "Bu alan zorunludur.";
   }
 
   const rawType = fieldValue(formData, "type");
@@ -235,7 +237,8 @@ function addressPayload(formData: FormData): { payload: AddressPayload | null; e
     payload: {
       type,
       ...values,
-      postalCode: values.postalCode || null,
+      ...(neighborhood ? { neighborhood } : {}),
+      postalCode: postalCode || null,
       isDefault: formData.get("isDefault") === "on",
     },
     errors,

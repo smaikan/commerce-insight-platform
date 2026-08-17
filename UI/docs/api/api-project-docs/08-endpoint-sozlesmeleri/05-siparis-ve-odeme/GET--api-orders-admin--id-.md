@@ -1,25 +1,25 @@
-ï»¿# GET /api/orders/admin/{id}
+# GET /api/orders/admin/{id}
 
-Response iÃ§indeki Ã¼rÃ¼n medya snapshot'larÄ± ve kargo takip geÃ§miÅŸi iÃ§in [ortak OrderDto sÃ¶zleÅŸmesine](ORDER-DTO-VE-KARGO-TAKIP-SOZLESMESI.md), varyant adÄ±/deÄŸeri iÃ§in [varyant snapshot sÃ¶zleÅŸmesine](../04-sepet/SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md) bakÄ±n.
+Response içindeki ürün medya snapshot'ları ve kargo takip geçmişi için [ortak OrderDto sözleşmesine](ORDER-DTO-VE-KARGO-TAKIP-SOZLESMESI.md), varyant adı/değeri için [varyant snapshot sözleşmesine](../04-sepet/SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md) bakın.
 
-- Ä°ÅŸlev alanÄ±: **05 SipariÅŸ ve Ã¶deme**
-- Ä°ÅŸlev: KaynaÄŸÄ± veya filtrelenmiÅŸ kaynak listesini okur.
+- İşlev alanı: **05 Sipariş ve ödeme**
+- İşlev: Kaynağı veya filtrelenmiş kaynak listesini okur.
 - Operation ID: `GET-/api/orders/admin/{id}`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi iÃ§in `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
-- Content-Type: request body varsa `application/json` gÃ¶nderin.
-- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gÃ¶vde `ProblemDetails`tir.
+- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Content-Type: request body varsa `application/json` gönderin.
+- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
 ## Parametreler
 
-| Ad | Konum | Zorunlu | Åema |
+| Ad | Konum | Zorunlu | Şema |
 | --- | --- | --- | --- |
 | `id` | path | Evet | string (uuid) |
 
 ## Request body
 
-Bu operasyon JSON request body almaz. Gerekli tÃ¼m deÄŸerleri yukarÄ±daki path, query veya header parametreleriyle gÃ¶nderin.
+Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, query veya header parametreleriyle gönderin.
 
-## BaÅŸarÄ±lÄ± response (200)
+## Başarılı response (200)
 
 ```json
 {
@@ -64,6 +64,8 @@ Bu operasyon JSON request body almaz. Gerekli tÃ¼m deÄŸerleri yukarÄ±daki path, 
                             "phoneNumber":  "string",
                             "city":  "string",
                             "district":  "string",
+    "neighborhood":  "string",
+    "neighborhood":  "string",
                             "fullAddress":  "string",
                             "postalCode":  "string"
                         },
@@ -73,4 +75,7 @@ Bu operasyon JSON request body almaz. Gerekli tÃ¼m deÄŸerleri yukarÄ±daki path, 
     "createdAt":  "2026-07-29T12:00:00Z"
 }
 ```
+
+
+
 

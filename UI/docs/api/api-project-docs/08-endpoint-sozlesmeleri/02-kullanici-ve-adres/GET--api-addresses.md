@@ -1,23 +1,23 @@
-ï»¿# GET /api/addresses
+# GET /api/addresses
 
-- Ä°ÅŸlev alanÄ±: **02 KullanÄ±cÄ± ve adres**
-- Ä°ÅŸlev: KaynaÄŸÄ± veya filtrelenmiÅŸ kaynak listesini okur.
+- İşlev alanı: **02 Kullanıcı ve adres**
+- İşlev: Kaynağı veya filtrelenmiş kaynak listesini okur.
 - Operation ID: `GET-/api/addresses`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi iÃ§in `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
-- Content-Type: request body varsa `application/json` gÃ¶nderin.
-- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gÃ¶vde `ProblemDetails`tir.
+- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Content-Type: request body varsa `application/json` gönderin.
+- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
 ## Parametreler
 
-| Ad | Konum | Zorunlu | Åema |
+| Ad | Konum | Zorunlu | Şema |
 | --- | --- | --- | --- |
-| `type` | query | HayÄ±r |  |
+| `type` | query | Hayır |  |
 
 ## Request body
 
-Bu operasyon JSON request body almaz. Gerekli tÃ¼m deÄŸerleri yukarÄ±daki path, query veya header parametreleriyle gÃ¶nderin.
+Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, query veya header parametreleriyle gönderin.
 
-## BaÅŸarÄ±lÄ± response (200)
+## Başarılı response (200)
 
 ```json
 {
@@ -29,6 +29,8 @@ Bu operasyon JSON request body almaz. Gerekli tÃ¼m deÄŸerleri yukarÄ±daki path, 
     "phoneNumber":  "string",
     "city":  "string",
     "district":  "string",
+    "neighborhood":  "string",
+    "neighborhood":  "string",
     "fullAddress":  "string",
     "postalCode":  "string",
     "isDefault":  true,
@@ -36,4 +38,7 @@ Bu operasyon JSON request body almaz. Gerekli tÃ¼m deÄŸerleri yukarÄ±daki path, 
     "updatedAt":  "2026-07-29T12:00:00Z"
 }
 ```
+
+
+
 

@@ -16184,6 +16184,10 @@
           "district": {
             "type": "string"
           },
+          "neighborhood": {
+            "type": "string",
+            "nullable": true
+          },
           "fullAddress": {
             "type": "string"
           },
@@ -16240,6 +16244,10 @@
           },
           "district": {
             "type": "string"
+          },
+          "neighborhood": {
+            "type": "string",
+            "nullable": true
           },
           "fullAddress": {
             "type": "string"
@@ -19753,6 +19761,10 @@
           "district": {
             "type": "string"
           },
+          "neighborhood": {
+            "type": "string",
+            "nullable": true
+          },
           "fullAddress": {
             "type": "string"
           },
@@ -20247,6 +20259,10 @@
           },
           "district": {
             "type": "string"
+          },
+          "neighborhood": {
+            "type": "string",
+            "nullable": true
           },
           "fullAddress": {
             "type": "string"
@@ -25241,3 +25257,5 @@
     }
   ]
 }
+
+

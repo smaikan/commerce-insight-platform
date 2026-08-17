@@ -20,7 +20,7 @@ Mevcut anonymous cart’ı User hesabı oluşturmadan Order’a çevirir. JWT il
 | customer.email | email(320) | Evet | Hayır | Normalize edilir |
 | customer.phoneNumber | string(30) | Evet | Hayır | Snapshot |
 | shippingAddress | object | Evet | Hayır | SourceAddressId kabul edilmez |
-| shippingAddress.title/firstName/lastName/phoneNumber/city/district/fullAddress | string | Evet | Hayır | Uzunluklar Address sözleşmesi |
+| shippingAddress.title/firstName/lastName/phoneNumber/city/district/neighborhood/fullAddress | string | Evet | Hayır | Uzunluklar Address sözleşmesi |
 | shippingAddress.postalCode | string(20) | Hayır | Evet |  |
 | billingAddress | aynı object | Hayır | Evet | null ise shipping → Billing fallback |
 | shippingMethodId | uuid | Evet | Hayır | Aktif kayıt zorunlu |
@@ -94,3 +94,5 @@ Yeni işlem `201`, aynı key/body replay `200`; body `OrderDto`:
 | 503 | guest_checkout_protection_unavailable | Geçici koruma hatası; bypass etme |
 
 PII, cookie, raw Turnstile tokenı ve Idempotency-Key log/analytics’e yazılmaz. Loading sırasında tek intent bir kez disable edilir; timeout sonrası aynı key korunur.
+
+

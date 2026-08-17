@@ -21,12 +21,36 @@ export async function loginCustomer(payload: Omit<LoginPayload, "deviceName">): 
   return parseAuthResult(await apiPost<unknown>("/api/auth/login", { ...payload, deviceName: DEVICE_NAME }));
 }
 
+const refreshRequests = new Map<string, Promise<AuthResult>>();
+
 // Burada süresi dolan access oturumunu dönen iki yeni tokenı da doğrulayarak yeniliyorum.
-export async function refreshCustomerSession(refreshToken: string): Promise<AuthResult> {
-  return parseAuthResult(await apiPost<unknown>("/api/auth/refresh-token", {
+// Paralel gelen istekleri birleştirip race condition'ı engellemek için 5 saniyelik grace period uyguluyorum.
+export function refreshCustomerSession(refreshToken: string): Promise<AuthResult> {
+  const existing = refreshRequests.get(refreshToken);
+  if (existing) return existing;
+
+  const request = apiPost<unknown>("/api/auth/refresh-token", {
     refreshToken,
     deviceName: DEVICE_NAME,
-  }));
+  })
+    .then((payload) => {
+      const result = parseAuthResult(payload);
+      setTimeout(() => {
+        if (refreshRequests.get(refreshToken) === request) {
+          refreshRequests.delete(refreshToken);
+        }
+      }, 5000);
+      return result;
+    })
+    .catch((error) => {
+      if (refreshRequests.get(refreshToken) === request) {
+        refreshRequests.delete(refreshToken);
+      }
+      throw error;
+    });
+
+  refreshRequests.set(refreshToken, request);
+  return request;
 }
 
 // Burada kullanıcı kaydını üretilen OpenAPI girdi tipiyle sunucudan gönderiyorum.

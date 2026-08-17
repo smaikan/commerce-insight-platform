@@ -58,7 +58,7 @@ ProductDto alanları: id (P prefix), title, mainSku, description, url, typeId/ty
 
 ### Adres
 
-AddressDto alanları: id, type, title, firstName, lastName, phoneNumber, city, district, fullAddress, postalCode, isDefault.
+AddressDto alanları: id, type, title, firstName, lastName, phoneNumber, city, district, neighborhood, fullAddress, postalCode, isDefault.
 
 ## Cari ve finans işaretleme
 
@@ -108,3 +108,5 @@ Accounting enum numeric değerleri muhasebe bölümünde verilmiştir; Accountin
 - Public listelerde yalnız aktif/visible kayıtlar dönmüş olabilir.
 - Admin listelerinde filtreler yalnız endpoint imzasında varsa kullanılabilir.
 - Product listesinde sortBy/descending vardır; diğer listelerde backend'in deterministik sırasını kullanın.
+
+

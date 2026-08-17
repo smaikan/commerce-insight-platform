@@ -1,23 +1,23 @@
-ï»¿# GET /api/accounting/current-accounts/{id}
+# GET /api/accounting/current-accounts/{id}
 
-- Ä°ÅŸlev alanÄ±: **12 Muhasebe cari ve maliyet**
-- Ä°ÅŸlev: KaynaÄŸÄ± veya filtrelenmiÅŸ kaynak listesini okur.
+- İşlev alanı: **12 Muhasebe cari ve maliyet**
+- İşlev: Kaynağı veya filtrelenmiş kaynak listesini okur.
 - Operation ID: `GET-/api/accounting/current-accounts/{id}`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi iÃ§in `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
-- Content-Type: request body varsa `application/json` gÃ¶nderin.
-- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gÃ¶vde `ProblemDetails`tir.
+- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Content-Type: request body varsa `application/json` gönderin.
+- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
 ## Parametreler
 
-| Ad | Konum | Zorunlu | Åema |
+| Ad | Konum | Zorunlu | Şema |
 | --- | --- | --- | --- |
 | `id` | path | Evet | string (uuid) |
 
 ## Request body
 
-Bu operasyon JSON request body almaz. Gerekli tÃ¼m deÄŸerleri yukarÄ±daki path, query veya header parametreleriyle gÃ¶nderin.
+Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, query veya header parametreleriyle gönderin.
 
-## BaÅŸarÄ±lÄ± response (200)
+## Başarılı response (200)
 
 ```json
 {
@@ -35,10 +35,15 @@ Bu operasyon JSON request body almaz. Gerekli tÃ¼m deÄŸerleri yukarÄ±daki path, 
     "city":  "string",
     "district":  "string",
     "neighborhood":  "string",
+    "neighborhood":  "string",
+    "neighborhood":  "string",
     "addressLine":  "string",
     "postalCode":  "string",
     "isActive":  true,
     "userId":  "string"
 }
 ```
+
+
+
 

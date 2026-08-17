@@ -1,43 +1,43 @@
-ï»¿# PATCH /api/orders/{id}/status
+# PATCH /api/orders/{id}/status
 
-ÃœrÃ¼n medya snapshot'larÄ± ve kargo takip alanlarÄ±nÄ±n ortak aÃ§Ä±klamasÄ±: [OrderDto Ã¼rÃ¼n medya ve kargo takip sÃ¶zleÅŸmesi](ORDER-DTO-VE-KARGO-TAKIP-SOZLESMESI.md).
+Ürün medya snapshot'ları ve kargo takip alanlarının ortak açıklaması: [OrderDto ürün medya ve kargo takip sözleşmesi](ORDER-DTO-VE-KARGO-TAKIP-SOZLESMESI.md).
 
-- Ä°ÅŸlev alanÄ±: **05 SipariÅŸ ve Ã¶deme**
-- Ä°ÅŸlev: KaynaÄŸÄ±n belirli durum veya alanlarÄ±nÄ± deÄŸiÅŸtirir.
+- İşlev alanı: **05 Sipariş ve ödeme**
+- İşlev: Kaynağın belirli durum veya alanlarını değiştirir.
 - Operation ID: `PATCH-/api/orders/{id}/status`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi iÃ§in `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
-- Content-Type: request body varsa `application/json` gÃ¶nderin.
-- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gÃ¶vde `ProblemDetails`tir.
+- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Content-Type: request body varsa `application/json` gönderin.
+- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
 ## Parametreler
 
-| Ad | Konum | Zorunlu | Åema |
+| Ad | Konum | Zorunlu | Şema |
 | --- | --- | --- | --- |
 | `id` | path | Evet | string (uuid) |
 
 ## Request body
 
-AÅŸaÄŸÄ±daki Ã¶rnek alan adlarÄ±nÄ± camelCase ile gÃ¶nderin.
+Aşağıdaki örnek alan adlarını camelCase ile gönderin.
 
 | Alan | Tip | Zorunlu |
 | --- | --- | --- |
 | `status` | integer (int32) | Evet |
-| `shippingCarrier` | string, max 150 | YalnÄ±z `status=Shipped` iÃ§in evet |
-| `trackingNumber` | string, max 100 | YalnÄ±z `status=Shipped` iÃ§in evet |
-| `trackingUrl` | string, URI, max 500 | HayÄ±r |
+| `shippingCarrier` | string, max 150 | Yalnız `status=Shipped` için evet |
+| `trackingNumber` | string, max 100 | Yalnız `status=Shipped` için evet |
+| `trackingUrl` | string, URI, max 500 | Hayır |
 
 ```json
 {
     "status":  4,
-    "shippingCarrier": "YurtiÃ§i Kargo",
+    "shippingCarrier": "Yurtiçi Kargo",
     "trackingNumber": "1234567890",
     "trackingUrl": "https://www.example-cargo.test/track/1234567890"
 }
 ```
 
-`status=Shipped` isteÄŸi kargo bilgisini atomik saklar ve `shippedAt` deÄŸerini API Ã¼retir. `trackingUrl` doluysa mutlak HTTP/HTTPS olmalÄ±dÄ±r. `Delivered` geÃ§iÅŸinde `deliveredAt` yine API tarafÄ±ndan Ã¼retilir.
+`status=Shipped` isteği kargo bilgisini atomik saklar ve `shippedAt` değerini API üretir. `trackingUrl` doluysa mutlak HTTP/HTTPS olmalıdır. `Delivered` geçişinde `deliveredAt` yine API tarafından üretilir.
 
-## BaÅŸarÄ±lÄ± response (200)
+## Başarılı response (200)
 
 ```json
 {
@@ -82,6 +82,8 @@ AÅŸaÄŸÄ±daki Ã¶rnek alan adlarÄ±nÄ± camelCase ile gÃ¶nderin.
                             "phoneNumber":  "string",
                             "city":  "string",
                             "district":  "string",
+    "neighborhood":  "string",
+    "neighborhood":  "string",
                             "fullAddress":  "string",
                             "postalCode":  "string"
                         },
@@ -91,4 +93,7 @@ AÅŸaÄŸÄ±daki Ã¶rnek alan adlarÄ±nÄ± camelCase ile gÃ¶nderin.
     "createdAt":  "2026-07-29T12:00:00Z"
 }
 ```
+
+
+
 

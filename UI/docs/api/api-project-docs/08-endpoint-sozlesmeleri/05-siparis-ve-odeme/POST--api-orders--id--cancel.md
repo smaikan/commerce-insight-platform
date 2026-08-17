@@ -1,23 +1,23 @@
-ï»¿# POST /api/orders/{id}/cancel
+# POST /api/orders/{id}/cancel
 
-- Ä°ÅŸlev alanÄ±: **05 SipariÅŸ ve Ã¶deme**
-- Ä°ÅŸlev: KaynaÄŸÄ± iptal eder veya muhasebe ters kaydÄ±nÄ± oluÅŸturur.
+- İşlev alanı: **05 Sipariş ve ödeme**
+- İşlev: Kaynağı iptal eder veya muhasebe ters kaydını oluşturur.
 - Operation ID: `POST-/api/orders/{id}/cancel`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi iÃ§in `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
-- Content-Type: request body varsa `application/json` gÃ¶nderin.
-- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gÃ¶vde `ProblemDetails`tir.
+- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Content-Type: request body varsa `application/json` gönderin.
+- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
 ## Parametreler
 
-| Ad | Konum | Zorunlu | Åema |
+| Ad | Konum | Zorunlu | Şema |
 | --- | --- | --- | --- |
 | `id` | path | Evet | string (uuid) |
 
 ## Request body
 
-Bu operasyon JSON request body almaz. Gerekli tÃ¼m deÄŸerleri yukarÄ±daki path, query veya header parametreleriyle gÃ¶nderin.
+Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, query veya header parametreleriyle gönderin.
 
-## BaÅŸarÄ±lÄ± response (200)
+## Başarılı response (200)
 
 ```json
 {
@@ -62,6 +62,8 @@ Bu operasyon JSON request body almaz. Gerekli tÃ¼m deÄŸerleri yukarÄ±daki path, 
                             "phoneNumber":  "string",
                             "city":  "string",
                             "district":  "string",
+    "neighborhood":  "string",
+    "neighborhood":  "string",
                             "fullAddress":  "string",
                             "postalCode":  "string"
                         },
@@ -71,4 +73,7 @@ Bu operasyon JSON request body almaz. Gerekli tÃ¼m deÄŸerleri yukarÄ±daki path, 
     "createdAt":  "2026-07-29T12:00:00Z"
 }
 ```
+
+
+
 
