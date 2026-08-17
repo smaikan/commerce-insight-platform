@@ -12,6 +12,7 @@ Storefront katalog endpointleri Public; yönetim listesi ve yazma endpointleri A
 | GET | `/api/products/published/facets/collections?TypeId=...&BrandId=...&CollectionId=...&TagId=...` | Public | Koleksiyon seçenekleri ve yayımlanmış ürün adetleri; `CollectionId` sayımdan dışlanır |
 | GET | `/api/products/published/facets/product-types?TypeId=...&BrandId=...&CollectionId=...&TagId=...` | Public | Ürün türü seçenekleri ve yayımlanmış ürün adetleri; `TypeId` sayımdan dışlanır |
 | GET | `/api/collections/published?PageNumber=1&PageSize=20` | Public | Koleksiyon vitrin kartları; ürün adedi, canonical `url` ve etkili görsel tek sayfalı response içindedir |
+| GET | `/api/product-types/published?PageNumber=1&PageSize=20` | Public | Kategori vitrin kartları; ürün adedi ve özel/en popüler ürün fallback görseli tek sayfalı response içindedir |
 | GET | `/api/products?pageNumber=1&pageSize=20&search=shirt&typeId=...&brandId=...&collectionId=...&tagId=...&status=...&isFeatured=false&sortBy=0&descending=true` | Admin | Filtrelenebilir operasyon ürün listesi |
 | GET | `/api/products/by-collection/{collectionId}` | Public | Koleksiyondaki yayındaki ürünler |
 | GET | `/api/products/by-tag/{tagId}` | Public | Etikete bağlı yayındaki ürünler |
@@ -94,6 +95,7 @@ PUT    /api/collections/{id}        PATCH /api/collections/{id}/activation
 PATCH  /api/collections/{id}/featured
 DELETE /api/collections/{id}
 GET    /api/product-types           GET /api/product-types/{id}
+GET    /api/product-types/published
 POST   /api/product-types           POST /api/product-types/bulk
 PUT    /api/product-types/{id}      PATCH /api/product-types/{id}/activation
 DELETE /api/product-types/{id}
@@ -109,9 +111,11 @@ Collection ayrıca `PATCH /api/collections/{id}/featured` kullanır. Her koleksi
 { "name": "Yaz Koleksiyonu", "url": "yaz-koleksiyonu", "description": "...", "displayOrder": 1, "imageUrl": "https://cdn.example.com/collections/yaz.jpg" }
 ```
 
-Storefront `/collections` sayfası genel `GET /api/collections` listesini, facet cevabını ve koleksiyon başına ürün sorgusunu birleştirmez. Bunun yerine `GET /api/collections/published` kullanır. Bu public sayfalı sözleşme yalnız aktif ve görünür yayımlanmış ürünü bulunan koleksiyonları; `id`, `name`, `url`, `productCount`, `isFeatured`, `displayOrder` ve nullable etkili `imageUrl` alanlarıyla döndürür. Görselde koleksiyon kaydı önceliklidir; yoksa backend'in kararlı sırasındaki ilk ürünün ana görseli, o da yoksa `null` döner. Ayrıntılar için [public koleksiyon vitrini sözleşmesine](../08-endpoint-sozlesmeleri/03-katalog-ve-etkilesim/GET--api-collections-published.md) bakın.
+Storefront `/collections` sayfası genel `GET /api/collections` listesini, facet cevabını ve koleksiyon başına ürün sorgusunu birleştirmez. Bunun yerine `GET /api/collections/published` kullanır. Bu public sayfalı sözleşme yalnız aktif ve görünür yayımlanmış ürünü bulunan koleksiyonları; `id`, `name`, `url`, `productCount`, `isFeatured`, `displayOrder` ve nullable etkili `imageUrl` alanlarıyla döndürür. Görselde koleksiyon kaydı önceliklidir; yoksa `PopularityScore DESC, Product.Id ASC` sırasındaki ilk ürünün ana görseli, o da yoksa `null` döner. Ayrıntılar için [public koleksiyon vitrini sözleşmesine](../08-endpoint-sozlesmeleri/03-katalog-ve-etkilesim/GET--api-collections-published.md) bakın.
 
-Brand body `{name,url,description,isActive,imageUrl}` biçimindedir. Marka `imageUrl` alanı da opsiyoneldir; alan atlanır, `null` veya boş gönderilirse değer `null` olarak saklanır. Marka ve koleksiyon görsel URL'leri en fazla 500 karakterdir. ProductType body `{name,description}`, Tag body `{name,url}`. GET listeleri paged DTO döner; yazma Admin'dir, okuma Public'dir.
+Storefront kategori kartları için `GET /api/product-types/published` kullanılır. `ProductType.imageUrl` varsa bu özel görsel, yoksa aynı yayımlanmış/görünür ürün kuralları içindeki en popüler ürünün ana görseli döner. Endpoint `id`, `name`, `productCount` ve nullable etkili `imageUrl` taşır; kategori başına ürün isteği oluşturmaz. Ayrıntılar için [public kategori vitrini sözleşmesine](../08-endpoint-sozlesmeleri/03-katalog-ve-etkilesim/GET--api-product-types-published.md) bakın.
+
+Brand body `{name,url,description,isActive,imageUrl}` biçimindedir. Marka `imageUrl` alanı da opsiyoneldir; alan atlanır, `null` veya boş gönderilirse değer `null` olarak saklanır. Marka, koleksiyon ve ProductType görsel URL'leri en fazla 500 karakterdir. ProductType body `{name,description,isActive,imageUrl}`, Tag body `{name,url}`. GET listeleri paged DTO döner; yazma Admin'dir, okuma Public'dir.
 
 Marka, koleksiyon, ürün türü ve etiket silme işlemleri kullanım durumundan bağımsız olarak `204 No Content` döner. Marka ve ürün türü silindiğinde ürün korunur, sırasıyla `brandId` ve `typeId` alanı `null` olur. Koleksiyon ve etiket silindiğinde ürün korunur; yalnız `ProductCollection` veya `ProductTag` bağlantı kaydı cascade olarak kaldırılır.
 

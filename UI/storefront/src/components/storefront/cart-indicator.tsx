@@ -59,10 +59,10 @@ export function CartIndicator() {
     <Link
       href="/cart"
       prefetch={false}
-      className="header-action relative inline-flex size-11 items-center justify-center p-0"
+      className="header-action relative inline-flex size-9 items-center justify-center p-0! sm:size-11 sm:px-3! sm:py-2.5!"
       aria-label={`Sepet, ${accessibleQuantity} ürün`}
     >
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 sm:size-6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3.5 5h2l1.5 9.2a2 2 0 0 0 2 1.7h7.6a2 2 0 0 0 1.9-1.4L20.5 8H6" />
         <circle cx="9.5" cy="19" r="1" />
         <circle cx="17" cy="19" r="1" />

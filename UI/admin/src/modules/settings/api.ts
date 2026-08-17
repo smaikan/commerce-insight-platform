@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { apiRequest } from "@/lib/api/client";
 import type { AdminSession } from "@/lib/auth/contracts";
 import type {
@@ -23,7 +24,13 @@ import type {
   UpdateShippingMethodRequest,
   UpdateTaxRateRequest,
   UserSession,
+  PublicStoreSettings,
 } from "@/modules/settings/types";
+
+// Burada giriş ekranı ve root metadata'nın aynı render içindeki public StoreSettings okumasını tek istekte paylaştırıyorum.
+export const getPublicStoreSettings = cache(async (): Promise<PublicStoreSettings> => (
+  apiRequest("/api/store-settings")
+));
 
 export function getAdminStoreSettings(session: AdminSession): Promise<AdminStoreSettings> {
   return apiRequest("/api/store-settings/admin", { accessToken: session.accessToken });

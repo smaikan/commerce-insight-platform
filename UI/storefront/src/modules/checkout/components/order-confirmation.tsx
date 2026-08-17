@@ -6,22 +6,24 @@ import { useEffect, useState } from "react";
 import { formatVariantLabel } from "@/lib/formatting/variant";
 import {
   confirmationProblemMessage,
-  loadGuestOrder,
+  loadCheckoutOrder,
 } from "@/modules/checkout/client/checkout-api";
-import type { GuestOrder } from "@/modules/checkout/types";
+import { IyzicoPaymentControl } from "@/modules/checkout/components/iyzico-payment-control";
+import { authoritativePaymentState } from "@/modules/checkout/payment-state";
+import type { CheckoutOrder } from "@/modules/checkout/types";
 
 type ConfirmationState =
   | { kind: "loading" }
-  | { kind: "ready"; order: GuestOrder }
+  | { kind: "ready"; order: CheckoutOrder }
   | { kind: "error"; message: string };
 
 // Burada guest session grant'iyle alınan authoritative sipariş sonucunu yenilemede de kalıcı bir confirmation ekranında gösteriyorum.
-export function OrderConfirmation({ orderId, currency }: { orderId: string; currency: string }) {
+export function OrderConfirmation({ orderId, currency, isMember = false }: { orderId: string; currency: string; isMember?: boolean }) {
   const [state, setState] = useState<ConfirmationState>({ kind: "loading" });
 
   useEffect(() => {
     let active = true;
-    void loadGuestOrder(orderId)
+    void loadCheckoutOrder(orderId)
       .then((order) => {
         if (active) setState({ kind: "ready", order });
       })
@@ -49,6 +51,7 @@ export function OrderConfirmation({ orderId, currency }: { orderId: string; curr
   }
 
   const order = state.order;
+  const paymentState = authoritativePaymentState(order);
   return (
     <main id="main-content" className="page-shell max-w-[64rem] flex-1 py-10 sm:py-14 lg:py-16">
       <header className="rounded-2xl border border-line bg-surface px-5 py-8 text-center shadow-panel sm:px-8 sm:py-10">
@@ -94,16 +97,30 @@ export function OrderConfirmation({ orderId, currency }: { orderId: string; curr
         </aside>
       </div>
 
-      <section className="mt-7 rounded-xl border border-line bg-surface-subtle px-5 py-4 text-sm leading-6 text-ink">
-        Siparişiniz oluşturuldu. Ödeme gerektiren siparişlerde güvenli ödeme adımı sonraki aşamada bağlanacak.
-      </section>
-      <div className="mt-7 text-center"><Link href="/products" className="focus-ring inline-flex min-h-12 items-center justify-center rounded-lg border border-brand-700 px-6 text-sm font-bold text-brand-700 hover:bg-surface-subtle">Alışverişe devam et</Link></div>
+      {paymentState === "paid" ? (
+        <section className="mt-7 rounded-xl border border-brand-700/25 bg-surface-subtle px-5 py-4 text-sm leading-6 text-ink" role="status">
+          Ödemeniz doğrulandı. Siparişiniz hazırlanma sürecine geçtiğinde durum bilgisi burada ve e-posta bildirimlerinizde güncellenecek.
+        </section>
+      ) : paymentState === "failed" ? (
+        <section className="mt-7 rounded-xl border border-danger/25 bg-danger/5 px-5 py-5" aria-labelledby="confirmation-payment-title">
+          <h2 id="confirmation-payment-title" className="text-base font-bold text-danger">Ödeme tamamlanamadı</h2>
+          <p className="mt-2 text-sm leading-6 text-ink-muted">Siparişiniz kayıtlı. Güvenli iyzico sayfasında yeni bir ödeme denemesi başlatabilirsiniz.</p>
+          <div className="mt-4 max-w-sm"><IyzicoPaymentControl orderId={order.id} newAttempt /></div>
+        </section>
+      ) : (
+        <section className="mt-7 rounded-xl border border-line bg-surface-subtle px-5 py-5" aria-labelledby="confirmation-payment-title">
+          <h2 id="confirmation-payment-title" className="text-base font-bold text-ink">Ödeme bekleniyor</h2>
+          <p className="mt-2 text-sm leading-6 text-ink-muted">Siparişiniz oluşturuldu; kart bilgilerinizi mağazayla paylaşmadan iyzico’nun güvenli ödeme sayfasına devam edin.</p>
+          <div className="mt-4 max-w-sm"><IyzicoPaymentControl orderId={order.id} /></div>
+        </section>
+      )}
+      <div className="mt-7 flex flex-wrap justify-center gap-3"><Link href={isMember ? `/account/orders/${order.id}/return` : `/guest-orders/${order.id}/returns`} className="focus-ring inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-950 px-6 text-sm font-bold text-white hover:bg-brand-700">İade ve değişim işlemleri</Link><Link href="/products" className="focus-ring inline-flex min-h-12 items-center justify-center rounded-lg border border-brand-700 px-6 text-sm font-bold text-brand-700 hover:bg-surface-subtle">Alışverişe devam et</Link></div>
     </main>
   );
 }
 
 // Burada guest sipariş kalemlerinin değişmez varyant snapshot'ını canlı ürün isteği veya SKU fallback'i olmadan gösteriyorum.
-export function GuestOrderItems({ items, currency }: { items: GuestOrder["items"]; currency: string }) {
+export function GuestOrderItems({ items, currency }: { items: CheckoutOrder["items"]; currency: string }) {
   return (
     <ul className="divide-y divide-line">
       {items.map((item) => {

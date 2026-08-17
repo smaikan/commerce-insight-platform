@@ -18,7 +18,7 @@ export function DesktopNavigation({ groups }: { groups: StorefrontNavigationGrou
   }
 
   return (
-    <nav className="hidden items-center justify-self-center gap-1 text-sm font-semibold text-ink-muted lg:flex" aria-label="Ana navigasyon">
+    <nav className="hidden min-w-0 items-center justify-start gap-1 text-sm font-semibold text-ink-muted lg:flex" aria-label="Ana navigasyon">
       <PrimaryNavigationLink href="/" label="Ana sayfa" current={pathname === "/"} />
       <PrimaryNavigationLink href="/products" label="Katalog" current={pathname === "/products" || pathname.startsWith("/products/")} />
 
@@ -83,7 +83,7 @@ export function DesktopNavigation({ groups }: { groups: StorefrontNavigationGrou
             )}
 
             {isOpen ? (
-              <div id={panelId} className="absolute top-full left-1/2 z-50 w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 pt-3">
+              <div id={panelId} className="absolute top-full left-0 z-50 w-[min(32rem,calc(100vw-2rem))] pt-3">
                 <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-panel" aria-label={`${group.label} bağlantıları`}>
                   <div className="flex items-center justify-between gap-4 border-b border-line bg-surface-subtle px-5 py-3">
                     <h2 className="text-sm font-bold text-ink">{group.label}</h2>

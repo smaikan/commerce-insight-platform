@@ -3,7 +3,7 @@ import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { cache } from "react";
 
 import { siteConfig } from "@/lib/site-config";
-import { getCatalogFacets, getPublishedProducts } from "@/modules/catalog/api";
+import { getPublishedProductFacets, getPublishedProducts } from "@/modules/catalog/api";
 import {
   type CatalogClassificationKind,
   resolveCatalogClassification,
@@ -46,7 +46,7 @@ const getClassificationPageData = cache(async (
   );
   const [products, facets] = await Promise.all([
     getPublishedProducts(toPublishedProductQuery(view)),
-    getCatalogFacets(),
+    getPublishedProductFacets(toPublishedProductQuery(view)),
   ]);
 
   return { classification, view, products, facets };

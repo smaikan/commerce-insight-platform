@@ -169,4 +169,5 @@ function isSection(value: unknown): value is StoreSettingsSection {
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Burada .NET Guid sözleşmesini sürüm/varyant dayatmadan yalnız kanonik 8-4-4-4-12 biçiminde doğruluyorum.
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

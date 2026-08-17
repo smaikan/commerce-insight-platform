@@ -40,9 +40,9 @@ export function FavoritesIndicator() {
       href={href}
       prefetch={false}
       aria-label={label}
-      className="header-action relative inline-flex size-11 items-center justify-center text-ink hover:bg-surface-subtle hover:text-brand-700"
+      className="header-action relative inline-flex size-9 items-center justify-center p-0! text-ink hover:bg-surface-subtle hover:text-brand-700 sm:size-11 sm:px-3! sm:py-2.5!"
     >
-      <FavoriteHeartIcon filled={count > 0} />
+      <FavoriteHeartIcon filled={count > 0} className="size-4.5 sm:size-5" />
       {count > 0 ? (
         <span className="absolute top-1 right-0.5 flex min-w-4.5 items-center justify-center rounded-full bg-brand-700 px-1 text-[0.625rem] leading-4 font-bold text-white" aria-hidden="true">
           {count > 99 ? "99+" : count}

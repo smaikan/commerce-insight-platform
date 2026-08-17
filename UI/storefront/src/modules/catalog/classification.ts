@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import { getCatalogFacets } from "@/modules/catalog/api";
+import { getCatalogClassifications } from "@/modules/catalog/api";
 import { catalogSegmentFromApiUrl, classificationSegmentFromName } from "@/modules/catalog/classification-url";
 import type { CatalogFilterKey } from "@/modules/catalog/query";
 import type { Brand, Collection, ProductType } from "@/modules/catalog/types";
@@ -25,7 +25,7 @@ export const resolveCatalogClassification = cache(async (
   kind: CatalogClassificationKind,
   segment: string,
 ): Promise<CatalogClassification | null> => {
-  const facets = await getCatalogFacets();
+  const facets = await getCatalogClassifications();
   const normalizedSegment = catalogSegmentFromApiUrl(segment);
 
   if (kind === "brand") {

@@ -2,16 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 
+import { clearAuthCookies } from "@/lib/auth/cookies";
 import { ApiError } from "@/lib/api/problem";
 import {
   cancelAccountOrder,
+  createAccountReturn,
+  changeAccountPassword,
   createAccountAddress,
   deleteAccountAddress,
+  logoutAllAccountSessions,
+  revokeAccountSession,
   setDefaultAccountAddress,
   updateAccountAddress,
   updateAccountUser,
 } from "@/modules/account/api";
 import type { AccountActionState, AddressPayload } from "@/modules/account/contracts";
+import { redirect } from "next/navigation";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -105,6 +111,101 @@ export async function cancelOrderAction(id: string): Promise<AccountActionState>
     return { status: "success", revision: 1, message: "Siparişiniz iptal edildi." };
   } catch (error) {
     return accountErrorState(error, 1, "Sipariş iptal edilemedi.");
+  }
+}
+
+// Burada iade formundaki seçili kalemleri doğrulayıp API'nin tek authoritative talep komutuna dönüştürüyorum.
+export async function createReturnAction(
+  orderId: string,
+  state: AccountActionState,
+  formData: FormData,
+): Promise<AccountActionState> {
+  const revision = state.revision + 1;
+  if (!UUID_PATTERN.test(orderId)) return { status: "error", revision, message: "Sipariş kaydı geçersiz." };
+
+  const typeValue = fieldValue(formData, "type");
+  const type = typeValue === "0" ? 0 : typeValue === "1" ? 1 : null;
+  const itemIds = formData.getAll("orderItemId").filter((value): value is string => typeof value === "string" && UUID_PATTERN.test(value));
+  const items = itemIds.flatMap((orderItemId) => {
+    const quantity = Number(fieldValue(formData, `quantity:${orderItemId}`));
+    if (!Number.isInteger(quantity) || quantity <= 0) return [];
+    const replacement = fieldValue(formData, `replacement:${orderItemId}`);
+    return [{
+      orderItemId,
+      quantity,
+      replacementProductVariantId: type === 1 && UUID_PATTERN.test(replacement) ? replacement : null,
+    }];
+  });
+
+  if (type === null) return invalidState(revision, { type: "Talep türünü seçin." });
+  if (!items.length) return { status: "error", revision, message: "En az bir ürün için iade adedi seçin." };
+  if (type === 1 && items.some((item) => !item.replacementProductVariantId)) {
+    return { status: "error", revision, message: "Değişime eklenen her ürün için yeni varyant seçin." };
+  }
+
+  let created;
+  try {
+    created = await createAccountReturn({
+      orderId,
+      type,
+      items,
+      customerNote: fieldValue(formData, "customerNote") || null,
+    });
+  } catch (error) {
+    return accountErrorState(error, revision, "İade veya değişim talebiniz oluşturulamadı.");
+  }
+
+  revalidatePath("/account/returns");
+  revalidatePath(`/account/orders/${orderId}`);
+  redirect(`/account/returns/${created.id}`);
+}
+
+// Burada parola formunun üç alanını eşleştirip API doğrulamasından önce anlaşılır alan hataları üretiyorum.
+export async function changePasswordAction(
+  state: AccountActionState,
+  formData: FormData,
+): Promise<AccountActionState> {
+  const revision = state.revision + 1;
+  const currentPassword = fieldValue(formData, "currentPassword");
+  const newPassword = fieldValue(formData, "newPassword");
+  const confirmPassword = fieldValue(formData, "confirmPassword");
+  const fieldErrors: Record<string, string> = {};
+
+  if (!currentPassword) fieldErrors.currentPassword = "Mevcut parolanızı girin.";
+  if (!newPassword) fieldErrors.newPassword = "Yeni parolanızı girin.";
+  if (newPassword && newPassword === currentPassword) fieldErrors.newPassword = "Yeni parola mevcut paroladan farklı olmalıdır.";
+  if (newPassword !== confirmPassword) fieldErrors.confirmPassword = "Yeni parola ve tekrarı eşleşmiyor.";
+  if (Object.keys(fieldErrors).length) return invalidState(revision, fieldErrors);
+
+  try {
+    await changeAccountPassword({ currentPassword, newPassword });
+    await clearAuthCookies();
+    return { status: "success", revision, message: "Parolanız değiştirildi. Güvenliğiniz için yeniden giriş yapın." };
+  } catch (error) {
+    return accountErrorState(error, revision, "Parolanız değiştirilemedi.");
+  }
+}
+
+// Burada oturum listesinde seçilen kimliği doğrulayıp yalnız o oturumu kapatıyorum.
+export async function revokeSessionAction(id: string): Promise<AccountActionState> {
+  if (!UUID_PATTERN.test(id)) return { status: "error", revision: 1, message: "Oturum kaydı geçersiz." };
+  try {
+    await revokeAccountSession(id);
+    revalidatePath("/account/security");
+    return { status: "success", revision: 1, message: "Seçili oturum kapatıldı." };
+  } catch (error) {
+    return accountErrorState(error, 1, "Oturum kapatılamadı.");
+  }
+}
+
+// Burada API tarafında tüm oturumlar kapatıldıktan sonra yerel HttpOnly çerezleri de temizliyorum.
+export async function logoutAllSessionsAction(): Promise<AccountActionState> {
+  try {
+    await logoutAllAccountSessions();
+    await clearAuthCookies();
+    return { status: "success", revision: 1, message: "Tüm cihazlardaki oturumlar kapatıldı." };
+  } catch (error) {
+    return accountErrorState(error, 1, "Oturumlar kapatılamadı.");
   }
 }
 

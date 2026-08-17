@@ -1,20 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { uploadCloudinaryAsset, validateImageFile } from "@/lib/cloudinary/browser-upload";
+import { validateImageFile } from "@/lib/cloudinary/browser-upload";
+import { replaceStoreSettingsMedia } from "@/modules/settings/store-settings/media-client";
+import type { StoreSettingsMediaSlot } from "@/modules/settings/store-settings/media-slots";
 
 type StoreImageFieldProps = {
   id: string;
   label: string;
   hint: string;
-  folder: string;
+  slot: StoreSettingsMediaSlot;
   value: string | null;
   disabled?: boolean;
   error?: string;
   onChange: (value: string | null) => void;
 };
 
-export function StoreImageField({ id, label, hint, folder, value, disabled, error, onChange }: StoreImageFieldProps) {
+export function StoreImageField({ id, label, hint, slot, value, disabled, error, onChange }: StoreImageFieldProps) {
   const controllerRef = useRef<AbortController | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string>();
@@ -36,7 +38,8 @@ export function StoreImageField({ id, label, hint, folder, value, disabled, erro
     setUploading(true);
     setUploadError(undefined);
     try {
-      const asset = await uploadCloudinaryAsset({ file, folder, tags: ["store-settings", folder.split("/").at(-1) || "image"] }, controller.signal);
+      // Burada her StoreSettings alanını server-side imzalı sabit Cloudinary yuvasında değiştiriyorum.
+      const asset = await replaceStoreSettingsMedia(slot, file, controller.signal);
       onChange(asset.secureUrl);
     } catch (caught) {
       if (!controller.signal.aborted) setUploadError(caught instanceof Error ? caught.message : "Görsel yüklenemedi.");

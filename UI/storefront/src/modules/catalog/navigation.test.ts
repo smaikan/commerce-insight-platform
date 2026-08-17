@@ -32,6 +32,7 @@ describe("storefront navigation data", () => {
       {
         id: "categories",
         label: "Kategoriler",
+        href: "/categories",
         items: [{ id: "type-1", label: "Yüzük", href: "/category/yuzuk", productCount: 8 }],
       },
       {

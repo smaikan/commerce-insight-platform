@@ -4450,6 +4450,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/guest-orders/{id}/payments/iyzico/checkout-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["CheckoutFormSessionDto"];
+                        "application/json": components["schemas"]["CheckoutFormSessionDto"];
+                        "text/json": components["schemas"]["CheckoutFormSessionDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/guest-orders/{id}/cancel": {
         parameters: {
             query?: never;
@@ -4789,6 +4885,163 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/api/payments/iyzico/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/x-www-form-urlencoded": {
+                        Token: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description See Other */
+                303: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/payments/iyzico/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-IYZ-SIGNATURE-V3": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["IyzicoWebhookRequest"];
+                    "text/json": components["schemas"]["IyzicoWebhookRequest"];
+                    "application/*+json": components["schemas"]["IyzicoWebhookRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/main-banners": {
@@ -5168,6 +5421,91 @@ export interface paths {
                         "text/plain": components["schemas"]["ECommerce.Application.Orders.Dtos.PaymentDto"];
                         "application/json": components["schemas"]["ECommerce.Application.Orders.Dtos.PaymentDto"];
                         "text/json": components["schemas"]["ECommerce.Application.Orders.Dtos.PaymentDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{id}/payments/iyzico/checkout-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["CheckoutFormSessionDto"];
+                        "application/json": components["schemas"]["CheckoutFormSessionDto"];
+                        "text/json": components["schemas"]["CheckoutFormSessionDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
                     };
                 };
             };
@@ -6927,7 +7265,11 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": components["schemas"]["ProductTypeDtoPagedResult"];
+                        "application/json": components["schemas"]["ProductTypeDtoPagedResult"];
+                        "text/json": components["schemas"]["ProductTypeDtoPagedResult"];
+                    };
                 };
             };
         };
@@ -6947,8 +7289,8 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
-                200: {
+                /** @description Created */
+                201: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -6960,6 +7302,46 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product-types/published": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    PageNumber?: number;
+                    PageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["PublishedProductTypeShowcaseItemDtoPagedResult"];
+                        "application/json": components["schemas"]["PublishedProductTypeShowcaseItemDtoPagedResult"];
+                        "text/json": components["schemas"]["PublishedProductTypeShowcaseItemDtoPagedResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7077,12 +7459,16 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
-                200: {
+                /** @description Created */
+                201: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": components["schemas"]["ProductTypeDto"][];
+                        "application/json": components["schemas"]["ProductTypeDto"][];
+                        "text/json": components["schemas"]["ProductTypeDto"][];
+                    };
                 };
             };
         };
@@ -11327,6 +11713,7 @@ export interface components {
             name: string;
             description?: string | null;
             isActive: boolean;
+            imageUrl?: string | null;
         };
         BulkCreateProductTypesCommand: {
             productTypes: components["schemas"]["BulkCreateProductTypeItem"][];
@@ -11415,6 +11802,7 @@ export interface components {
             /** Format: uuid */
             productVariantId: string;
             productTitle?: string | null;
+            mainImage?: components["schemas"]["ProductImageDto"];
             variantName?: string | null;
             variantValue?: string | null;
             sku?: string | null;
@@ -11460,6 +11848,19 @@ export interface components {
         };
         ChangeProductStatusRequest: {
             status: components["schemas"]["ProductStatus"];
+        };
+        CheckoutFormSessionDto: {
+            /** Format: uuid */
+            paymentId: string;
+            /** Format: uuid */
+            orderId: string;
+            provider: components["schemas"]["PaymentProvider"];
+            status: components["schemas"]["ECommerce.Domain.Enums.PaymentStatus"];
+            /** Format: double */
+            amount: number;
+            paymentPageUrl: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
         };
         CloseAccountCommand: {
             currentPassword: string;
@@ -11694,6 +12095,7 @@ export interface components {
             name: string;
             description?: string | null;
             isActive: boolean;
+            imageUrl?: string | null;
         };
         CreateProductVariantItem: {
             name: string;
@@ -12169,6 +12571,14 @@ export interface components {
          * @enum {integer}
          */
         InvoiceStatus: 1 | 2 | 3;
+        IyzicoWebhookRequest: {
+            iyziEventType: string;
+            /** Format: int64 */
+            iyziPaymentId: number;
+            token: string;
+            paymentConversationId: string;
+            status: string;
+        };
         LoginRequest: {
             email: string;
             password: string;
@@ -12552,10 +12962,25 @@ export interface components {
             name: string;
             description?: string | null;
             isActive: boolean;
+            imageUrl?: string | null;
+        };
+        ProductTypeDtoPagedResult: {
+            items: components["schemas"]["ProductTypeDto"][];
+            /** Format: int32 */
+            pageNumber: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            readonly totalPages: number;
+            readonly hasPreviousPage: boolean;
+            readonly hasNextPage: boolean;
         };
         ProductTypeRequest: {
             name: string;
             description?: string | null;
+            imageUrl?: string | null;
         };
         ProductVariantCostHistoryDto: {
             /** Format: uuid */
@@ -12744,6 +13169,27 @@ export interface components {
          * @enum {integer}
          */
         PublishedProductSortBy: 0 | 1 | 2 | 3;
+        PublishedProductTypeShowcaseItemDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int32 */
+            productCount: number;
+            imageUrl?: string | null;
+        };
+        PublishedProductTypeShowcaseItemDtoPagedResult: {
+            items: components["schemas"]["PublishedProductTypeShowcaseItemDto"][];
+            /** Format: int32 */
+            pageNumber: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            readonly totalPages: number;
+            readonly hasPreviousPage: boolean;
+            readonly hasNextPage: boolean;
+        };
         /**
          * Format: int32
          * @enum {integer}

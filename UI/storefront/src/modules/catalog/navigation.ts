@@ -13,6 +13,7 @@ const NAVIGATION_FACET_CONFIG = [
   {
     id: "categories",
     label: "Kategoriler",
+    href: "/categories",
     path: "/api/products/published/facets/product-types",
     routePrefix: "/category",
     tag: "published-product-type-facets",

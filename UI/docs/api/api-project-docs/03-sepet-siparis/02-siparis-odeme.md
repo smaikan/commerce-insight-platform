@@ -67,6 +67,8 @@ Sıfır toplamlı tam kupon siparişi payment oluşturmadan `Paid` olabilir ve s
 
 ## Ödeme ve iptal
 
+iyzico hosted ödeme formu sandbox akışı üye ve guest siparişlerde desteklenir. Kart verisi API'ye gönderilmez; frontend initialize cevabındaki `paymentPageUrl` adresine yönlenir. Callback ve V3 webhook sonrasında API sonucu iyzico'dan yeniden sorgular; yanıt imzası, fraud durumu, TRY, basket/conversation kimliği ve backend toplamları eşleşmeden sipariş Paid olmaz. Frontend entegrasyon sırası ve DTO için [iyzico CheckoutForm sandbox sözleşmesini](../08-endpoint-sozlesmeleri/05-siparis-ve-odeme/IYZICO-CHECKOUTFORM-SOZLESMESI.md) okuyun.
+
 Üye: `POST /api/orders/{id}/payments`, guest: `POST /api/guest-orders/{id}/payments`. İkisinde `Idempotency-Key` zorunludur ve amount/provider sonucu backend otoritesidir. Aynı siparişte pending ödeme varken yeni deneme reddedilir.
 
 İptal yalnız Pending/Confirmed ve reconciliation bekleyen ödeme yokken mümkündür. İptal mevcut `OrderInventoryService` ile `Cancellation` stok hareketi oluşturur, kupon kullanımını geri alır, rezervasyonu kapatır ve outbox bildirimi üretir.

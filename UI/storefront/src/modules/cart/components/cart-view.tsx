@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -287,14 +288,29 @@ function removeItem(itemId: string, token: string): Promise<Cart> {
   });
 }
 
-// Burada sepet satırında ürün kimliğini ve yalnızca eksiksiz API varyant seçimini teknik SKU fallback'i olmadan sunuyorum.
+// Burada API'nin seçtiği ana görseli ve eksiksiz varyant bilgisini ek katalog isteği üretmeden sepet satırında sunuyorum.
 export function CartItemIdentity({ item }: { item: Cart["items"][number] }) {
   const variantLabel = formatVariantLabel(item.variantName, item.variantValue);
 
   return (
-    <div className="min-w-0">
-      <h2 className="text-base font-bold leading-6 text-ink sm:text-lg">{item.productTitle || "Ürün"}</h2>
-      {variantLabel ? <p className="mt-1 text-xs text-ink-muted">{variantLabel}</p> : null}
+    <div className="flex min-w-0 items-start gap-4">
+      <div className="relative aspect-square w-16 shrink-0 overflow-hidden rounded-lg border border-line bg-surface-subtle sm:w-20">
+        {item.mainImage ? (
+          <Image
+            src={item.mainImage.imageUrl}
+            alt={item.mainImage.altText?.trim() || item.productTitle || "Ürün görseli"}
+            fill
+            sizes="(max-width: 640px) 64px, 80px"
+            className="object-cover"
+          />
+        ) : (
+          <span className="flex h-full items-center justify-center px-2 text-center text-[0.625rem] font-semibold leading-4 text-ink-muted">Görsel yok</span>
+        )}
+      </div>
+      <div className="min-w-0 pt-1">
+        <h2 className="text-base font-bold leading-6 text-ink sm:text-lg">{item.productTitle || "Ürün"}</h2>
+        {variantLabel ? <p className="mt-1 text-xs text-ink-muted">{variantLabel}</p> : null}
+      </div>
     </div>
   );
 }

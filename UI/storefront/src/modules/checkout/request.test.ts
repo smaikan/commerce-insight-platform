@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseGuestCheckoutRequest,
   parseIdempotencyKey,
+  parseMemberCheckoutRequest,
   parseTurnstileToken,
 } from "./request";
 
@@ -63,7 +64,27 @@ describe("guest checkout request", () => {
   it("validates checkout headers", () => {
     expect(parseIdempotencyKey("12345678-1234-1234-1234-123456789012")).toBe("12345678-1234-1234-1234-123456789012");
     expect(parseIdempotencyKey("short")).toBeNull();
+    expect(parseIdempotencyKey("123456789012345.invalid")).toBeNull();
+    expect(parseIdempotencyKey("a".repeat(81))).toBeNull();
     expect(parseTurnstileToken(null)).toBeUndefined();
     expect(parseTurnstileToken("token\nvalue")).toBeNull();
+  });
+
+  // Burada üye sipariş gövdesinde yalnız cart tokenı, sahiplik denetimli adres, kargo ve kupon alanlarının kaldığını doğruluyorum.
+  it("keeps only documented member checkout fields", () => {
+    expect(parseMemberCheckoutRequest({
+      expectedCartConcurrencyToken: cartToken,
+      shippingAddressId: "2fe43ff2-d6d7-43a4-91f0-cf8a1974aaba",
+      shippingMethodId,
+      couponCode: "WELCOME10",
+      grandTotal: 1,
+      userId: "U00001",
+    })).toEqual({
+      expectedCartConcurrencyToken: cartToken,
+      shippingAddressId: "2fe43ff2-d6d7-43a4-91f0-cf8a1974aaba",
+      shippingMethodId,
+      couponCode: "WELCOME10",
+    });
+    expect(parseMemberCheckoutRequest({ expectedCartConcurrencyToken: cartToken, shippingAddressId: "bad", shippingMethodId })).toBeNull();
   });
 });

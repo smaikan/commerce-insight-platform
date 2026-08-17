@@ -1,18 +1,21 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { FooterDisclosure } from "@/components/storefront/footer-disclosure";
 import type { StorefrontNavigationItem } from "@/components/storefront/navigation-types";
 import { siteConfig } from "@/lib/site-config";
 import { getStorefrontNavigation } from "@/modules/catalog/navigation";
 import { legalLinks } from "@/modules/legal/legal-links";
 import { getPublicStoreSettings } from "@/modules/store-settings/api";
 import type { PublicStoreSettings } from "@/modules/store-settings/types";
+import { safeStoreSettingsUrl } from "@/modules/store-settings/url";
 
 type FooterSettings = Pick<
   PublicStoreSettings,
   | "displayName"
   | "shortDescription"
   | "logoUrl"
+  | "darkLogoUrl"
   | "supportEmail"
   | "supportPhone"
   | "whatsappNumber"
@@ -34,6 +37,7 @@ const FALLBACK_FOOTER_SETTINGS: FooterSettings = {
   displayName: siteConfig.name,
   shortDescription: siteConfig.description,
   logoUrl: null,
+  darkLogoUrl: null,
   supportEmail: null,
   supportPhone: null,
   whatsappNumber: null,
@@ -58,27 +62,39 @@ const SOCIAL_LINKS: Array<{ key: SocialKey; label: string }> = [
   { key: "pinterestUrl", label: "Pinterest" },
 ];
 
-// Burada public kimlik/iletişim ayarlarını ve gerçek kategori hedeflerini paralel okuyarak footer görünümüne aktarıyorum.
+// Burada üyelik sırasında ayrıca sunulan iki metni footer listesinden çıkarıp müşteri hizmetleri kolonunu kompakt tutuyorum.
+const FOOTER_LEGAL_LINKS = legalLinks.filter(
+  (link) => link.href !== "/membership-agreement" && link.href !== "/membership-privacy-notice",
+);
+
+// Burada public kimlik/iletişim ayarlarını ve en fazla altı gerçek koleksiyon hedefini paralel okuyarak footer görünümüne aktarıyorum.
 export async function SiteFooter() {
   const [settingsResult, navigationResult] = await Promise.allSettled([
     getPublicStoreSettings(),
     getStorefrontNavigation(),
   ]);
   const settings = settingsResult.status === "fulfilled" ? settingsResult.value : FALLBACK_FOOTER_SETTINGS;
-  const categories = navigationResult.status === "fulfilled"
-    ? navigationResult.value.find((group) => group.id === "categories")?.items.slice(0, 6) || []
+  const collections = navigationResult.status === "fulfilled"
+    ? navigationResult.value.find((group) => group.id === "collections")?.items.slice(0, 6) || []
     : [];
 
-  return <SiteFooterView settings={settings} categories={categories} />;
+  return <SiteFooterView settings={settings} collections={collections} />;
 }
 
-// Burada referanstaki marka, iletişim, kategori ve müşteri hizmetleri kolonlarını responsive ve semantik footer olarak kuruyorum.
-export function SiteFooterView({ settings, categories }: { settings: FooterSettings; categories: StorefrontNavigationItem[] }) {
+// Burada referanstaki marka, iletişim, koleksiyon ve müşteri hizmetleri kolonlarını responsive ve semantik footer olarak kuruyorum.
+export function SiteFooterView({
+  settings,
+  collections,
+}: {
+  settings: FooterSettings;
+  collections: StorefrontNavigationItem[];
+}) {
   const displayName = settings.displayName.trim() || siteConfig.name;
-  const logoUrl = safeHttpUrl(settings.logoUrl);
-  const mapUrl = safeHttpUrl(settings.mapUrl);
+  // Burada koyu footer yüzeyinde önce açık renkli alternatif logoyu, yoksa standart logoyu kullanıyorum.
+  const logoUrl = safeStoreSettingsUrl(settings.darkLogoUrl) ?? safeStoreSettingsUrl(settings.logoUrl);
+  const mapUrl = safeStoreSettingsUrl(settings.mapUrl);
   const socialLinks = SOCIAL_LINKS.flatMap((social) => {
-    const href = safeHttpUrl(settings[social.key]);
+    const href = safeStoreSettingsUrl(settings[social.key]);
     return href ? [{ ...social, href }] : [];
   });
   const whatsappHref = whatsappUrl(settings.whatsappNumber);
@@ -87,11 +103,18 @@ export function SiteFooterView({ settings, categories }: { settings: FooterSetti
   return (
     <footer className="mt-auto border-t-4 border-brand-600 bg-footer text-footer-ink">
       {/* Burada footer kolonlarını ana sayfa genişliğiyle hizalayıp daha sakin ve kompakt bir bilgi ritmi kuruyorum. */}
-      <div className="page-shell grid gap-8 pt-9 pb-7 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-9 sm:pt-10 sm:pb-8 lg:grid-cols-[minmax(14rem,1.2fr)_minmax(14rem,1fr)_minmax(9rem,0.65fr)_minmax(14rem,1fr)] lg:gap-x-9 lg:pt-11 lg:pb-8 xl:gap-x-12">
-        <section aria-label="Mağaza bilgileri">
+      <div className="page-shell grid gap-0 pt-9 pb-7 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-9 sm:pt-10 sm:pb-8 lg:grid-cols-[minmax(14rem,1.2fr)_minmax(14rem,1fr)_minmax(9rem,0.65fr)_minmax(14rem,1fr)] lg:gap-x-9 lg:pt-11 lg:pb-8 xl:gap-x-12">
+        <section className="pb-7 sm:pb-0" aria-label="Mağaza bilgileri">
           <Link href="/" prefetch={false} className="focus-ring inline-flex max-w-full items-center" aria-label={`${displayName} ana sayfa`}>
             {logoUrl ? (
-              <Image src={logoUrl} alt={displayName} width={260} height={84} className="h-auto max-h-20 w-auto max-w-full object-contain object-left" />
+              <Image
+                src={logoUrl}
+                alt={displayName}
+                width={300}
+                height={300}
+                sizes="(min-width: 640px) 128px, 112px"
+                className="size-28 object-contain object-left sm:size-32"
+              />
             ) : (
               <span className="text-xl font-black tracking-[0.13em] sm:text-2xl">{displayName}</span>
             )}
@@ -117,9 +140,9 @@ export function SiteFooterView({ settings, categories }: { settings: FooterSetti
           ) : null}
         </section>
 
-        <section id="store-contact" className="scroll-mt-28" aria-labelledby="footer-contact-title">
-          <h2 id="footer-contact-title" className="text-sm font-bold tracking-[0.08em] uppercase">İletişim</h2>
-          <address className="mt-4 flex flex-col items-start gap-2 not-italic text-sm leading-6 text-footer-muted">
+        <div id="store-contact" className="scroll-mt-28">
+          <FooterDisclosure id="footer-contact" title="İletişim">
+          <address className="mt-1 flex flex-col items-start gap-2 not-italic text-sm leading-6 text-footer-muted sm:mt-4">
             {settings.contactAddress ? (
               mapUrl ? <a className="footer-link whitespace-pre-line" href={mapUrl} target="_blank" rel="noreferrer">{settings.contactAddress}</a> : <span className="whitespace-pre-line">{settings.contactAddress}</span>
             ) : null}
@@ -128,28 +151,27 @@ export function SiteFooterView({ settings, categories }: { settings: FooterSetti
             {settings.workingHours ? <span className="whitespace-pre-line">{settings.workingHours}</span> : null}
             {!hasContact ? <p className="max-w-sm">Mağaza iletişim bilgileri yayınlandığında burada görüntülenecektir.</p> : null}
           </address>
-        </section>
+          </FooterDisclosure>
+        </div>
 
-        <section aria-labelledby="footer-categories-title">
-          <h2 id="footer-categories-title" className="text-sm font-bold tracking-[0.08em] uppercase">Kategoriler</h2>
-          <nav className="mt-4 flex flex-col items-start" aria-label="Footer kategorileri">
-            {categories.length > 0 ? categories.map((category) => (
-              <Link key={category.id} className="footer-link inline-flex min-h-10 items-center text-sm" href={category.href} prefetch={false}>{category.label}</Link>
+        <FooterDisclosure id="footer-collections" title="Koleksiyonlar">
+          <nav className="mt-1 flex flex-col items-start sm:mt-4" aria-label="Footer koleksiyonları">
+            {collections.length > 0 ? collections.slice(0, 6).map((collection) => (
+              <Link key={collection.id} className="footer-link inline-flex min-h-10 items-center text-sm" href={collection.href} prefetch={false}>{collection.label}</Link>
             )) : (
-              <Link className="footer-link inline-flex min-h-10 items-center text-sm" href="/products" prefetch={false}>Tüm ürünler</Link>
+              <Link className="footer-link inline-flex min-h-10 items-center text-sm" href="/collections" prefetch={false}>Tüm koleksiyonlar</Link>
             )}
           </nav>
-        </section>
+        </FooterDisclosure>
 
-        <section aria-labelledby="footer-customer-title">
-          <h2 id="footer-customer-title" className="text-sm font-bold tracking-[0.08em] uppercase">Müşteri Hizmetleri</h2>
-          <nav className="mt-4 flex flex-col items-start" aria-label="Yasal ve müşteri bilgilendirme bağlantıları">
-            {legalLinks.map((link) => (
+        <FooterDisclosure id="footer-customer" title="Müşteri Hizmetleri">
+          <nav className="mt-1 flex flex-col items-start sm:mt-4" aria-label="Yasal ve müşteri bilgilendirme bağlantıları">
+            {FOOTER_LEGAL_LINKS.map((link) => (
               <Link key={link.href} className="footer-link inline-flex min-h-10 items-center text-sm" href={link.href} prefetch={false}>{link.label}</Link>
             ))}
             <a className="footer-link inline-flex min-h-10 items-center text-sm" href="#store-contact">İletişim</a>
           </nav>
-        </section>
+        </FooterDisclosure>
       </div>
 
       <div className="border-t border-footer-line">
@@ -181,17 +203,6 @@ export function SiteFooterView({ settings, categories }: { settings: FooterSetti
       </a>
     </footer>
   );
-}
-
-// Burada yalnız http/https sosyal, logo ve harita adreslerini render ederek güvensiz URL şemalarını eliyorum.
-function safeHttpUrl(value: string | null | undefined): string | null {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
 }
 
 // Burada telefon değerini tel bağlantısında yalnız arama için anlamlı karakterlerle sınırlıyorum.

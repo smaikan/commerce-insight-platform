@@ -5,6 +5,7 @@ import { cache } from "react";
 import { apiGet } from "@/lib/api/client";
 import type {
   BrandPage,
+  CatalogClassifications,
   CatalogFacets,
   CollectionPage,
   ProductTypePage,
@@ -27,7 +28,7 @@ export async function getPublishedProducts(query: PublishedProductQuery): Promis
 }
 
 // Burada katalog facet seçeneklerini bağımsız public endpointlerden paralel ve paylaşımlı cache ile alıyorum.
-export const getCatalogFacets = cache(async (): Promise<CatalogFacets> => {
+export const getCatalogClassifications = cache(async (): Promise<CatalogClassifications> => {
   const [brands, collections, productTypes] = await Promise.all([
     apiGet<BrandPage>("/api/brands?PageNumber=1&PageSize=100", {
       revalidate: 300,
@@ -53,3 +54,29 @@ export const getCatalogFacets = cache(async (): Promise<CatalogFacets> => {
       .sort((left, right) => left.name.localeCompare(right.name, "tr")),
   };
 });
+
+// Burada filtre seçeneklerini ürün liste sorgusuyla aynı bağlamdaki self-excluding published facet uçlarından alıyorum.
+export async function getPublishedProductFacets(query: PublishedProductQuery): Promise<CatalogFacets> {
+  const search = new URLSearchParams();
+  if (query.TypeId) search.set("TypeId", query.TypeId);
+  if (query.BrandId) search.set("BrandId", query.BrandId);
+  if (query.CollectionId) search.set("CollectionId", query.CollectionId);
+  const suffix = search.size ? `?${search.toString()}` : "";
+
+  const [brands, collections, productTypes] = await Promise.all([
+    apiGet<CatalogFacets["brands"]>(`/api/products/published/facets/brands${suffix}`, {
+      revalidate: 30,
+      tags: ["products", "published-product-facets"],
+    }),
+    apiGet<CatalogFacets["collections"]>(`/api/products/published/facets/collections${suffix}`, {
+      revalidate: 30,
+      tags: ["products", "published-product-facets"],
+    }),
+    apiGet<CatalogFacets["productTypes"]>(`/api/products/published/facets/product-types${suffix}`, {
+      revalidate: 30,
+      tags: ["products", "published-product-facets"],
+    }),
+  ]);
+
+  return { brands, collections, productTypes };
+}

@@ -15,6 +15,7 @@ export type ChangeEmailRequest = components["schemas"]["ChangeEmailCommand"];
 export type ChangePasswordRequest = components["schemas"]["ChangePasswordCommand"];
 export type UserSession = components["schemas"]["UserSessionDto"];
 export type AdminStoreSettings = components["schemas"]["AdminStoreSettingsDto"];
+export type PublicStoreSettings = components["schemas"]["PublicStoreSettingsDto"];
 export type UpdateStoreIdentityRequest = components["schemas"]["UpdateStoreIdentityRequest"];
 export type UpdateStoreContactRequest = components["schemas"]["UpdateStoreContactRequest"];
 export type UpdateStoreLegalRequest = components["schemas"]["UpdateStoreLegalRequest"];

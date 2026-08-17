@@ -40,6 +40,14 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
                   "productId":  "string",
                   "productVariantId":  "00000000-0000-0000-0000-000000000001",
                   "productTitle":  "string",
+                  "mainImage":  {
+                                    "id": "00000000-0000-0000-0000-000000000001",
+                                    "productId": "P00001",
+                                    "imageUrl": "https://cdn.example.com/products/main.jpg",
+                                    "altText": "Ürün ana görseli",
+                                    "displayOrder": 0,
+                                    "isMain": true
+                                },
                   "variantName":  "string",
                   "variantValue":  "string",
                   "sku":  "string",
@@ -62,4 +70,6 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
 ```
 
 `variantName` ve `variantValue` nullable ve en fazla 150 karakterdir. Varyantsız üründe ikisi de `null` döner. Ayrıntı: [varyant snapshot sözleşmesi](SEPET-SIPARIS-VARYANT-SNAPSHOT-SOZLESMESI.md).
+
+`mainImage` nullable `ProductImageDto` değeridir; ürün görseli yoksa `null` döner. Ayrıntı: [CartItemDto ana görsel sözleşmesi](CART-ITEM-MAIN-IMAGE-SOZLESMESI.md).
 

@@ -11,6 +11,7 @@ export type BrandPage = components["schemas"]["BrandDtoPagedResult"];
 export type Collection = components["schemas"]["CollectionDto"];
 export type CollectionPage = components["schemas"]["CollectionDtoPagedResult"];
 export type ProductType = components["schemas"]["ProductTypeDto"];
+export type PublishedProductFacet = components["schemas"]["PublishedProductFacetItemDto"];
 
 // OpenAPI product-types liste response body'sini henüz üretmediği için runtime'da doğrulanan ortak sayfalama biçimini dar tutuyorum.
 export type ProductTypePage = {
@@ -23,10 +24,16 @@ export type ProductTypePage = {
   hasNextPage: boolean;
 };
 
-export type CatalogFacets = {
+export type CatalogClassifications = {
   brands: Brand[];
   collections: Collection[];
   productTypes: ProductType[];
+};
+
+export type CatalogFacets = {
+  brands: PublishedProductFacet[];
+  collections: PublishedProductFacet[];
+  productTypes: PublishedProductFacet[];
 };
 
 export type CatalogSort = "newest" | "popular" | "display-order" | "title";

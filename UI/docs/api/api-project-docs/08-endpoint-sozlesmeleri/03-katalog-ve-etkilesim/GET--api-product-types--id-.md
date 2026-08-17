@@ -3,7 +3,7 @@
 - İşlev alanı: **03 Katalog ve ürün etkileşimi**
 - İşlev: Kaynağı veya filtrelenmiş kaynak listesini okur.
 - Operation ID: `GET-/api/product-types/{id}`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Yetki: `AllowAnonymous`.
 - Content-Type: request body varsa `application/json` gönderin.
 - Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
@@ -24,7 +24,10 @@ Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, 
     "id":  "00000000-0000-0000-0000-000000000001",
     "name":  "string",
     "description":  "string",
-    "isActive":  true
+    "isActive":  true,
+    "imageUrl": "https://cdn.example.com/categories/category.webp"
 }
 ```
+
+`imageUrl`, kategoriye doğrudan atanmış nullable görseldir. Bu uç ürün görseli fallback'i hesaplamaz; storefront vitrin kartları `GET /api/product-types/published` ucunu kullanmalıdır.
 

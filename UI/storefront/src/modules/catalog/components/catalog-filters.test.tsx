@@ -8,9 +8,9 @@ const collectionId = "6681db54-98f3-4ee6-899a-3348c5f20517";
 const typeId = "21ee9c6b-f6d2-4aae-9672-44ed04eda316";
 
 const facets = {
-  brands: [{ id: brandId, name: "SERANTIS", url: "serantis", isActive: true }],
-  collections: [{ id: collectionId, name: "Aksesuarlar", url: "aksesuarlar", isActive: true, isFeatured: false, displayOrder: 0 }],
-  productTypes: [{ id: typeId, name: "Accessory", isActive: true }],
+  brands: [{ id: brandId, name: "SERANTIS", productCount: 12 }],
+  collections: [{ id: collectionId, name: "Aksesuarlar", productCount: 8 }],
+  productTypes: [{ id: typeId, name: "Accessory", productCount: 5 }],
 };
 
 describe("catalog filters", () => {
@@ -39,6 +39,7 @@ describe("catalog filters", () => {
     expect(markup).toContain("Tüm markalar");
     expect(markup).toContain("Tüm koleksiyonlar");
     expect(markup).toContain("Tüm ürün türleri");
+    expect(markup).toContain("SERANTIS (12)");
   });
 
   // Burada sınıflandırma sayfasında yolun sahibi olan filtrenin yinelenmediğini ve diğer filtrelerin aynı yolda kaldığını doğruluyorum.

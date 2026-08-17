@@ -2,10 +2,11 @@ import { isUuid } from "../../lib/validation/identifiers";
 import type {
   GuestAddressRequest,
   GuestCheckoutRequest,
+  MemberCheckoutRequest,
 } from "@/modules/checkout/types";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{16,200}$/;
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{16,80}$/;
 
 function requiredString(value: unknown, maximumLength: number): string | null {
   if (typeof value !== "string") return null;
@@ -87,6 +88,26 @@ export function parseGuestCheckoutRequest(value: unknown): GuestCheckoutRequest 
     customer: { firstName, lastName, email, phoneNumber },
     shippingAddress,
     ...(billingAddress ? { billingAddress } : {}),
+    shippingMethodId: source.shippingMethodId,
+    ...(couponCode ? { couponCode } : {}),
+  };
+}
+
+// Burada üye checkout gövdesini yalnız cart tokenı, sahiplik denetimli adres, kargo ve opsiyonel kupon alanlarına indiriyorum.
+export function parseMemberCheckoutRequest(value: unknown): MemberCheckoutRequest | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Record<string, unknown>;
+  const couponCode = optionalString(source.couponCode, 50);
+  if (
+    !isUuid(source.expectedCartConcurrencyToken)
+    || !isUuid(source.shippingAddressId)
+    || !isUuid(source.shippingMethodId)
+    || couponCode === null
+  ) return null;
+
+  return {
+    expectedCartConcurrencyToken: source.expectedCartConcurrencyToken,
+    shippingAddressId: source.shippingAddressId,
     shippingMethodId: source.shippingMethodId,
     ...(couponCode ? { couponCode } : {}),
   };

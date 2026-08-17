@@ -13,6 +13,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+vi.mock("@/modules/checkout/actions", () => ({
+  createMemberOrderAction: vi.fn(),
+}));
+
 import { CartIndicator } from "@/components/storefront/cart-indicator";
 import { CheckoutForm } from "@/modules/checkout/components/checkout-form";
 import type { Cart } from "@/modules/cart/types";
@@ -25,6 +29,14 @@ const cartItem: Cart["items"][number] = {
   productId: "P00001",
   productVariantId: "a71e05d8-d9ce-4351-88f2-1b52580ae39e",
   productTitle: "Pudra yüzük",
+  mainImage: {
+    id: "940f452c-7b31-4f35-b774-18ac4ae043b7",
+    productId: "P00001",
+    imageUrl: "https://res.cloudinary.com/example/image/upload/product.jpg",
+    altText: "Pudra yüzük ana görseli",
+    displayOrder: 0,
+    isMain: true,
+  },
   variantName: "Renk",
   variantValue: "Pudra",
   sku: "SKU-PUDRA",
@@ -54,6 +66,7 @@ describe("cart hydration boundary", () => {
         currency="TRY"
         turnstileSiteKey=""
         orderCreationEnabled={false}
+        accountAddresses={null}
       />,
     );
     expect(html).toContain("Sipariş sayfası yükleniyor");
@@ -72,6 +85,21 @@ describe("cart hydration boundary", () => {
     const html = renderToStaticMarkup(<CartItemIdentity item={cartItem} />);
     expect(html).toContain("Renk: Pudra");
     expect(html).not.toContain("SKU-PUDRA");
+  });
+
+  // Burada CartItemDto içindeki authoritative ana görseli ve alt metni ek ürün isteği olmadan render ettiğimi doğruluyorum.
+  it("renders the cart main image from the cart response", () => {
+    const html = renderToStaticMarkup(<CartItemIdentity item={cartItem} />);
+    expect(html).toContain("Pudra yüzük ana görseli");
+    expect(html).toContain("product.jpg");
+    expect(html).not.toContain("Görsel yok");
+  });
+
+  // Burada görselsiz ürünün kırık img yerine açıklayıcı ve deterministik fallback sunduğunu doğruluyorum.
+  it("renders a fallback when the cart item has no main image", () => {
+    const html = renderToStaticMarkup(<CartItemIdentity item={{ ...cartItem, mainImage: undefined }} />);
+    expect(html).toContain("Görsel yok");
+    expect(html).not.toContain("<img");
   });
 
   // Burada varyantsız üründe teknik varsayılan metin veya boş varyant satırı üretmediğimi doğruluyorum.

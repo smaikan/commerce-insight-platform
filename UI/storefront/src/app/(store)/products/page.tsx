@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
-import { getCatalogFacets, getPublishedProducts } from "@/modules/catalog/api";
+import { getPublishedProductFacets, getPublishedProducts } from "@/modules/catalog/api";
 import { CatalogPageLayout } from "@/modules/catalog/components/catalog-page-layout";
 import {
   catalogCanonicalHref,
@@ -57,7 +57,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   if (catalogSearchParamsNeedRedirect(rawSearchParams, view)) redirect(catalogHref(view));
   const [products, facets] = await Promise.all([
     getPublishedProducts(toPublishedProductQuery(view)),
-    getCatalogFacets(),
+    getPublishedProductFacets(toPublishedProductQuery(view)),
   ]);
   // Burada boş ve var olmayan ileri sayfaların indexlenebilir soft-404 üretmesini engelliyorum.
   if (view.page > 1 && products.items.length === 0) notFound();

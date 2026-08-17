@@ -3,7 +3,7 @@
 - İşlev alanı: **03 Katalog ve ürün etkileşimi**
 - İşlev: Kaynağın belirli durum veya alanlarını değiştirir.
 - Operation ID: `PATCH-/api/product-types/{id}/activation`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
+- Yetki: `AdminOnly`.
 - Content-Type: request body varsa `application/json` gönderin.
 - Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
@@ -34,7 +34,10 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
     "id":  "00000000-0000-0000-0000-000000000001",
     "name":  "string",
     "description":  "string",
-    "isActive":  true
+    "isActive":  true,
+    "imageUrl": "https://cdn.example.com/categories/category.webp"
 }
 ```
+
+Aktivasyon değişikliği kategori görselini değiştirmez. `imageUrl` mevcut nullable değeriyle response içinde korunur.
 

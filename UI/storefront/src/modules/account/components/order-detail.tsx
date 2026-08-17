@@ -62,6 +62,11 @@ export function OrderDetail({ order }: { order: AccountOrder }) {
           ) : null}
 
           {canCancel ? <CancelOrderControl orderId={order.id} /> : null}
+          {order.status === 5 || order.status === 8 || order.status === 9 ? (
+            <Link href={`/account/orders/${order.id}/return`} className="focus-ring inline-flex min-h-11 w-full items-center justify-center border border-brand-700 px-4 text-sm font-bold text-brand-700 hover:bg-surface-subtle">
+              İade veya değişim talebi oluştur
+            </Link>
+          ) : null}
         </aside>
       </div>
     </article>

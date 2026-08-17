@@ -15,17 +15,9 @@ type LoadedBannerSection = {
   isMain: boolean;
 };
 
-// Burada ana sayfanın temiz canonical ve aynı sayfa niyetini taşıyan sosyal metadata değerlerini tanımlıyorum.
+// Burada ana sayfanın mağaza adı ve sosyal metadata'sını dinamik root sözleşmesinden miras alıp yalnız temiz canonical hedefini tanımlıyorum.
 export const metadata: Metadata = {
-  title: { absolute: siteConfig.name },
-  description: siteConfig.description,
   alternates: { canonical: "/" },
-  openGraph: {
-    type: "website",
-    url: "/",
-    title: siteConfig.name,
-    description: siteConfig.description,
-  },
 };
 
 // Burada bağımsız banner endpointlerini paralel başlatıp tek bölüm hatasının ana sayfayı çökertmesini engelliyorum.

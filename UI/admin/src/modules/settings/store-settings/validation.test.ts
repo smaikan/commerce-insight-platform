@@ -4,6 +4,23 @@ import { parseStoreSettingsCommit } from "./validation";
 const token = "8f9b61ec-37d5-4ca2-a6ef-5dc820d4151d";
 
 describe("store settings validation", () => {
+  it("accepts the deterministic .NET Guid seed concurrency token", () => {
+    const result = parseStoreSettingsCommit({
+      section: "identity",
+      expectedConcurrencyToken: "22222222-2222-2222-2222-222222222222",
+      values: {
+        displayName: "Ayda Home",
+        shortDescription: null,
+        logoUrl: null,
+        darkLogoUrl: null,
+        faviconUrl: null,
+        defaultShareImageUrl: null,
+      },
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
   it("normalizes identity values without inventing fields", () => {
     const result = parseStoreSettingsCommit({
       section: "identity",

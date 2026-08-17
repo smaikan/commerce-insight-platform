@@ -1,5 +1,13 @@
 # Controller Kapsam Denetimi ve Tam Endpoint Envanteri
 
+## 16 Ağustos 2026 public kategori vitrini güncellemesi
+
+Güncel runtime Swagger sözleşmesi **272 endpoint** yayınlar. Anonim `GET /api/product-types/published` eklendi; ProductType envanteri 7'den 8 operasyona çıktı. ProductType kalıcı nullable `imageUrl` taşır; public vitrin özel görsel yoksa görünür yayımlanmış ürünler içindeki `PopularityScore DESC, Product.Id ASC` sırasının ilk ürün görselini toplu ve N+1 oluşturmadan döndürür. Aynı popularity fallback semantiği koleksiyon vitriniyle hizalandı.
+
+## 16 Ağustos 2026 iyzico CheckoutForm sandbox güncellemesi
+
+Güncel runtime Swagger sözleşmesi **271 endpoint** yayınlar. Üye ve guest initialize, anonim callback ve V3 imzalı webhook olmak üzere dört iyzico CheckoutForm endpointi eklendi. Initialize uçları kart verisi almaz; callback ve webhook OpenAPI'de `security: []` taşır. Payment yalnız imzalı retrieve yanıtı yerel order kimliği, TRY ve tutarlarla eşleştiğinde Paid olur.
+
 ## 14 Ağustos 2026 ortak guest session ve favoriler güncellemesi
 
 Güncel runtime Swagger sözleşmesi **267 endpoint** yayınlar. Favori GET/POST/DELETE uçları JWT yanında ortak guest session sahipliğini destekler; yeni authenticated `POST /api/guest-session/claim` cart ve favorites verisini atomik claim eder. Anonymous favori operasyonları OpenAPI'de `security: []`, claim ise Bearer security taşır.
@@ -30,13 +38,13 @@ Güncel runtime Swagger sözleşmesi **257 endpoint** yayınlar. Önceki 254 ope
 | `GET/POST /api/guest-orders/{id}/returns`, `GET .../{returnId}` | Guest session | İade liste/create/detail |
 | `POST /api/guest-orders/claim` | JWT + verified guest session + CSRF + Origin | Aynı e-postadaki sahipsiz siparişleri bağlar |
 
-Bu bölümde aşağıda görünen eski 206/40/257/264/265 sayıları tarihsel envanterdir; güncel OpenAPI ve controller audit için 267 sayısı kullanılır.
+Bu bölümde aşağıda görünen eski 206/40/257/264/265/267/271 sayıları tarihsel envanterdir; güncel OpenAPI ve controller audit için 272 sayısı kullanılır.
 
 Bu denetim 29 Temmuz 2026'da `API/src/ECommerce.API/Controllers` altındaki 33 controller doğrudan okunarak yapıldı. Route, HTTP fiili ve yetki için controller attribute'ları kaynak kabul edilmiştir.
 
 ## Sonuç
 
-- Güncel runtime Swagger sözleşmesinde **267 endpoint** bulunuyor; aşağıdaki alan tabloları yetki ve davranış denetimini özetler.
+- Güncel runtime Swagger sözleşmesinde **272 endpoint** bulunuyor; aşağıdaki alan tabloları yetki ve davranış denetimini özetler.
 - Eski fonksiyonel belgeler alanları anlatıyor; fakat her endpoint için ayrı request şeması ve başarılı JSON response örneği standardı yok. En büyük eksik muhasebe raporlarıdır: 28 route tek paragrafta özetlenmişti.
 - Bu belge route kaçırılmasını önleyen zorunlu kontrol listesidir. `Public`: token yok; `User`: JWT ve sahiplik; `Admin`: JWT + `AdminOnly`/Admin rolü. Sayfalı yanıt `PagedResult<T>`dir.
 
@@ -77,13 +85,13 @@ Bu denetim 29 Temmuz 2026'da `API/src/ECommerce.API/Controllers` altındaki 33 c
 | MainBanners (3) | Public: `GET /api/main-banners`. Admin: `GET /admin`, `PUT /api/main-banners`. | En fazla 5 resim/video; tek aktif main seçimi ilk sıraya normalize edilir. |
 | AltBanner1–5 (15) | Her bölümde Public `GET /api/alt-banner-{1..5}`. Admin: ilgili `/admin` GET ve kök PUT. | Beş bağımsız bölümün her biri en fazla 5 resim/video taşır; bölüm güncellemeleri birbirini etkilemez. |
 | Tags (7) | Public: `GET /api/tags`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `DELETE /{id}`. | Delete 204; ürün korunur, yalnız etiket bağlantısı kaldırılır. |
-| Product types (7) | Public: `GET /api/product-types`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `DELETE /{id}`. | Delete 204; bağlı ürün korunur ve `typeId=null` olur. |
+| Product types (8) | Public: `GET /api/product-types`, `GET /published`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `DELETE /{id}`. | `/published`, özel kategori görselini veya en popüler görünür ürün fallback'ini adetle toplu döndürür. Delete 204; bağlı ürün korunur ve `typeId=null` olur. |
 | Engagement (9) | Public/User: `GET /api/product-engagement/favorites`, `POST/DELETE /products/{productId}/favorites`. User: `PUT /products/{productId}/rating`, `POST /products/{productId}/reviews`, `POST /products/{productId}/activities`. Public: `GET /products/{productId}/reviews`. Admin: `PATCH /reviews/{reviewId}/approval`, `GET /products/{productId}/metrics`. | JWT favorileri kullanıcıya, anonim favoriler ortak guest session'a aittir. Guest mutation Origin+CSRF ister. Favori/rating/activity çoğunlukla 204; inceleme 201; reviews sayfalıdır. |
 | Stock movements (3) | Admin: `POST /api/stock-movements/bulk`, `GET /`, `GET /variants/{productVariantId}/balance`. | Atomik bulk hareket, defter `PagedResult<StockMovementDto>`, bakiye `StockBalanceDto`. |
 
 Brand/Collection/Tag/ProductType create 201, detay/mutasyon ilgili DTO, liste `PagedResult<…Dto>` döner. Bu dört grupta route içindeki `/{id}` kendi kök yoluna göredir.
 
-## Sepet, sipariş, iade ve yönetim (40)
+## Sepet, sipariş, iade ve yönetim (44)
 
 | Route | Yetki | Başarı ve bağlam |
 | --- | --- | --- |
@@ -96,6 +104,10 @@ Brand/Collection/Tag/ProductType create 201, detay/mutasyon ilgili DTO, liste `P
 | `POST /api/orders` | User | 201 `OrderDto`; cart concurrency token, opsiyonel adres/kupon/kargo ile checkout. |
 | `GET /api/orders/mine`, `GET /api/orders/{id}` | User | Kendi sayfalı özetleri / `OrderDto`. |
 | `POST /api/orders/{id}/payments` | User | 201 `PaymentDto`; `{provider}` ve zorunlu `Idempotency-Key`. |
+| `POST /api/orders/{id}/payments/iyzico/checkout-form` | User | 201 `CheckoutFormSessionDto`; kart verisi almadan iyzico hosted form başlatır. |
+| `POST /api/guest-orders/{id}/payments/iyzico/checkout-form` | Guest session | 201 `CheckoutFormSessionDto`; Origin, CSRF ve idempotency korumalıdır. |
+| `POST /api/payments/iyzico/callback` | Public | İmzalı retrieve sonrası Storefront'a 303 yönlendirme. |
+| `POST /api/payments/iyzico/webhook` | Public | `X-IYZ-SIGNATURE-V3` + retrieve sonrası idempotent 204. |
 | `POST /api/orders/{id}/cancel` | User | `OrderDto`; ödeme öncesi iptal. |
 | `GET /api/orders`, `GET /api/orders/admin/{id}`, `PATCH /api/orders/{id}/status` | Admin | Tüm siparişler, detay, yaşam döngüsü güncellemesi. |
 | `POST /api/orders/reservations/expire` | Admin | `StockReservationExpirationResult`; süresi dolmuş rezervasyonları manuel tarar. |

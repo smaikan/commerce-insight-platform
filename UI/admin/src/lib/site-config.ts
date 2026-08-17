@@ -4,7 +4,7 @@ function absoluteOrigin(value: string | undefined, fallback: string): string {
 }
 
 export const siteConfig = {
-  name: process.env.SITE_NAME?.trim() || "SERANTIS",
+  name: process.env.SITE_NAME?.trim() || "Mağaza",
   url: absoluteOrigin(process.env.SITE_URL, "http://localhost:3001"),
   currency: process.env.STORE_CURRENCY?.trim().toUpperCase() || "TRY",
 } as const;

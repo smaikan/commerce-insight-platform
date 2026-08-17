@@ -25,6 +25,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    {
+      url: `${siteConfig.url}/categories`,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
     ...[
       "/distance-sales-agreement",
       "/payment-and-delivery",

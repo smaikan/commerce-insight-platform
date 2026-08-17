@@ -16,7 +16,10 @@ import { parseStoreSettingsCommit } from "@/modules/settings/store-settings/vali
 
 export async function saveStoreSettingsSectionAction(input: StoreSettingsCommitInput): Promise<StoreSettingsActionResult> {
   const parsed = parseStoreSettingsCommit(input);
-  if (!parsed.ok) return { status: "error", message: "Lütfen işaretli alanları kontrol edin.", fieldErrors: parsed.fieldErrors };
+  if (!parsed.ok) {
+    const firstError = Object.values(parsed.fieldErrors).flat()[0];
+    return { status: "error", message: firstError || "Lütfen işaretli alanları kontrol edin.", fieldErrors: parsed.fieldErrors };
+  }
 
   let session;
   try {

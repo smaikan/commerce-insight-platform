@@ -1,7 +1,10 @@
 import "server-only";
 
 import { apiGet } from "@/lib/api/client";
+import { authenticatedApiRequest } from "@/lib/api/authenticated-client";
 import type {
+  CheckoutOrder,
+  MemberCheckoutRequest,
   ShippingMethod,
   ShippingMethodPage,
 } from "@/modules/checkout/types";
@@ -13,4 +16,9 @@ export async function getActiveShippingMethods(): Promise<ShippingMethod[]> {
     { revalidate: 0 },
   );
   return page.items.filter((method) => method.isActive);
+}
+
+// Burada üye sepetini sahiplik denetimli adres ve cart tokenıyla authoritative siparişe dönüştürüyorum.
+export function createMemberOrder(payload: MemberCheckoutRequest): Promise<CheckoutOrder> {
+  return authenticatedApiRequest<CheckoutOrder>("/api/orders", { method: "POST", body: payload });
 }

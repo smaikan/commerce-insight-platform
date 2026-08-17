@@ -3,7 +3,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 
 import { internalApiUrl } from "@/lib/api/client";
-import { appendAllowedGuestSetCookies, guestCookieHeader } from "@/lib/security/guest-cookie";
+import { appendAllowedGuestSetCookies, guestCookieHeader, guestCookieToken } from "@/lib/security/guest-cookie";
 import { siteConfig } from "@/lib/site-config";
 
 const ALLOWED_COOKIE_NAMES = [
@@ -19,12 +19,13 @@ type GuestCommerceRequestInit = {
   cookieNames: string[];
   idempotencyKey?: string;
   turnstileToken?: string;
+  csrf?: boolean;
 };
 
 // Burada checkout ve sipariş okuma çağrılarını allowlist cookie/header sınırıyla API'ye iletiyorum.
 export async function forwardGuestCommerceRequest(
   request: Request,
-  path: "/api/cart/checkout/guest" | `/api/guest-orders/${string}`,
+  path: "/api/cart/checkout/guest" | `/api/guest-orders/${string}` | `/api/product-variants/by-product/${string}`,
   init: GuestCommerceRequestInit,
 ): Promise<NextResponse> {
   const headers = new Headers({ Accept: "application/json" });
@@ -34,6 +35,11 @@ export async function forwardGuestCommerceRequest(
   if (init.body) headers.set("Content-Type", "application/json");
   if (init.idempotencyKey) headers.set("Idempotency-Key", init.idempotencyKey);
   if (init.turnstileToken) headers.set("X-Turnstile-Token", init.turnstileToken);
+  if (init.csrf) {
+    const csrf = guestCookieToken(request.headers.get("cookie"), "ecommerce_guest_csrf");
+    if (!csrf) return checkoutProblemResponse(403, "Güvenlik doğrulaması başarısız", "Sayfayı yenileyip tekrar deneyin.", "guest_csrf_required");
+    headers.set("X-Guest-CSRF", csrf);
+  }
   if (init.method === "POST") headers.set("Origin", new URL(siteConfig.url).origin);
 
   let upstream: Response;

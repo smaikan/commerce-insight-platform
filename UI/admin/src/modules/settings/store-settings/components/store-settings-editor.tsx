@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { reloadStoreSettingsAction, saveStoreSettingsSectionAction } from "@/modules/settings/store-settings/actions";
 import { StoreImageField } from "@/modules/settings/store-settings/components/store-image-field";
 import {
@@ -13,6 +14,7 @@ import {
 import type { AdminStoreSettings } from "@/modules/settings/types";
 
 export function StoreSettingsEditor({ initialSettings }: { initialSettings: AdminStoreSettings }) {
+  const router = useRouter();
   const [settings, setSettings] = useState(initialSettings);
   const [drafts, setDrafts] = useState(() => draftsFromSettings(initialSettings));
   const [activeSection, setActiveSection] = useState<StoreSettingsSection>("identity");
@@ -53,6 +55,8 @@ export function StoreSettingsEditor({ initialSettings }: { initialSettings: Admi
         next.delete(section);
         return next;
       });
+      // Burada kimlik değişikliğinden sonra sidebar mağaza adı ve root favicon metadata'sını güncel server verisiyle yeniden çiziyorum.
+      if (section === "identity") router.refresh();
     });
   };
 
@@ -157,10 +161,10 @@ function IdentitySection({ value, disabled, result, onChange }: SectionProps<"id
         <TextArea id="store-short-description" label="Kısa açıklama" value={value.shortDescription} maxLength={500} rows={3} className="sm:col-span-2" error={fieldError(result, "shortDescription")} onChange={(shortDescription) => onChange({ ...value, shortDescription })} />
       </div>
       <div className="mt-5 grid gap-3 xl:grid-cols-2">
-        <StoreImageField id="store-logo" label="Açık zemin logosu" hint="JPG, PNG veya WebP · en fazla 8 MB" folder="store-settings/logo" value={value.logoUrl ?? null} disabled={disabled} error={fieldError(result, "logoUrl")} onChange={(logoUrl) => onChange({ ...value, logoUrl })} />
-        <StoreImageField id="store-dark-logo" label="Koyu zemin logosu" hint="Koyu yüzeylerde kullanılacak alternatif logo" folder="store-settings/dark-logo" value={value.darkLogoUrl ?? null} disabled={disabled} error={fieldError(result, "darkLogoUrl")} onChange={(darkLogoUrl) => onChange({ ...value, darkLogoUrl })} />
-        <StoreImageField id="store-favicon" label="Favicon" hint="Kare ve sade bir görsel önerilir" folder="store-settings/favicon" value={value.faviconUrl ?? null} disabled={disabled} error={fieldError(result, "faviconUrl")} onChange={(faviconUrl) => onChange({ ...value, faviconUrl })} />
-        <StoreImageField id="store-share-image" label="Varsayılan paylaşım görseli" hint="Bağlantı paylaşımlarında mağazayı temsil eder" folder="store-settings/share" value={value.defaultShareImageUrl ?? null} disabled={disabled} error={fieldError(result, "defaultShareImageUrl")} onChange={(defaultShareImageUrl) => onChange({ ...value, defaultShareImageUrl })} />
+        <StoreImageField id="store-logo" label="Açık zemin logosu" hint="JPG, PNG veya WebP · en fazla 8 MB" slot="logo" value={value.logoUrl ?? null} disabled={disabled} error={fieldError(result, "logoUrl")} onChange={(logoUrl) => onChange({ ...value, logoUrl })} />
+        <StoreImageField id="store-dark-logo" label="Koyu zemin logosu" hint="Koyu yüzeylerde kullanılacak alternatif logo" slot="darkLogo" value={value.darkLogoUrl ?? null} disabled={disabled} error={fieldError(result, "darkLogoUrl")} onChange={(darkLogoUrl) => onChange({ ...value, darkLogoUrl })} />
+        <StoreImageField id="store-favicon" label="Favicon" hint="Kare ve sade bir görsel önerilir" slot="favicon" value={value.faviconUrl ?? null} disabled={disabled} error={fieldError(result, "faviconUrl")} onChange={(faviconUrl) => onChange({ ...value, faviconUrl })} />
+        <StoreImageField id="store-share-image" label="Varsayılan paylaşım görseli" hint="Bağlantı paylaşımlarında mağazayı temsil eder" slot="defaultShareImage" value={value.defaultShareImageUrl ?? null} disabled={disabled} error={fieldError(result, "defaultShareImageUrl")} onChange={(defaultShareImageUrl) => onChange({ ...value, defaultShareImageUrl })} />
       </div>
     </Section>
   );
@@ -175,7 +179,6 @@ function ContactSection({ value, result, onChange }: SectionProps<"contact">) {
         <ContactField label="WhatsApp numarası" id="store-whatsapp" type="tel" value={value.whatsappNumber} maxLength={30} visible={value.showWhatsapp} error={fieldError(result, "whatsappNumber")} onValue={(whatsappNumber) => onChange({ ...value, whatsappNumber })} onVisible={(showWhatsapp) => onChange({ ...value, showWhatsapp })} />
         <ContactField label="Harita bağlantısı" id="store-map-url" type="url" value={value.mapUrl} maxLength={500} visible={value.showMap} error={fieldError(result, "mapUrl")} onValue={(mapUrl) => onChange({ ...value, mapUrl })} onVisible={(showMap) => onChange({ ...value, showMap })} />
         <ContactTextArea label="İletişim adresi" id="store-contact-address" value={value.contactAddress} maxLength={1000} visible={value.showContactAddress} error={fieldError(result, "contactAddress")} onValue={(contactAddress) => onChange({ ...value, contactAddress })} onVisible={(showContactAddress) => onChange({ ...value, showContactAddress })} />
-        <ContactTextArea label="Çalışma saatleri" id="store-working-hours" value={value.workingHours} maxLength={500} visible={value.showWorkingHours} error={fieldError(result, "workingHours")} onValue={(workingHours) => onChange({ ...value, workingHours })} onVisible={(showWorkingHours) => onChange({ ...value, showWorkingHours })} />
       </div>
     </Section>
   );
@@ -209,7 +212,7 @@ function SeoSection({ value, disabled, result, onChange }: SectionProps<"seo"> &
         <TextField id="store-title-template" label="Başlık şablonu" value={value.titleTemplate} maxLength={250} placeholder="%s | Mağaza Adı" hint="Sayfa başlığının yerini %s ile belirtin." error={fieldError(result, "titleTemplate")} onChange={(titleTemplate) => onChange({ ...value, titleTemplate })} />
         <TextArea id="store-default-description" label="Varsayılan meta açıklaması" value={value.defaultDescription} maxLength={500} rows={3} className="sm:col-span-2" error={fieldError(result, "defaultDescription")} onChange={(defaultDescription) => onChange({ ...value, defaultDescription })} />
         <div className="sm:col-span-2">
-          <StoreImageField id="store-og-image" label="Open Graph görseli" hint="Sosyal paylaşım önizlemeleri için yatay görsel önerilir" folder="store-settings/open-graph" value={value.defaultOpenGraphImageUrl ?? null} disabled={disabled} error={fieldError(result, "defaultOpenGraphImageUrl")} onChange={(defaultOpenGraphImageUrl) => onChange({ ...value, defaultOpenGraphImageUrl })} />
+          <StoreImageField id="store-og-image" label="Open Graph görseli" hint="Sosyal paylaşım önizlemeleri için yatay görsel önerilir" slot="defaultOpenGraphImage" value={value.defaultOpenGraphImageUrl ?? null} disabled={disabled} error={fieldError(result, "defaultOpenGraphImageUrl")} onChange={(defaultOpenGraphImageUrl) => onChange({ ...value, defaultOpenGraphImageUrl })} />
         </div>
         <Switch label="Arama motorlarının dizine eklemesine izin ver" description="Kapatıldığında storefront noindex tercihini uygulayabilir." checked={value.allowIndexing} onChange={(allowIndexing) => onChange({ ...value, allowIndexing })} className="sm:col-span-2" />
       </div>

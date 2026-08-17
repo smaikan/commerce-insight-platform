@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { siteConfig } from "@/lib/site-config";
+import { getPublicStoreSettings } from "@/modules/settings/api";
+import { buildAdminRootMetadata } from "@/modules/settings/store-settings/metadata";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,19 +14,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
-  title: {
-    default: `Yönetim Paneli | ${siteConfig.name}`,
-    template: `%s | ${siteConfig.name} Yönetim Paneli`,
-  },
-  description: `${siteConfig.name} operasyon yönetim paneli.`,
-  robots: {
-    index: false,
-    follow: false,
-    nocache: true,
-  },
-};
+// Burada admin root metadata'sını public StoreSettings favicon'u ile tamamlayıp API hatasında yerel favicon davranışına dönüyorum.
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getPublicStoreSettings().catch(() => null);
+  return buildAdminRootMetadata(settings?.faviconUrl);
+}
 
 export default function RootLayout({
   children,

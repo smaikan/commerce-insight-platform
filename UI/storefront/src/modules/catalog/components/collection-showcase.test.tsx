@@ -60,6 +60,9 @@ describe("collection showcase", () => {
     expect(html).toContain("7 ürün");
     expect(html).toContain("2 koleksiyon");
     expect(html.indexOf("Zümrüt Seçkisi")).toBeLessThan(html.indexOf(">Ada</h2>"));
+    expect(html).toContain("md:grid-cols-3");
+    expect(html).not.toContain("xl:col-span-2");
+    expect(html).toContain('(min-width: 768px) 31vw');
   });
 
   // Burada null imageUrl için erişilebilir placeholder gösterildiğini ve istemciye sahte görsel kaynağı verilmediğini doğruluyorum.

@@ -69,12 +69,14 @@ export function CatalogFilters({
         <div className="border-t border-line py-5">
           <div className="mb-4 flex items-start justify-between gap-4">
             <p className="max-w-lg text-xs leading-5 text-ink-muted">Marka, koleksiyon ve ürün türünü birlikte seçebilirsiniz.</p>
+
             {hasFilters ? (
               <Link className="focus-ring shrink-0 text-sm font-semibold text-brand-700 hover:text-brand-950" href={catalogHref({ ...view, page: 1, brandId: undefined, collectionId: undefined, typeId: undefined }, urlOptions)} prefetch={false}>
                 Temizle
               </Link>
             ) : null}
           </div>
+
 
           <form
             action={urlOptions?.basePath || "/products"}
@@ -91,19 +93,19 @@ export function CatalogFilters({
 
             {urlOptions?.omitFilter !== "brandId" ? (
               <FilterSelect label="Marka" name="brand" emptyLabel="Tüm markalar" defaultValue={view.brandId}>
-                {facets.brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
+                {facets.brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name} ({brand.productCount})</option>)}
               </FilterSelect>
             ) : null}
 
             {urlOptions?.omitFilter !== "collectionId" ? (
               <FilterSelect label="Koleksiyon" name="collection" emptyLabel="Tüm koleksiyonlar" defaultValue={view.collectionId}>
-                {facets.collections.map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}
+                {facets.collections.map((collection) => <option key={collection.id} value={collection.id}>{collection.name} ({collection.productCount})</option>)}
               </FilterSelect>
             ) : null}
 
             {urlOptions?.omitFilter !== "typeId" ? (
               <FilterSelect label="Ürün türü" name="type" emptyLabel="Tüm ürün türleri" defaultValue={view.typeId}>
-                {facets.productTypes.map((productType) => <option key={productType.id} value={productType.id}>{productType.name}</option>)}
+                {facets.productTypes.map((productType) => <option key={productType.id} value={productType.id}>{productType.name} ({productType.productCount})</option>)}
               </FilterSelect>
             ) : null}
 
@@ -120,6 +122,7 @@ export function CatalogFilters({
             <li key={filter.key}>
               <Link
                 href={catalogHrefWithoutFilter(view, filter.key, urlOptions)}
+
                 prefetch={false}
                 aria-label={`${filter.label}: ${filter.value} filtresini kaldır`}
                 className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-ink hover:border-brand-600"

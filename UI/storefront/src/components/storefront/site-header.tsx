@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { CartIndicator } from "@/components/storefront/cart-indicator";
@@ -9,6 +10,17 @@ import { DesktopAuthNavigation } from "@/modules/auth/components/header-auth-nav
 import { getStorefrontNavigation } from "@/modules/catalog/navigation";
 import { FavoritesIndicator } from "@/modules/favorites/components/favorites-indicator";
 import { SearchOverlay } from "@/modules/search/components/search-overlay";
+import { getPublicStoreSettings } from "@/modules/store-settings/api";
+import type { PublicStoreSettings } from "@/modules/store-settings/types";
+import { safeStoreSettingsUrl } from "@/modules/store-settings/url";
+
+type HeaderSettings = Pick<PublicStoreSettings, "displayName" | "logoUrl">;
+
+// Burada mağaza ayarları okunamadığında header'ın kullanılabilir metin markasıyla çalışmaya devam etmesini sağlıyorum.
+const FALLBACK_HEADER_SETTINGS: HeaderSettings = {
+  displayName: siteConfig.name,
+  logoUrl: null,
+};
 
 // Burada kullanıcı tarafından onaylanan mağaza taahhütlerini tek ve kolay güncellenebilir duyuru listesinde tutuyorum.
 const STORE_ANNOUNCEMENTS = [
@@ -21,7 +33,15 @@ const STORE_ANNOUNCEMENTS = [
 
 // Burada masaüstü ve mobilde aynı bilgi mimarisini koruyan hafif Storefront üst alanını oluşturuyorum.
 export async function SiteHeader() {
-  const navigationGroups = await getStorefrontNavigation();
+  // Burada navigasyon ve mağaza kimliğini birbirini bekletmeden okuyup ortak header'a taşıyorum.
+  const [navigationGroups, settings] = await Promise.all([
+    getStorefrontNavigation(),
+    getPublicStoreSettings().catch(() => FALLBACK_HEADER_SETTINGS),
+  ]);
+  const displayName = settings.displayName.trim() || siteConfig.name;
+  const logoUrl = safeStoreSettingsUrl(settings.logoUrl);
+  // Burada marka facetini katalog filtrelerinde korurken header bilgi mimarisinden tek noktada çıkarıyorum.
+  const headerNavigationGroups = navigationGroups.filter((group) => group.id !== "brands");
 
   return (
     <>
@@ -50,31 +70,46 @@ export async function SiteHeader() {
         </div>
       </div>
       <ScrollAwareHeader>
-        <div className="page-shell grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:min-h-18 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
-          <div className="flex min-w-0 items-center gap-1 sm:gap-2">
-            <MobileNavigation siteName={siteConfig.name} groups={navigationGroups} />
-            <Link
-              href="/"
-              prefetch={false}
-              className="focus-ring truncate text-base font-black tracking-[0.14em] text-brand-950 sm:text-lg sm:tracking-[0.16em]"
-              aria-label={`${siteConfig.name} ana sayfa`}
-            >
-              {siteConfig.name}
-            </Link>
+        {/* Burada mobil aksiyonları dış kenara yaklaştırıp daha geniş ekranlarda kümeleri logoya dengeli biçimde yaklaştırıyorum. */}
+        <div className="page-shell relative flex min-h-22 items-center sm:min-h-24 sm:px-2 lg:px-4 xl:px-6">
+          {/* Burada mobil menü tetikleyicisini ve masaüstü menü itemlerini header'ın sol kümesinde tutuyorum. */}
+          <div className="relative z-20 flex min-w-0 items-center lg:w-[calc(50%_-_3rem)] lg:flex-none">
+            <MobileNavigation siteName={displayName} groups={headerNavigationGroups} />
+            <DesktopNavigation groups={headerNavigationGroups} />
           </div>
 
-          <DesktopNavigation groups={navigationGroups} />
+          <Link
+            href="/"
+            prefetch={false}
+            className="focus-ring absolute left-1/2 z-10 inline-flex max-w-[7rem] shrink-0 -translate-x-1/2 items-center sm:max-w-[10rem]"
+            aria-label={`${displayName} ana sayfa`}
+          >
+            {/* Burada logoyu yan kümelerin genişliğinden bağımsız biçimde header'ın gerçek yatay merkezine sabitliyorum. */}
+            {logoUrl ? (
+              <Image
+                src={logoUrl}
+                alt={displayName}
+                width={300}
+                height={300}
+                sizes="(min-width: 640px) 80px, 48px"
+                loading="eager"
+                className="size-12 object-contain sm:size-20"
+              />
+            ) : (
+              <span className="truncate text-base font-black tracking-[0.14em] text-brand-950 sm:text-lg sm:tracking-[0.16em]">{displayName}</span>
+            )}
+          </Link>
 
-          <div className="flex items-center justify-end text-sm font-semibold">
+          <div className="relative z-20 -mr-2 ml-auto flex shrink-0 items-center justify-end text-sm font-semibold sm:mr-0">
             {/* Burada büyüteç tetikleyicisini hesap ve sepet aksiyonlarıyla aynı dokunma hedefinde konumlandırıyorum. */}
             <SearchOverlay />
             {/* Burada favoriler hedefini arama ve hesap aksiyonları arasında tek bakışta erişilebilir bir kalp olarak sunuyorum. */}
             <FavoritesIndicator />
             {/* Burada oturum durumuna göre guest aksiyonlarını veya Hesabım menüsünü aynı sabit navbar alanında gösteriyorum. */}
             <DesktopAuthNavigation />
-            <div className="ml-2 border-l border-line pl-1.5">
-              <CartIndicator />
-            </div>
+              <div className="ml-0.5 border-l border-line pl-0.5 sm:ml-2 sm:pl-1.5">
+                <CartIndicator />
+              </div>
           </div>
         </div>
       </ScrollAwareHeader>

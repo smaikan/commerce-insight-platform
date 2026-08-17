@@ -162,7 +162,7 @@ export function SearchOverlay({
       <button
         ref={triggerRef}
         type="button"
-        className="header-action inline-flex size-11 cursor-pointer items-center justify-center p-0 hover:bg-surface-subtle"
+        className="header-action inline-flex size-9 cursor-pointer items-center justify-center p-0! hover:bg-surface-subtle sm:size-11 sm:px-3! sm:py-2.5!"
         aria-label="Ürün ara"
         aria-haspopup="dialog"
         aria-expanded={isOpen}
@@ -458,7 +458,7 @@ function SearchProductCard({ product, onNavigate }: { product: SearchProduct; on
 // Burada arama eylemini ortak çizgi kalınlığına sahip hafif bir SVG ile gösteriyorum.
 function SearchIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round">
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 sm:size-6" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round">
       <circle cx="11" cy="11" r="6.5" />
       <path d="m16 16 4 4" />
     </svg>

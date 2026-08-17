@@ -42,6 +42,7 @@ export function MobileNavigation({ siteName }: { siteName: string }) {
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-4">
           <div className="min-w-0">
+            {/* Burada mobil menüde de masaüstüyle aynı mağaza adı kimliğini koruyorum. */}
             <span className="block truncate text-base font-semibold tracking-tight">{siteName}</span>
             <span className="mt-0.5 block text-xs text-sidebar-muted">Yönetim Paneli</span>
           </div>

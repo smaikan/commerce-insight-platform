@@ -1,6 +1,14 @@
 ﻿# API endpoint sözleşmeleri
 
-Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte tutulur. Güncel runtime sözleşmesi **267 endpoint** yayınlar; frontend işlev alanları aşağıda gruplandırılmıştır. Her ayrıntı dosyasında işlev, parametreler, request body örneği ve başarı/hata sözleşmesi vardır.
+Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte tutulur. Güncel runtime sözleşmesi **272 endpoint** yayınlar; frontend işlev alanları aşağıda gruplandırılmıştır. Her ayrıntı dosyasında işlev, parametreler, request body örneği ve başarı/hata sözleşmesi vardır.
+
+## iyzico CheckoutForm sandbox
+
+- [Ortak sözleşme](05-siparis-ve-odeme/IYZICO-CHECKOUTFORM-SOZLESMESI.md)
+- [Üye initialize](05-siparis-ve-odeme/POST--api-orders--id--payments-iyzico-checkout-form.md)
+- [Guest initialize](05-siparis-ve-odeme/POST--api-guest-orders--id--payments-iyzico-checkout-form.md)
+- [Callback](05-siparis-ve-odeme/POST--api-payments-iyzico-callback.md)
+- [Webhook](05-siparis-ve-odeme/POST--api-payments-iyzico-webhook.md)
 
 ## 13 Mağaza ayarları
 
@@ -226,6 +234,7 @@ Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte
 - [PATCH /api/products/{id}/status](03-katalog-ve-etkilesim/PATCH--api-products--id--status.md)
 - [POST /api/products/bulk](03-katalog-ve-etkilesim/POST--api-products-bulk.md)
 - [GET /api/product-types](03-katalog-ve-etkilesim/GET--api-product-types.md)
+- [GET /api/product-types/published](03-katalog-ve-etkilesim/GET--api-product-types-published.md)
 - [POST /api/product-types](03-katalog-ve-etkilesim/POST--api-product-types.md)
 - [GET /api/product-types/{id}](03-katalog-ve-etkilesim/GET--api-product-types--id-.md)
 - [DELETE /api/product-types/{id}](03-katalog-ve-etkilesim/DELETE--api-product-types--id-.md)

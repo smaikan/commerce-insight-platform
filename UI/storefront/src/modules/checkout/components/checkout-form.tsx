@@ -13,14 +13,20 @@ import {
   checkoutFieldErrors,
   checkoutProblemMessage,
   checkoutTraceId,
+  initializeIyzicoCheckoutForm,
   isCartConflict,
   isCheckoutChallengeRequired,
+  paymentIntentKey,
+  redirectToPaymentPage,
   submitGuestCheckout,
 } from "@/modules/checkout/client/checkout-api";
+import { createMemberOrderAction } from "@/modules/checkout/actions";
 import { TurnstileChallenge } from "@/modules/checkout/components/turnstile-challenge";
 import type {
   GuestAddressRequest,
   GuestCheckoutRequest,
+  CheckoutAddress,
+  MemberCheckoutRequest,
   ShippingMethod,
 } from "@/modules/checkout/types";
 import {
@@ -47,17 +53,21 @@ export function CheckoutForm({
   currency,
   turnstileSiteKey,
   orderCreationEnabled,
+  accountAddresses,
 }: {
   shippingMethods: ShippingMethod[];
   currency: string;
   turnstileSiteKey: string;
   orderCreationEnabled: boolean;
+  accountAddresses: CheckoutAddress[] | null;
 }) {
   const router = useRouter();
   // Burada SSR ve hydration'ın ilk görünümünü deterministik tutup paylaşılan client snapshot'ını effect sonrasında tüketiyorum.
   const [cartState, setCartState] = useState<CartState>({ kind: "loading" });
   const [sameBillingAddress, setSameBillingAddress] = useState(true);
   const [selectedShippingMethodId, setSelectedShippingMethodId] = useState(shippingMethods[0]?.id || "");
+  const memberShippingAddresses = accountAddresses?.filter((address) => address.type === 0) || [];
+  const [selectedAddressId, setSelectedAddressId] = useState(memberShippingAddresses.find((address) => address.isDefault)?.id || memberShippingAddresses[0]?.id || "");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<{ message: string; traceId?: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,6 +78,8 @@ export function CheckoutForm({
   const [errorFocusVersion, setErrorFocusVersion] = useState(0);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
   const intentRef = useRef<Intent | null>(null);
+  const submittingRef = useRef(false);
+  const isMember = accountAddresses !== null;
 
   useEffect(() => {
     const unsubscribe = subscribeToCart((cart) => setCartState({ kind: "ready", cart }));
@@ -83,7 +95,7 @@ export function CheckoutForm({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSubmitting || cartState.kind !== "ready") return;
+    if (submittingRef.current || cartState.kind !== "ready") return;
 
     if (!orderCreationEnabled) {
       setSubmitError({ message: "Online sipariş şu anda kullanılamıyor. Ödeme seçeneği etkinleştirildiğinde tekrar deneyebilirsiniz." });
@@ -93,7 +105,9 @@ export function CheckoutForm({
 
     const displayedCart = cartState.cart;
     const formData = new FormData(event.currentTarget);
-    const draftResult = checkoutRequestFromForm(formData, sameBillingAddress, displayedCart);
+    const draftResult = isMember
+      ? memberCheckoutRequestFromForm(formData, displayedCart)
+      : checkoutRequestFromForm(formData, sameBillingAddress, displayedCart);
     if (!draftResult.value) {
       setFieldErrors(draftResult.errors);
       setSubmitError(null);
@@ -108,7 +122,7 @@ export function CheckoutForm({
       return;
     }
 
-    if (challengeRequired && !turnstileToken) {
+    if (!isMember && challengeRequired && !turnstileToken) {
       setSubmitError({ message: "Siparişi oluşturmadan önce güvenlik doğrulamasını tamamlayın." });
       setErrorFocusVersion((version) => version + 1);
       return;
@@ -116,7 +130,10 @@ export function CheckoutForm({
 
     setFieldErrors({});
     setSubmitError(null);
+    submittingRef.current = true;
     setIsSubmitting(true);
+
+    let createdOrderId: string | null = null;
 
     try {
       // Burada sipariş intent'ini oluşturmadan hemen önce sepeti API'den zorla yenileyip eski concurrency token ile checkout yapılmasını engelliyorum.
@@ -127,7 +144,9 @@ export function CheckoutForm({
         return;
       }
 
-      const result = checkoutRequestFromForm(formData, sameBillingAddress, freshCart);
+      const result = isMember
+        ? memberCheckoutRequestFromForm(formData, freshCart)
+        : checkoutRequestFromForm(formData, sameBillingAddress, freshCart);
       if (!result.value || !freshCart.concurrencyToken || freshCart.items.length === 0 || freshCart.hasUnavailableItems || freshCart.hasPriceChanges) {
         setFieldErrors(result.errors);
         setSubmitError({ message: "Siparişi tamamlamadan önce sepetinizin son durumunu kontrol edin." });
@@ -135,15 +154,32 @@ export function CheckoutForm({
         return;
       }
 
-      const serializedBody = JSON.stringify(result.value);
-      if (!intentRef.current || intentRef.current.serializedBody !== serializedBody) {
-        intentRef.current = { serializedBody, idempotencyKey: crypto.randomUUID() };
+      let order;
+      if (isMember) {
+        const memberResult = await createMemberOrderAction(result.value);
+        if (!memberResult.ok) throw memberResult.problem;
+        order = memberResult.order;
+      } else {
+        const serializedBody = JSON.stringify(result.value);
+        if (!intentRef.current || intentRef.current.serializedBody !== serializedBody) {
+          intentRef.current = { serializedBody, idempotencyKey: crypto.randomUUID() };
+        }
+        order = await submitGuestCheckout(result.value as GuestCheckoutRequest, intentRef.current.idempotencyKey, turnstileToken || undefined);
+      }
+      createdOrderId = order.id;
+      void loadCart(true).catch(() => undefined);
+      if (order.status === 2 || order.grandTotal === 0) {
+        router.push(`/checkout/confirmation/${encodeURIComponent(order.id)}`);
+        return;
       }
 
-      const order = await submitGuestCheckout(result.value, intentRef.current.idempotencyKey, turnstileToken || undefined);
-      void loadCart(true).catch(() => undefined);
-      router.push(`/checkout/confirmation/${encodeURIComponent(order.id)}`);
+      const session = await initializeIyzicoCheckoutForm(order.id, paymentIntentKey(order.id));
+      redirectToPaymentPage(session);
     } catch (error) {
+      if (createdOrderId) {
+        router.push(`/checkout/confirmation/${encodeURIComponent(createdOrderId)}?payment=retry`);
+        return;
+      }
       if (isCheckoutChallengeRequired(error)) {
         const challengeWasAttempted = Boolean(turnstileToken);
         setChallengeRequired(true);
@@ -161,6 +197,7 @@ export function CheckoutForm({
       setSubmitError({ message: checkoutProblemMessage(error), traceId: checkoutTraceId(error) });
       setErrorFocusVersion((version) => version + 1);
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   }
@@ -180,7 +217,7 @@ export function CheckoutForm({
     );
   }
 
-  const checkoutBlocked = !orderCreationEnabled || cart.hasUnavailableItems || cart.hasPriceChanges || shippingMethods.length === 0;
+  const checkoutBlocked = !orderCreationEnabled || cart.hasUnavailableItems || cart.hasPriceChanges || shippingMethods.length === 0 || (isMember && memberShippingAddresses.length === 0);
   const selectedShippingMethod = shippingMethods.find((method) => method.id === selectedShippingMethodId);
 
   return (
@@ -215,26 +252,64 @@ export function CheckoutForm({
           ) : null}
 
           <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
-          <CheckoutSection title="İletişim" description="Sipariş durumu ve erişim bağlantısı bu e-posta adresine gönderilir.">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextField name="customerFirstName" label="Ad" autoComplete="given-name" maxLength={100} required error={fieldErrors.customerFirstName} />
-              <TextField name="customerLastName" label="Soyad" autoComplete="family-name" maxLength={100} required error={fieldErrors.customerLastName} />
-              <TextField name="customerEmail" label="E-posta" type="email" inputMode="email" autoComplete="email" maxLength={320} required error={fieldErrors.customerEmail} />
-              <TextField name="customerPhoneNumber" label="Telefon" type="tel" inputMode="tel" autoComplete="tel" maxLength={30} required error={fieldErrors.customerPhoneNumber} />
-            </div>
-          </CheckoutSection>
+          {isMember ? (
+            <CheckoutSection title="Teslimat adresi" description="Hesabınızdaki teslimat adreslerinden birini seçin.">
+              {memberShippingAddresses.length > 0 ? (
+                <fieldset>
+                  <legend className="sr-only">Teslimat adresi seçin</legend>
+                  <div className="grid gap-3">
+                    {memberShippingAddresses.map((address) => (
+                      <label key={address.id} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${selectedAddressId === address.id ? "border-brand-700 bg-surface-subtle" : "border-line bg-surface"}`}>
+                        <input
+                          type="radio"
+                          name="shippingAddressId"
+                          value={address.id}
+                          checked={selectedAddressId === address.id}
+                          onChange={() => setSelectedAddressId(address.id)}
+                          className="mt-1 size-4 shrink-0 accent-brand-700"
+                        />
+                        <span className="min-w-0 text-sm leading-6 text-ink-muted">
+                          <span className="block font-bold text-ink">{address.title}{address.isDefault ? " · Varsayılan" : ""}</span>
+                          <span className="block">{address.firstName} {address.lastName}</span>
+                          <span className="block">{address.fullAddress}</span>
+                          <span className="block">{address.district} / {address.city}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {fieldErrors.shippingAddressId ? <p className="mt-2 text-sm font-semibold text-danger">{fieldErrors.shippingAddressId}</p> : null}
+                </fieldset>
+              ) : (
+                <div className="rounded-xl border border-danger/25 bg-danger/5 p-4 text-sm leading-6 text-danger">
+                  <p>Teslimat için hesabınıza bir teslimat adresi eklemeniz gerekiyor.</p>
+                  <Link href="/account/addresses" className="focus-ring mt-3 inline-flex min-h-11 items-center font-bold underline underline-offset-4">Adreslerime git</Link>
+                </div>
+              )}
+            </CheckoutSection>
+          ) : (
+            <>
+              <CheckoutSection title="İletişim" description="Sipariş durumu ve erişim bağlantısı bu e-posta adresine gönderilir.">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <TextField name="customerFirstName" label="Ad" autoComplete="given-name" maxLength={100} required error={fieldErrors.customerFirstName} />
+                  <TextField name="customerLastName" label="Soyad" autoComplete="family-name" maxLength={100} required error={fieldErrors.customerLastName} />
+                  <TextField name="customerEmail" label="E-posta" type="email" inputMode="email" autoComplete="email" maxLength={320} required error={fieldErrors.customerEmail} />
+                  <TextField name="customerPhoneNumber" label="Telefon" type="tel" inputMode="tel" autoComplete="tel" maxLength={30} required error={fieldErrors.customerPhoneNumber} />
+                </div>
+              </CheckoutSection>
 
-          <CheckoutSection title="Teslimat adresi" description="Teslimatı alacak kişinin ve adresin bilgilerini girin.">
-            <AddressFields prefix="shipping" errors={fieldErrors} />
-          </CheckoutSection>
+              <CheckoutSection title="Teslimat adresi" description="Teslimatı alacak kişinin ve adresin bilgilerini girin.">
+                <AddressFields prefix="shipping" errors={fieldErrors} />
+              </CheckoutSection>
 
-          <CheckoutSection title="Fatura adresi">
-            <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-ink">
-              <input type="checkbox" checked={sameBillingAddress} onChange={(event) => setSameBillingAddress(event.target.checked)} className="size-4 accent-brand-700" />
-              Fatura adresim teslimat adresimle aynı
-            </label>
-            {!sameBillingAddress ? <div className="mt-5"><AddressFields prefix="billing" errors={fieldErrors} /></div> : null}
-          </CheckoutSection>
+              <CheckoutSection title="Fatura adresi">
+                <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-ink">
+                  <input type="checkbox" checked={sameBillingAddress} onChange={(event) => setSameBillingAddress(event.target.checked)} className="size-4 accent-brand-700" />
+                  Fatura adresim teslimat adresimle aynı
+                </label>
+                {!sameBillingAddress ? <div className="mt-5"><AddressFields prefix="billing" errors={fieldErrors} /></div> : null}
+              </CheckoutSection>
+            </>
+          )}
 
           <CheckoutSection title="Kargo yöntemi" description="Kargo adı ve ücreti sipariş oluşturulurken API tarafından yeniden doğrulanır.">
             {shippingMethods.length > 0 ? (
@@ -288,7 +363,7 @@ export function CheckoutForm({
           {cart.hasUnavailableItems ? <p className="mt-5 rounded-lg bg-danger/5 px-3 py-3 text-sm text-danger">Kullanılamayan ürünleri sepetten kaldırın.</p> : null}
           {cart.hasPriceChanges ? <p className="mt-3 rounded-lg bg-surface-subtle px-3 py-3 text-sm text-ink">Değişen fiyatları sepette kabul edin.</p> : null}
 
-          {challengeRequired ? (
+          {!isMember && challengeRequired ? (
             <TurnstileChallenge
               siteKey={turnstileSiteKey}
               resetVersion={challengeResetVersion}
@@ -309,14 +384,14 @@ export function CheckoutForm({
             />
           ) : null}
 
-          <button type="submit" disabled={checkoutBlocked || isSubmitting || (challengeRequired && !turnstileToken)} aria-busy={isSubmitting} className="focus-ring mt-6 min-h-12 w-full rounded-lg bg-brand-700 px-5 text-sm font-bold text-white hover:bg-brand-950 disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-muted">
-            {isSubmitting ? "Sipariş oluşturuluyor…" : "Siparişi oluştur"}
+          <button type="submit" disabled={checkoutBlocked || isSubmitting || (!isMember && challengeRequired && !turnstileToken)} aria-busy={isSubmitting} className="focus-ring mt-6 min-h-12 w-full rounded-lg bg-brand-700 px-5 text-sm font-bold text-white hover:bg-brand-950 disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-muted">
+            {isSubmitting ? "Güvenli ödeme hazırlanıyor…" : "Güvenli ödemeye geç"}
           </button>
           {!orderCreationEnabled ? <p className="mt-2 text-xs leading-5 text-ink-muted">Online sipariş verme geçici olarak kapalıdır.</p> : null}
           {orderCreationEnabled && checkoutBlocked ? <p className="mt-2 text-xs leading-5 text-ink-muted">Devam etmek için sepet ve kargo uyarılarını çözün.</p> : null}
-          {challengeRequired && !turnstileToken ? <p className="mt-2 text-xs leading-5 text-ink-muted">Güvenlik doğrulaması tamamlandığında sipariş butonu açılır.</p> : null}
+          {!isMember && challengeRequired && !turnstileToken ? <p className="mt-2 text-xs leading-5 text-ink-muted">Güvenlik doğrulaması tamamlandığında sipariş butonu açılır.</p> : null}
           <Link href="/cart" className="focus-ring mt-3 inline-flex min-h-11 w-full items-center justify-center text-sm font-bold text-brand-700 hover:text-brand-950">Sepete dön</Link>
-          <p className="mt-4 border-t border-line pt-4 text-xs leading-5 text-ink-muted">Gönderdiğiniz bilgiler yalnız sipariş, teslimat ve güvenli sipariş erişimi için kullanılır.</p>
+          <p className="mt-4 border-t border-line pt-4 text-xs leading-5 text-ink-muted">Kart bilgileriniz iyzico’nun güvenli ödeme sayfasında alınır; mağaza bu bilgileri toplamaz veya saklamaz.</p>
         </aside>
       </form>
     </main>
@@ -433,6 +508,31 @@ function checkoutRequestFromForm(form: FormData, sameBillingAddress: boolean, ca
       customer: { firstName: customerFirstName, lastName: customerLastName, email: customerEmail, phoneNumber: customerPhoneNumber },
       shippingAddress,
       ...(billingAddress ? { billingAddress } : {}),
+      shippingMethodId,
+      ...(couponCode ? { couponCode } : {}),
+    },
+    errors,
+  };
+}
+
+// Burada üye checkout isteğini yalnız hesap adresi, kargo ve güncel sepet token'ından oluşturarak guest kişisel alanlarını göndermiyorum.
+function memberCheckoutRequestFromForm(form: FormData, cart: Cart): { value: MemberCheckoutRequest | null; errors: FieldErrors } {
+  const errors: FieldErrors = {};
+  const shippingAddressId = formValue(form, "shippingAddressId");
+  const shippingMethodId = formValue(form, "shippingMethodId");
+  const couponCode = formValue(form, "couponCode");
+  if (!shippingAddressId) errors.shippingAddressId = "Bir teslimat adresi seçin.";
+  if (!shippingMethodId) errors.shippingMethodId = "Bir kargo yöntemi seçin.";
+  if (couponCode.length > 50) errors.couponCode = "Kupon kodu en fazla 50 karakter olabilir.";
+
+  if (Object.keys(errors).length || !cart.concurrencyToken || !shippingAddressId || !shippingMethodId) {
+    return { value: null, errors };
+  }
+
+  return {
+    value: {
+      expectedCartConcurrencyToken: cart.concurrencyToken,
+      shippingAddressId,
       shippingMethodId,
       ...(couponCode ? { couponCode } : {}),
     },

@@ -32,10 +32,10 @@ describe("checkout order creation flag", () => {
     expect(isCheckoutOrderCreationEnabled()).toBe(true);
   });
 
-  // Burada canlı ortamda yanlışlıkla true verilse bile ödeme öncesi sipariş mutation'ının açılamadığını doğruluyorum.
-  it("keeps production disabled until payment integration is implemented", () => {
+  // Burada ödeme entegrasyonu sonrasında production ortamının da yalnız açık feature flag ile etkinleştiğini doğruluyorum.
+  it("allows production only when the feature flag is explicitly enabled", () => {
     mutableEnv.NODE_ENV = "production";
     process.env.CHECKOUT_ORDER_CREATION_ENABLED = "true";
-    expect(isCheckoutOrderCreationEnabled()).toBe(false);
+    expect(isCheckoutOrderCreationEnabled()).toBe(true);
   });
 });

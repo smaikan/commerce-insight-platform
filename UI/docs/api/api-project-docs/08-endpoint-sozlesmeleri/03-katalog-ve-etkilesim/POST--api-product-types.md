@@ -1,42 +1,26 @@
-﻿# POST /api/product-types
+# POST /api/product-types
 
-- İşlev alanı: **03 Katalog ve ürün etkileşimi**
-- İşlev: Yeni kaynak veya iş akışı adımı oluşturur/başlatır.
-- Operation ID: `POST-/api/product-types`
-- Yetki: kesin `AllowAnonymous` / `User` / `AdminOnly` bilgisi için `../../08-controller-kapsam-denetimi.md` kontrol edilmelidir.
-- Content-Type: request body varsa `application/json` gönderin.
-- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
+- İşlev: Yeni ürün türü/kategori oluşturur.
+- Yetki: `AdminOnly`.
+- Başarı: `201 ProductTypeDto`.
+- Hatalar: `400`, `401`, `403`, aynı ad için `409`; ortak `ProblemDetails`.
 
-## Parametreler
+## Request
 
-Path, query veya header parametresi yoktur.
-
-## Request body
-
-Aşağıdaki örnek alan adlarını camelCase ile gönderin.
-
-| Alan | Tip | Zorunlu |
+| Alan | Zorunlu | Kural |
 | --- | --- | --- |
-| `name` | string | Evet |
-| `description` | string | Hayır |
-| `isActive` | boolean | Evet |
+| `name` | Evet | Boş olamaz, en çok 150. |
+| `description` | Hayır | Nullable, en çok 1000. |
+| `isActive` | Hayır | Varsayılan `true`. |
+| `imageUrl` | Hayır | Nullable, en çok 500; API yalnız URL değerini saklar. |
 
 ```json
 {
-    "name":  "string",
-    "description":  "string",
-    "isActive":  true
+  "name": "Ayakkabı",
+  "description": "Ayakkabı ürünleri",
+  "isActive": true,
+  "imageUrl": "https://cdn.example.com/categories/shoes.webp"
 }
 ```
 
-## Başarılı response (200)
-
-```json
-{
-    "id":  "00000000-0000-0000-0000-000000000001",
-    "name":  "string",
-    "description":  "string",
-    "isActive":  true
-}
-```
-
+Boş veya whitespace `imageUrl`, veritabanında `null` olarak normalize edilir. Görsel yükleme bu endpointin sorumluluğu değildir.

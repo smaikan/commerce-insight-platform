@@ -25,13 +25,13 @@ export function CollectionShowcase({ page }: { page: CollectionShowcasePage }) {
       <section className="page-shell pt-8 sm:pt-10 lg:pt-12" aria-labelledby="collection-list-title">
         <h2 id="collection-list-title" className="sr-only">Tüm koleksiyonlar</h2>
 
+        {/* Burada mobil dışındaki koleksiyon vitrininin kart boyutunu değiştirmeden üç eşit sütunda kalmasını sağlıyorum. */}
         {collections.length > 0 ? (
-          <ul className="grid grid-cols-1 gap-x-5 gap-y-9 sm:grid-cols-2 sm:gap-y-11 xl:grid-cols-3 xl:gap-x-6 xl:gap-y-14">
+          <ul className="grid grid-cols-1 gap-x-5 gap-y-9 sm:grid-cols-2 sm:gap-y-11 md:grid-cols-3 md:gap-y-14 xl:gap-x-6">
             {collections.map((collection, index) => (
               <CollectionCard
                 key={collection.id}
                 collection={collection}
-                featuredWidth={collection.isFeatured}
                 isLcpCandidate={index === 0}
               />
             ))}
@@ -83,26 +83,19 @@ function CollectionPagination({ page }: { page: CollectionShowcasePage }) {
   );
 }
 
-// Burada koleksiyon kartında değişken masaüstü genişliği kullanırken mobilde tek ve dengeli bir okuma akışı koruyorum.
+// Burada koleksiyon kartını tablet ve masaüstünde eşit sütun genişliğinde tutarken mobilde tek ve dengeli bir okuma akışı koruyorum.
 function CollectionCard({
   collection,
-  featuredWidth,
   isLcpCandidate,
 }: {
   collection: CollectionShowcaseItem;
-  featuredWidth: boolean;
   isLcpCandidate: boolean;
 }) {
-  const itemClassName = featuredWidth ? "xl:col-span-2" : "xl:col-span-1";
-  const mediaClassName = featuredWidth
-    ? "aspect-[16/10] sm:aspect-[3/2] xl:aspect-[3/1]"
-    : "aspect-[16/10] sm:aspect-[3/2]";
-
   return (
-    <li className={itemClassName}>
+    <li>
       <article className="group">
         <Link href={collection.href} prefetch={false} className="focus-ring block">
-          <div className={`relative overflow-hidden rounded-xl border border-line/70 bg-surface-subtle ${mediaClassName}`}>
+          <div className="relative aspect-[16/10] overflow-hidden rounded-xl border border-line/70 bg-surface-subtle sm:aspect-[3/2]">
             {collection.imageUrl ? (
               <Image
                 src={collection.imageUrl}
@@ -111,9 +104,7 @@ function CollectionCard({
                 loading={isLcpCandidate ? "eager" : "lazy"}
                 fetchPriority={isLcpCandidate ? "high" : undefined}
                 className="object-cover transition-transform duration-300 group-hover:scale-[1.018]"
-                sizes={featuredWidth
-                  ? "(min-width: 1280px) 62vw, (min-width: 640px) 48vw, calc(100vw - 2rem)"
-                  : "(min-width: 1280px) 30vw, (min-width: 640px) 48vw, calc(100vw - 2rem)"}
+                sizes="(min-width: 1280px) 30vw, (min-width: 768px) 31vw, (min-width: 640px) 48vw, calc(100vw - 2rem)"
               />
             ) : (
               <div className="flex size-full items-center justify-center bg-surface-subtle px-6 text-center">

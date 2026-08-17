@@ -1,11 +1,19 @@
-import { siteConfig } from "@/lib/site-config";
 import type { AuthUser } from "@/lib/auth/contracts";
 import { logoutAction } from "@/modules/auth/actions";
 import { AdminSidebar } from "@/modules/admin-shell/components/admin-sidebar";
 import { MobileNavigation } from "@/modules/admin-shell/components/mobile-navigation";
 
 // Burada doğrulanmış yönetici kimliğini yalnız gerekli profil özeti ve server-side logout eylemiyle shell'e bağlıyorum.
-export function AdminShell({ children, user }: Readonly<{ children: React.ReactNode; user: AuthUser }>) {
+type AdminStoreBrand = {
+  displayName: string;
+};
+
+// Burada kabuğun marka kimliğini API'den gelen gerçek mağaza adıyla taşıyorum.
+export function AdminShell({ children, user, store }: Readonly<{
+  children: React.ReactNode;
+  user: AuthUser;
+  store: AdminStoreBrand;
+}>) {
   return (
     <div className="min-h-dvh bg-page">
       <a
@@ -15,11 +23,11 @@ export function AdminShell({ children, user }: Readonly<{ children: React.ReactN
         Ana içeriğe geç
       </a>
 
-      <AdminSidebar siteName={siteConfig.name} />
+      <AdminSidebar siteName={store.displayName} />
 
       <div className="min-h-dvh lg:pl-64">
         <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-surface-strong px-4 text-foreground sm:px-5 lg:px-6">
-          <MobileNavigation siteName={siteConfig.name} />
+          <MobileNavigation siteName={store.displayName} />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">{user.firstName} {user.lastName}</p>
             <p className="hidden truncate text-xs text-muted sm:block">Yönetici hesabı</p>

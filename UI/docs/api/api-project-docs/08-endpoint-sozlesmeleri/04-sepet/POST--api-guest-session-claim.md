@@ -28,6 +28,8 @@
 
 `cart`, claim sonrası otoriter üye sepetidir. `favoriteCount`, claim sonrası otoriter üye favori sayısıdır.
 
+`cart.items[].mainImage`, diğer `CartDto` cevaplarıyla aynı nullable ana görsel sözleşmesini kullanır. Ayrıntı: [CartItemDto ana görsel sözleşmesi](CART-ITEM-MAIN-IMAGE-SOZLESMESI.md).
+
 ## Öncelik kuralları
 
 - Üye sepeti yok veya boşsa guest içerik benimsenir. Üye sepeti doluysa üye sepeti korunur ve guest sepet birleştirilmeden kaldırılır.

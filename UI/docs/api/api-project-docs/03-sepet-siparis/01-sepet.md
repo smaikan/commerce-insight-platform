@@ -34,6 +34,15 @@ Cart endpointleri anonymous çalışır. JWT varsa User cart her zaman guest coo
     "id": "02a...",
     "productId": "P00001",
     "productVariantId": "0f7...",
+    "productTitle": "Ürün",
+    "mainImage": {
+      "id": "54b...",
+      "productId": "P00001",
+      "imageUrl": "https://cdn.example.com/products/main.jpg",
+      "altText": "Ürün ana görseli",
+      "displayOrder": 0,
+      "isMain": true
+    },
     "variantName": "Renk",
     "variantValue": "Pudra",
     "quantity": 2,
@@ -52,6 +61,8 @@ Cart endpointleri anonymous çalışır. JWT varsa User cart her zaman guest coo
 ```
 
 `unitPrice` cart snapshot’ı, `currentUnitPrice` güncel katalog fiyatıdır. `priceChanged=true` ise kullanıcıya değişiklik gösterilir; checkout yine backend’de güncel fiyatla yeniden hesaplanır. `isAvailable=false` olan kalem checkout’u engeller.
+
+`mainImage`, backend'in ana görsel önceliğiyle seçtiği nullable `ProductImageDto` değeridir. Ürünün görseli yoksa `null` döner; frontend ürün başına ek katalog isteği yapmamalıdır. Ayrıntılı sözleşme: [CartItemDto ana görsel sözleşmesi](../08-endpoint-sozlesmeleri/04-sepet/CART-ITEM-MAIN-IMAGE-SOZLESMESI.md).
 
 Frontend request’te yalnız `productVariantId`, `quantity` ve concurrency token gönderebilir. Product ID, fiyat, vergi, stok ve toplam gönderemez.
 

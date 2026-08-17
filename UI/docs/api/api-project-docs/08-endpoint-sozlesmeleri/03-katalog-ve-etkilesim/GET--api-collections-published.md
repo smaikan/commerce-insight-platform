@@ -66,7 +66,7 @@ Kart alanları:
 - Ürün görünürlüğü soft-delete, `IsActive`, `Status=Active` ve StoreSettings stok/fiyat görünürlük tercihleriyle backend tarafından belirlenir.
 - `productCount` ve `totalCount` sayfalama öncesinde aynı kurallarla hesaplanır.
 - Koleksiyon sırası `displayOrder`, `name`, `id` artandır.
-- `imageUrl` önce koleksiyonun kendi görselidir. Bu alan yoksa ilk uygun ürün `displayOrder`, `title`, `id` artan sırasıyla seçilir; ürün görseli `isMain` önce, sonra `displayOrder` ve `id` sırasıyla seçilir.
+- `imageUrl` önce koleksiyonun kendi görselidir. Bu alan yoksa en popüler uygun ürün `popularityScore` azalan, eşitlikte ürün `id` artan sırasıyla seçilir; ürün görseli `isMain` önce, sonra `displayOrder` ve `id` sırasıyla seçilir.
 - Koleksiyon ve seçilen ürün görseli yoksa `imageUrl: null` döner.
 
 Storefront bu endpointi bir kez çağırmalı; koleksiyon başına `GET /api/products/published` isteği üretmemeli, isimden slug veya görsel fallback kuralı türetmemelidir.

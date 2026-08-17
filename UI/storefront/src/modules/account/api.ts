@@ -5,8 +5,13 @@ import type {
   AccountAddress,
   AccountOrder,
   AccountOrderPage,
+  AccountSession,
+  AccountReturn,
+  AccountReturnPage,
   AccountUser,
   AddressPayload,
+  ProductVariantPage,
+  ReturnRequestPayload,
 } from "@/modules/account/contracts";
 
 export type OrderListQuery = {
@@ -67,4 +72,44 @@ export function getAccountOrder(id: string): Promise<AccountOrder> {
 // Burada yalnız API'nin izin verdiği ödeme öncesi müşteri iptalini başlatıyorum.
 export function cancelAccountOrder(id: string): Promise<AccountOrder> {
   return authenticatedApiRequest<AccountOrder>(`/api/orders/${encodeURIComponent(id)}/cancel`, { method: "POST" });
+}
+
+// Burada müşterinin kendi iade ve değişim taleplerini API sahiplik filtresiyle sayfalı okuyorum.
+export function getAccountReturns(pageNumber = 1, pageSize = 10): Promise<AccountReturnPage> {
+  return authenticatedApiRequest<AccountReturnPage>(`/api/returns/mine?PageNumber=${pageNumber}&PageSize=${pageSize}`);
+}
+
+// Burada tek iade talebini yalnız oturumdaki müşterinin erişebildiği endpointten getiriyorum.
+export function getAccountReturn(id: string): Promise<AccountReturn> {
+  return authenticatedApiRequest<AccountReturn>(`/api/returns/${encodeURIComponent(id)}`);
+}
+
+// Burada iade veya değişim talebini belgelenmiş kalem, adet ve replacement alanlarıyla oluşturuyorum.
+export function createAccountReturn(payload: ReturnRequestPayload): Promise<AccountReturn> {
+  return authenticatedApiRequest<AccountReturn>("/api/returns", { method: "POST", body: payload });
+}
+
+// Burada değişim formunun aynı ürüne ait canlı varyant seçeneklerini public ürün sözleşmesinden okuyorum.
+export function getProductVariants(productId: string): Promise<ProductVariantPage> {
+  return authenticatedApiRequest<ProductVariantPage>(`/api/product-variants/by-product/${encodeURIComponent(productId)}?pageNumber=1&pageSize=100`);
+}
+
+// Burada mevcut parolayı doğrulatarak yeni parolayı yalnız kullanıcıya ait güvenli endpointte değiştiriyorum.
+export function changeAccountPassword(payload: { currentPassword: string; newPassword: string }): Promise<void> {
+  return authenticatedApiRequest<void>("/api/users/me/password", { method: "PUT", body: payload });
+}
+
+// Burada token değerlerini açmadan kullanıcının aktif oturum özetlerini cache dışı okuyorum.
+export function getAccountSessions(): Promise<AccountSession[]> {
+  return authenticatedApiRequest<AccountSession[]>("/api/users/me/sessions");
+}
+
+// Burada yalnız kullanıcının sahip olduğu seçili oturumu API otoritesiyle kapatıyorum.
+export function revokeAccountSession(id: string): Promise<void> {
+  return authenticatedApiRequest<void>(`/api/users/me/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+// Burada API'nin tüm aktif refresh tokenları iptal eden oturum kapatma akışını çağırıyorum.
+export function logoutAllAccountSessions(): Promise<void> {
+  return authenticatedApiRequest<void>("/api/users/me/sessions", { method: "DELETE" });
 }

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 
-import { siteConfig } from "@/lib/site-config";
+import { getPublicStoreSettings } from "@/modules/store-settings/api";
+import { buildRootMetadata } from "@/modules/store-settings/metadata";
 
 import "./globals.css";
 
@@ -10,23 +11,12 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-// Burada tüm public rotalara ortak, host-bağımsız metadata temelini tanımlıyorum.
-export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
-  title: {
-    default: siteConfig.name,
-    template: `%s | ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
-  openGraph: {
-    type: "website",
-    locale: "tr_TR",
-    siteName: siteConfig.name,
-    title: siteConfig.name,
-    description: siteConfig.description,
-    url: "/",
-  },
-};
+// Burada ortak metadata'yı public mağaza adı ve favicon'uyla tamamlayıp API hatasında güvenli yerel değerlere dönüyorum.
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getPublicStoreSettings().catch(() => null);
+
+  return buildRootMetadata(settings);
+}
 
 // Burada root layout'u yalnızca belge ve metadata sınırında tutup route gruplarının kendi görsel kabuğunu seçmesini sağlıyorum.
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
