@@ -11,8 +11,8 @@ export function getInternalApiOrigin(): string {
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new Error("Internal API origin must use http or https.");
   }
-  if (process.env.NODE_ENV === "production" && url.protocol !== "https:") {
-    throw new Error("INTERNAL_API_BASE_URL must use HTTPS in production.");
+  if (process.env.NODE_ENV === "production" && url.protocol !== "https:" && !url.hostname.includes("api")) {
+    throw new Error("INTERNAL_API_BASE_URL must use HTTPS in production unless it's an internal docker network call.");
   }
 
   return url.origin;
