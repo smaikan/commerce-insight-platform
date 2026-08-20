@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { siteConfig } from "@/lib/site-config";
 import { ApiError } from "@/lib/api/problem";
 import { clearSessionCookies } from "@/lib/auth/cookies";
 import { safeReturnTo } from "@/lib/auth/policy";
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const returnTo = safeReturnTo(request.nextUrl.searchParams.get("returnTo"));
   try {
     await refreshAdminSession();
-    return noStoreRedirect(new URL(returnTo, request.url));
+    return noStoreRedirect(new URL(returnTo, siteConfig.url));
   } catch (error) {
     const reason = error instanceof ApiError && error.problem.status === 403
       ? "forbidden"
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         : "session_expired";
 
     if (!(error instanceof ApiError) || error.problem.status < 500) await clearSessionCookies();
-    return noStoreRedirect(new URL(`/login?reason=${reason}`, request.url));
+    return noStoreRedirect(new URL(`/login?reason=${reason}`, siteConfig.url));
   }
 }
 

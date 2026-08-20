@@ -58,7 +58,7 @@ services:
     depends_on:
       - api
     env_file:
-      - ./UI/admin/.env.local
+      - ./UI/admin/.env
     environment:
       - NODE_ENV=production
       - INTERNAL_API_BASE_URL=http://api:8080
@@ -75,7 +75,7 @@ services:
     depends_on:
       - api
     env_file:
-      - ./UI/storefront/.env.local
+      - ./UI/storefront/.env
     environment:
       - NODE_ENV=production
       - INTERNAL_API_BASE_URL=http://api:8080

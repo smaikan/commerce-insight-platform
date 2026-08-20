@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { siteConfig } from "@/lib/site-config";
 
 import { clearAuthCookies, readRefreshToken, writeAuthCookies } from "@/lib/auth/cookies";
 import { safeReturnTo } from "@/lib/auth/policy";
@@ -21,8 +22,7 @@ export async function GET(request: NextRequest) {
   }
 
   await clearAuthCookies();
-
-  const loginUrl = new URL("/login", siteConfig.url);
+  const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("returnTo", returnTo);
   loginUrl.searchParams.set("sessionExpired", "1");
 

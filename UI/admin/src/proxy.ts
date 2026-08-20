@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { siteConfig } from "@/lib/site-config";
 import { ADMIN_ACCESS_COOKIE, ADMIN_REFRESH_COOKIE } from "@/lib/auth/constants";
 import { isProtectedAdminPath, safeReturnTo } from "@/lib/auth/policy";
 
@@ -11,12 +12,12 @@ export function proxy(request: NextRequest): NextResponse {
 
   const returnTo = safeReturnTo(`${pathname}${search}`);
   if (request.cookies.has(ADMIN_REFRESH_COOKIE)) {
-    const refreshUrl = new URL("/api/auth/refresh", request.url);
+    const refreshUrl = new URL("/api/auth/refresh", siteConfig.url);
     refreshUrl.searchParams.set("returnTo", returnTo);
     return NextResponse.redirect(refreshUrl);
   }
 
-  const loginUrl = new URL("/login", request.url);
+  const loginUrl = new URL("/login", siteConfig.url);
   loginUrl.searchParams.set("returnTo", returnTo);
   loginUrl.searchParams.set("reason", "session_required");
   return NextResponse.redirect(loginUrl);
