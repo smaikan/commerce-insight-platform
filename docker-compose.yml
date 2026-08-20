@@ -15,6 +15,12 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:alpine
+    container_name: eleven_redis
+    ports:
+      - "127.0.0.1:6379:6379"
+
   api:
     build:
       context: ./API
@@ -26,7 +32,8 @@ services:
       sqlserver:
         condition: service_healthy
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
+      - GuestProtection__Redis__ConnectionString=redis:6379
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=ECommerceDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true
       - ENABLE_DEVELOPMENT_SEED=true
       - SEED_ADMIN_EMAIL=admin@eleven.com
@@ -48,8 +55,8 @@ services:
     environment:
       - NODE_ENV=production
       - INTERNAL_API_BASE_URL=http://api:8080
-      - BROWSER_API_BASE_URL=http://localhost:3300
-      - ADMIN_APP_ORIGIN=http://localhost:3001
+      - BROWSER_API_BASE_URL=https://api.serhateleven.com
+      - ADMIN_APP_ORIGIN=https://admin.serhateleven.com
 
   storefront-ui:
     build:
@@ -63,8 +70,8 @@ services:
     environment:
       - NODE_ENV=production
       - INTERNAL_API_BASE_URL=http://api:8080
-      - BROWSER_API_BASE_URL=http://localhost:3300
-      - STOREFRONT_APP_ORIGIN=http://localhost:3000
+      - BROWSER_API_BASE_URL=https://api.serhateleven.com
+      - STOREFRONT_APP_ORIGIN=https://www.serhateleven.com
 
 volumes:
   sqlserver_data:
