@@ -17,6 +17,7 @@ const redirects: NonNullable<NextConfig["redirects"]> = async () => [
 
 // Burada medya allowlist'ini, kalıcı yönlendirmeyi ve gereksiz framework başlığını tek Next.js yapılandırmasında tutuyorum.
 const nextConfig: NextConfig = {
+  output: "standalone",
   poweredByHeader: false,
   redirects,
   images: {

@@ -1,8 +1,40 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
-<body style="font-family:Arial,sans-serif;color:#222;line-height:1.5">
-  <h1 style="font-size:22px">Ödeme işlemi tamamlanamadı, {{RecipientName}}</h1>
-  <p><strong>{{OrderNumber}}</strong> numaralı siparişiniz için <strong>{{Amount}}</strong> tutarındaki ödeme tamamlanamadı.</p>
-  <p>Ödeme yönteminizi kontrol ederek tekrar deneyebilirsiniz.</p>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ödeme Tamamlanamadı</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f0f4f8; color: #333333; -webkit-font-smoothing: antialiased;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed; background-color: #f0f4f8; padding: 40px 10px;">
+        <tr>
+            <td align="center">
+                <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05); overflow: hidden; max-width: 100%;">
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="background-color: #e53e3e; padding: 40px 20px;">
+                            {{LogoHtml}}
+                        </td>
+                    </tr>
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h1 style="margin-top: 0; margin-bottom: 25px; font-size: 26px; color: #e53e3e; text-align: center; font-weight: 700;">Ödeme İşlemi Başarısız</h1>
+                            <p style="font-size: 16px; line-height: 1.8; margin-bottom: 15px;">Merhaba <strong>{{RecipientName}}</strong>,</p>
+                            <p style="font-size: 16px; line-height: 1.8; margin-bottom: 35px; color: #4a5568;"><strong>{{OrderNumber}}</strong> numaralı siparişiniz için <strong>{{Amount}}</strong> tutarındaki ödeme işleminiz sırasında bir sorun oluştu ve ödeme alınamadı.</p>
+                            <p style="font-size: 15px; line-height: 1.6; color: #718096; text-align: center; margin: 0;">Lütfen ödeme bilgilerinizi kontrol ederek işlemi tekrar deneyiniz. Herhangi bir sorunuz varsa bizimle iletişime geçebilirsiniz.</p>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f7fafc; padding: 25px; text-align: center; border-top: 1px solid #edf2f7;">
+                            <p style="margin: 0 0 10px 0; font-size: 14px; color: #a0aec0;">Bizi tercih ettiğiniz için teşekkür ederiz.</p>
+                            <p style="margin: 0; font-size: 16px; font-weight: bold; color: #4a5568;">{{StoreName}}</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

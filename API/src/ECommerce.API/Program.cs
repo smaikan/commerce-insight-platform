@@ -412,6 +412,8 @@ app.UseOutputCache();
 
 app.MapControllers();
 
+await app.SeedDatabaseAsync();
+
 app.Run();
 
 public partial class Program

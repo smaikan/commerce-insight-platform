@@ -3,7 +3,7 @@
 import { useEffect, useState, type SelectHTMLAttributes, useTransition } from "react";
 import { fetchProvinces, fetchNeighborhoods } from "./turkiye-address-actions";
 
-interface Province { id: number; name: string; }
+interface Province { id: number; name: string; districts?: District[]; }
 interface District { id: number; name: string; }
 interface Neighborhood { id: number; name: string; }
 
@@ -29,7 +29,7 @@ export function TurkiyeAddressFields({
   defaultNeighborhood?: string;
   variant?: "checkout" | "account";
 }) {
-  const [provinces, setProvinces] = useState<(Province & { districts: District[] })[]>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
   

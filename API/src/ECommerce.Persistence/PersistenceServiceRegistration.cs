@@ -26,7 +26,11 @@ public static class PersistenceServiceRegistration
         }
 
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(connectionString));
+        {
+            options.UseSqlServer(connectionString);
+            options.ConfigureWarnings(warnings => 
+                warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+        });
 
         var configuredLowStockThreshold = configuration[
             $"{DashboardOptions.SectionName}:LowStockThreshold"];

@@ -30,11 +30,25 @@ public sealed class SmtpEmailSender : IEmailSender
         "ECommerce.Infrastructure.Email.Templates.GuestOrderAccessEmailTemplate.html";
 
     private readonly IConfiguration _configuration;
+    private readonly IStoreSettingsRepository _storeSettingsRepository;
 
     // Burada SMTP e-posta göndericisini uygulama ayarlarıyla hazırlıyorum.
-    public SmtpEmailSender(IConfiguration configuration)
+    public SmtpEmailSender(IConfiguration configuration, IStoreSettingsRepository storeSettingsRepository)
     {
         _configuration = configuration;
+        _storeSettingsRepository = storeSettingsRepository;
+    }
+
+    private async Task<(string StoreName, string LogoHtml)> GetStoreContextAsync(CancellationToken cancellationToken)
+    {
+        var storeSettings = await _storeSettingsRepository.GetAsync(false, cancellationToken);
+        var storeName = storeSettings?.DisplayName ?? "Mağaza";
+
+        var logoHtml = string.IsNullOrWhiteSpace(storeSettings?.LogoUrl)
+            ? $"<span style=\"color: #ffffff; font-size: 24px; font-weight: bold; text-decoration: none;\">{HtmlEncoder.Default.Encode(storeName)}</span>"
+            : $"<img src=\"{HtmlEncoder.Default.Encode(storeSettings.LogoUrl)}\" alt=\"{HtmlEncoder.Default.Encode(storeName)}\" style=\"max-height: 60px; display: block; border: 0; margin: 0 auto;\" />";
+
+        return (storeName, logoHtml);
     }
 
     // Burada parola sıfırlama template'ini güvenli bağlantı verileriyle doldurup gönderiyorum.
@@ -46,9 +60,13 @@ public sealed class SmtpEmailSender : IEmailSender
     {
         var resetUrl = GetRequiredValue("Email:PasswordResetUrl");
         var passwordResetLink = BuildPasswordResetLink(resetUrl, rawToken);
+        var (storeName, logoHtml) = await GetStoreContextAsync(cancellationToken);
+
         var body = LoadTemplate(PasswordResetTemplateResource)
             .Replace("{{PasswordResetLink}}", HtmlEncoder.Default.Encode(passwordResetLink), StringComparison.Ordinal)
-            .Replace("{{ExpiresAt}}", HtmlEncoder.Default.Encode(expiresAt.ToString("O")), StringComparison.Ordinal);
+            .Replace("{{ExpiresAt}}", HtmlEncoder.Default.Encode(expiresAt.ToString("g", CultureInfo.GetCultureInfo("tr-TR"))), StringComparison.Ordinal)
+            .Replace("{{StoreName}}", HtmlEncoder.Default.Encode(storeName), StringComparison.Ordinal)
+            .Replace("{{LogoHtml}}", logoHtml, StringComparison.Ordinal);
 
         await SendAsync(email, "Parola sıfırlama bağlantınız", body, cancellationToken);
     }
@@ -70,9 +88,13 @@ public sealed class SmtpEmailSender : IEmailSender
         CancellationToken cancellationToken = default)
     {
         var welcomeUrl = GetRequiredValue("Email:WelcomeUrl");
+        var (storeName, logoHtml) = await GetStoreContextAsync(cancellationToken);
+
         var body = LoadTemplate(WelcomeTemplateResource)
             .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
-            .Replace("{{WelcomeUrl}}", HtmlEncoder.Default.Encode(welcomeUrl), StringComparison.Ordinal);
+            .Replace("{{WelcomeUrl}}", HtmlEncoder.Default.Encode(welcomeUrl), StringComparison.Ordinal)
+            .Replace("{{StoreName}}", HtmlEncoder.Default.Encode(storeName), StringComparison.Ordinal)
+            .Replace("{{LogoHtml}}", logoHtml, StringComparison.Ordinal);
 
         await SendAsync(email, "Aramıza hoş geldiniz", body, cancellationToken);
     }
@@ -85,10 +107,14 @@ public sealed class SmtpEmailSender : IEmailSender
         decimal grandTotal,
         CancellationToken cancellationToken = default)
     {
+        var (storeName, logoHtml) = await GetStoreContextAsync(cancellationToken);
+
         var body = LoadTemplate(OrderCreatedTemplateResource)
             .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
             .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
-            .Replace("{{Amount}}", HtmlEncoder.Default.Encode(FormatAmount(grandTotal)), StringComparison.Ordinal);
+            .Replace("{{Amount}}", HtmlEncoder.Default.Encode(FormatAmount(grandTotal)), StringComparison.Ordinal)
+            .Replace("{{StoreName}}", HtmlEncoder.Default.Encode(storeName), StringComparison.Ordinal)
+            .Replace("{{LogoHtml}}", logoHtml, StringComparison.Ordinal);
 
         await SendAsync(email, "Siparişiniz alındı", body, cancellationToken);
     }
@@ -101,10 +127,14 @@ public sealed class SmtpEmailSender : IEmailSender
         decimal amount,
         CancellationToken cancellationToken = default)
     {
+        var (storeName, logoHtml) = await GetStoreContextAsync(cancellationToken);
+
         var body = LoadTemplate(PaymentPaidTemplateResource)
             .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
             .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
-            .Replace("{{Amount}}", HtmlEncoder.Default.Encode(FormatAmount(amount)), StringComparison.Ordinal);
+            .Replace("{{Amount}}", HtmlEncoder.Default.Encode(FormatAmount(amount)), StringComparison.Ordinal)
+            .Replace("{{StoreName}}", HtmlEncoder.Default.Encode(storeName), StringComparison.Ordinal)
+            .Replace("{{LogoHtml}}", logoHtml, StringComparison.Ordinal);
 
         await SendAsync(email, "Ödemeniz alındı", body, cancellationToken);
     }
@@ -117,10 +147,14 @@ public sealed class SmtpEmailSender : IEmailSender
         decimal amount,
         CancellationToken cancellationToken = default)
     {
+        var (storeName, logoHtml) = await GetStoreContextAsync(cancellationToken);
+
         var body = LoadTemplate(PaymentFailedTemplateResource)
             .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
             .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
-            .Replace("{{Amount}}", HtmlEncoder.Default.Encode(FormatAmount(amount)), StringComparison.Ordinal);
+            .Replace("{{Amount}}", HtmlEncoder.Default.Encode(FormatAmount(amount)), StringComparison.Ordinal)
+            .Replace("{{StoreName}}", HtmlEncoder.Default.Encode(storeName), StringComparison.Ordinal)
+            .Replace("{{LogoHtml}}", logoHtml, StringComparison.Ordinal);
 
         await SendAsync(email, "Ödeme işlemi tamamlanamadı", body, cancellationToken);
     }
@@ -133,10 +167,14 @@ public sealed class SmtpEmailSender : IEmailSender
         string status,
         CancellationToken cancellationToken = default)
     {
+        var (storeName, logoHtml) = await GetStoreContextAsync(cancellationToken);
+
         var body = LoadTemplate(OrderStatusChangedTemplateResource)
             .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
             .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
-            .Replace("{{Status}}", HtmlEncoder.Default.Encode(status), StringComparison.Ordinal);
+            .Replace("{{Status}}", HtmlEncoder.Default.Encode(status), StringComparison.Ordinal)
+            .Replace("{{StoreName}}", HtmlEncoder.Default.Encode(storeName), StringComparison.Ordinal)
+            .Replace("{{LogoHtml}}", logoHtml, StringComparison.Ordinal);
 
         await SendAsync(email, "Siparişinizin durumu güncellendi", body, cancellationToken);
     }
@@ -149,10 +187,14 @@ public sealed class SmtpEmailSender : IEmailSender
         string returnNumber,
         CancellationToken cancellationToken = default)
     {
+        var (storeName, logoHtml) = await GetStoreContextAsync(cancellationToken);
+
         var body = LoadTemplate(ReturnRequestedTemplateResource)
             .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
             .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
-            .Replace("{{ReturnNumber}}", HtmlEncoder.Default.Encode(returnNumber), StringComparison.Ordinal);
+            .Replace("{{ReturnNumber}}", HtmlEncoder.Default.Encode(returnNumber), StringComparison.Ordinal)
+            .Replace("{{StoreName}}", HtmlEncoder.Default.Encode(storeName), StringComparison.Ordinal)
+            .Replace("{{LogoHtml}}", logoHtml, StringComparison.Ordinal);
 
         await SendAsync(email, "İade talebiniz alındı", body, cancellationToken);
     }
@@ -166,11 +208,15 @@ public sealed class SmtpEmailSender : IEmailSender
         string status,
         CancellationToken cancellationToken = default)
     {
+        var (storeName, logoHtml) = await GetStoreContextAsync(cancellationToken);
+
         var body = LoadTemplate(ReturnStatusChangedTemplateResource)
             .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
             .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
             .Replace("{{ReturnNumber}}", HtmlEncoder.Default.Encode(returnNumber), StringComparison.Ordinal)
-            .Replace("{{Status}}", HtmlEncoder.Default.Encode(status), StringComparison.Ordinal);
+            .Replace("{{Status}}", HtmlEncoder.Default.Encode(status), StringComparison.Ordinal)
+            .Replace("{{StoreName}}", HtmlEncoder.Default.Encode(storeName), StringComparison.Ordinal)
+            .Replace("{{LogoHtml}}", logoHtml, StringComparison.Ordinal);
 
         await SendAsync(email, "İade talebinizin durumu güncellendi", body, cancellationToken);
     }
@@ -187,11 +233,16 @@ public sealed class SmtpEmailSender : IEmailSender
     {
         var accessUrl = GetRequiredValue("Email:GuestOrderAccessUrl");
         var link = $"{accessUrl}#token={Uri.EscapeDataString(rawToken)}";
+        var (storeName, logoHtml) = await GetStoreContextAsync(cancellationToken);
+
         var body = LoadTemplate(GuestOrderAccessTemplateResource)
             .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
             .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
             .Replace("{{AccessLink}}", HtmlEncoder.Default.Encode(link), StringComparison.Ordinal)
-            .Replace("{{ExpiresAt}}", HtmlEncoder.Default.Encode(expiresAt.ToString("O")), StringComparison.Ordinal);
+            .Replace("{{ExpiresAt}}", HtmlEncoder.Default.Encode(expiresAt.ToString("g", CultureInfo.GetCultureInfo("tr-TR"))), StringComparison.Ordinal)
+            .Replace("{{StoreName}}", HtmlEncoder.Default.Encode(storeName), StringComparison.Ordinal)
+            .Replace("{{LogoHtml}}", logoHtml, StringComparison.Ordinal);
+
         await SendAsync(email, "Siparişinize güvenli erişim bağlantısı", body, cancellationToken);
     }
 
