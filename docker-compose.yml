@@ -31,6 +31,8 @@ services:
     depends_on:
       sqlserver:
         condition: service_healthy
+    env_file:
+      - ./API/.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - GuestProtection__Redis__ConnectionString=redis:6379
@@ -55,6 +57,8 @@ services:
       - "127.0.0.1:3001:3001"
     depends_on:
       - api
+    env_file:
+      - ./UI/admin/.env.local
     environment:
       - NODE_ENV=production
       - INTERNAL_API_BASE_URL=http://api:8080
@@ -70,6 +74,8 @@ services:
       - "127.0.0.1:3000:3000"
     depends_on:
       - api
+    env_file:
+      - ./UI/storefront/.env.local
     environment:
       - NODE_ENV=production
       - INTERNAL_API_BASE_URL=http://api:8080

@@ -261,7 +261,8 @@ public sealed class PasswordResetEndpointTests
                 ["Email:Smtp:UseSsl"] = "false"
             })
             .Build();
-        var sender = new SmtpEmailSender(configuration);
+        var mockStoreSettingsRepo = new Moq.Mock<IStoreSettingsRepository>();
+        var sender = new SmtpEmailSender(configuration, mockStoreSettingsRepo.Object);
 
         await sender.SendPasswordResetAsync(
             "customer@test.local",
