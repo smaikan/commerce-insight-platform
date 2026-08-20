@@ -25,7 +25,6 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Monorepo ortamında next standalone klasör yapısı /app/storefront şeklinde çıkar.
-COPY --from=builder /app/storefront/public ./storefront/public
 COPY --from=builder /app/storefront/.next/standalone ./
 COPY --from=builder /app/storefront/.next/static ./storefront/.next/static
 

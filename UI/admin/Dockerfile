@@ -27,7 +27,6 @@ ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 
 # Sadece standalone çıktıları kopyalıyoruz
-COPY --from=builder /app/admin/public ./admin/public
 COPY --from=builder /app/admin/.next/standalone ./
 COPY --from=builder /app/admin/.next/static ./admin/.next/static
 

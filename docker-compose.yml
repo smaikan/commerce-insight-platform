@@ -42,6 +42,9 @@ services:
       - Jwt__Issuer=Eleven
       - Jwt__Audience=ElevenClient
       - Email__Smtp__Password=${SMTP_PASSWORD}
+      - DataProtection__KeyRingPath=/var/eleven/dataprotection-keys
+    volumes:
+      - dataprotection_keys:/var/eleven/dataprotection-keys
 
   admin-ui:
     build:
@@ -55,8 +58,8 @@ services:
     environment:
       - NODE_ENV=production
       - INTERNAL_API_BASE_URL=http://api:8080
-      - BROWSER_API_BASE_URL=https://api.serhateleven.com
-      - ADMIN_APP_ORIGIN=https://admin.serhateleven.com
+      - BROWSER_API_BASE_URL=https://api.serhateleven.com.tr
+      - ADMIN_APP_ORIGIN=https://admin.serhateleven.com.tr
 
   storefront-ui:
     build:
@@ -70,8 +73,9 @@ services:
     environment:
       - NODE_ENV=production
       - INTERNAL_API_BASE_URL=http://api:8080
-      - BROWSER_API_BASE_URL=https://api.serhateleven.com
-      - STOREFRONT_APP_ORIGIN=https://www.serhateleven.com
+      - BROWSER_API_BASE_URL=https://api.serhateleven.com.tr
+      - STOREFRONT_APP_ORIGIN=https://www.serhateleven.com.tr
 
 volumes:
   sqlserver_data:
+  dataprotection_keys:
