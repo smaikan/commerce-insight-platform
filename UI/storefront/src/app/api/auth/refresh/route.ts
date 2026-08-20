@@ -3,7 +3,6 @@ import { siteConfig } from "@/lib/site-config";
 
 import { clearAuthCookies, readRefreshToken, writeAuthCookies } from "@/lib/auth/cookies";
 import { safeReturnTo } from "@/lib/auth/policy";
-import { siteConfig } from "@/lib/site-config";
 import { refreshCustomerSession } from "@/modules/auth/api";
 
 // Burada Server Component renderında yenilenemeyen oturumu cookie yazabilen kontrollü HTTP sınırında döndürüyorum.
@@ -22,7 +21,8 @@ export async function GET(request: NextRequest) {
   }
 
   await clearAuthCookies();
-  const loginUrl = new URL("/login", request.url);
+
+  const loginUrl = new URL("/login", siteConfig.url);
   loginUrl.searchParams.set("returnTo", returnTo);
   loginUrl.searchParams.set("sessionExpired", "1");
 

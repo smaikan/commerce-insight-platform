@@ -61,8 +61,14 @@ export async function readRefreshToken(): Promise<string | null> {
 export async function clearAuthCookies(): Promise<void> {
   const store = await cookies();
   const names = authCookieNames();
-  store.delete(names.access);
-  store.delete(names.refresh);
+  const common = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+  };
+  store.set(names.access, "", { ...common, maxAge: 0 });
+  store.set(names.refresh, "", { ...common, maxAge: 0 });
 }
 
 // Burada login öncesi cart ve favorites için oluşmuş canonical ortak guest session tokenını yalnız sunucuda okuyorum.
