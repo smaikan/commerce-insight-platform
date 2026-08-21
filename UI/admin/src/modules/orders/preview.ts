@@ -1,7 +1,8 @@
-import type { Order, OrderListPreview } from "@/modules/orders/types";
+import type { Order, OrderListPreview, ReturnRequest } from "@/modules/orders/types";
 
 // Burada tam sipariş DTO'sunu hızlı görünümün ihtiyaç duyduğu güvenli ve küçük alan kümesine indiriyorum.
-export function toOrderListPreview(order: Order): OrderListPreview {
+export function toOrderListPreview(order: Order, returns: ReturnRequest[] | null = []): OrderListPreview {
+  const availableReturns = returns ?? [];
   return {
     id: order.id,
     orderNumber: order.orderNumber,
@@ -32,7 +33,17 @@ export function toOrderListPreview(order: Order): OrderListPreview {
       variantSku: item.variantSku,
       quantity: item.quantity,
       totalPrice: item.totalPrice,
+      returns: availableReturns.flatMap((returnRequest) => returnRequest.items
+        .filter((returnItem) => returnItem.orderItemId === item.id)
+        .map((returnItem) => ({
+          id: returnRequest.id,
+          returnNumber: returnRequest.returnNumber,
+          type: returnRequest.type,
+          status: returnRequest.status,
+          quantity: returnItem.quantity,
+        }))),
     })),
     grandTotal: order.grandTotal,
+    returnsUnavailable: returns === null,
   };
 }

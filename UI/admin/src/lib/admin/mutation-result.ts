@@ -3,4 +3,5 @@ export type AdminMutationResult = {
   message: string;
   traceId?: string;
   redirectHref?: string;
+  refresh?: boolean;
 };

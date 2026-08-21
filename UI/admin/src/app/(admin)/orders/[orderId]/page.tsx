@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api/problem";
 import { requireAdminPageSession } from "@/lib/auth/session";
 import { PageHeader } from "@/modules/admin-shell/components/page-header";
-import { getOrder } from "@/modules/orders/api";
+import { getOrder, getOrderReturns } from "@/modules/orders/api";
 import { OrderDetail } from "@/modules/orders/components/order-detail";
 import { formatOrderDate } from "@/modules/orders/presentation";
 
@@ -21,13 +21,17 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
   const returnTo = `/orders/${encodeURIComponent(orderId)}`;
   const session = await requireAdminPageSession(returnTo);
 
-  let order;
-  try {
-    order = await getOrder(orderId, session);
-  } catch (error) {
+  const [orderResult, returnsResult] = await Promise.allSettled([
+    getOrder(orderId, session),
+    getOrderReturns(orderId, session),
+  ]);
+  if (orderResult.status === "rejected") {
+    const error = orderResult.reason;
     if (error instanceof ApiError && error.problem.status === 404) notFound();
     throw error;
   }
+  const order = orderResult.value;
+  const returns = returnsResult.status === "fulfilled" ? returnsResult.value : [];
 
   return (
     <div className="mx-auto w-full max-w-[1480px]">
@@ -36,7 +40,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
         description={`${order.id} · ${formatOrderDate(order.createdAt)}`}
         backHref="/orders"
       />
-      <OrderDetail order={order} />
+      <OrderDetail order={order} returns={returns} returnsUnavailable={returnsResult.status === "rejected"} />
     </div>
   );
 }

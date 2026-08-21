@@ -8,14 +8,23 @@ import {
   paymentStatusClass,
   paymentStatusLabel,
 } from "@/modules/orders/presentation";
-import type { Order, OrderPayment } from "@/modules/orders/types";
+import { OrderReturnManagement } from "@/modules/orders/components/order-return-management";
+import { OrderStatusControl } from "@/modules/orders/components/order-status-control";
+import { returnStatusClass, returnStatusLabel, returnTypeLabel } from "@/modules/orders/return-presentation";
+import type { Order, OrderPayment, ReturnRequest } from "@/modules/orders/types";
 
 // Burada sipariş snapshot'ını kalemler ve ödemeler ana alanda, toplam ve teslimat bağlamı yan rayda olacak biçimde sunuyorum.
-export function OrderDetail({ order }: { order: Order }) {
+export function OrderDetail({ order, returns, returnsUnavailable = false }: { order: Order; returns: ReturnRequest[]; returnsUnavailable?: boolean }) {
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
       <div className="min-w-0 space-y-6">
-        <OrderItems order={order} />
+        <OrderItems order={order} returns={returns} />
+        <OrderReturnManagement
+          orderId={order.id}
+          orderItems={order.items.map((item) => ({ id: item.id, quantity: item.quantity }))}
+          returns={returns}
+          unavailable={returnsUnavailable}
+        />
         <OrderPayments payments={order.payments} />
       </div>
 
@@ -42,6 +51,17 @@ export function OrderDetail({ order }: { order: Order }) {
           ) : null}
         </DetailSection>
 
+        <DetailSection title="Durum yönetimi">
+          <OrderStatusControl key={`${order.id}-${order.status}-${order.trackingNumber ?? ""}`} order={{
+            id: order.id,
+            orderNumber: order.orderNumber,
+            status: order.status,
+            shippingCarrier: order.shippingCarrier,
+            trackingNumber: order.trackingNumber,
+            trackingUrl: order.trackingUrl,
+          }} />
+        </DetailSection>
+
         <DetailSection title="Müşteri ve adresler">
           {order.customer ? (
             <dl className="space-y-3 text-sm">
@@ -57,6 +77,13 @@ export function OrderDetail({ order }: { order: Order }) {
             {order.shippingMethodName ? (
               <p className="mt-3 text-sm text-muted">Kargo yöntemi: <span className="font-semibold text-foreground">{order.shippingMethodName}</span></p>
             ) : null}
+            {order.shippingCarrier || order.trackingNumber ? (
+              <dl className="mt-3 space-y-2 border-t border-border pt-3 text-sm">
+                <InfoRow label="Taşıyıcı" value={order.shippingCarrier || "—"} />
+                <InfoRow label="Takip numarası" value={order.trackingNumber || "—"} breakValue />
+                {order.trackingUrl ? <InfoRow label="Takip bağlantısı" value={order.trackingUrl} breakValue /> : null}
+              </dl>
+            ) : null}
           </div>
 
           <div className="mt-5 border-t border-border pt-4">
@@ -70,6 +97,8 @@ export function OrderDetail({ order }: { order: Order }) {
             <InfoRow label="Oluşturuldu" value={formatOrderDate(order.createdAt)} />
             <InfoRow label="Ödendi" value={formatOrderDate(order.paidAt)} />
             <InfoRow label="İptal edildi" value={formatOrderDate(order.cancelledAt)} />
+            <InfoRow label="Kargoya verildi" value={formatOrderDate(order.shippedAt)} />
+            <InfoRow label="Teslim edildi" value={formatOrderDate(order.deliveredAt)} />
             <InfoRow label="Rezervasyon sonu" value={formatOrderDate(order.reservationExpiresAt)} />
           </dl>
           <p className="mt-3 text-xs leading-5 text-muted">Tarihler Türkiye saatiyle gösterilir.</p>
@@ -80,7 +109,7 @@ export function OrderDetail({ order }: { order: Order }) {
 }
 
 // Burada sipariş kalemlerini backend'in fiyat, indirim, vergi ve iade snapshot değerleriyle tablo halinde gösteriyorum.
-function OrderItems({ order }: { order: Order }) {
+function OrderItems({ order, returns }: { order: Order; returns: ReturnRequest[] }) {
   return (
     <section aria-labelledby="order-items-title" className="overflow-hidden rounded-xl border border-border bg-surface-strong">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
@@ -105,28 +134,44 @@ function OrderItems({ order }: { order: Order }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/80">
-              {order.items.map((item) => (
-                <tr key={item.id} className="align-top hover:bg-primary-soft/20">
-                  <td className="px-5 py-4">
-                    <p className="font-bold text-foreground">{item.productTitle}</p>
-                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                      <span className="font-mono font-medium text-foreground/75">{item.variantSku}</span>
-                      <span aria-hidden="true">•</span>
-                      <Link href={`/products/${encodeURIComponent(item.productId)}`} className="font-medium text-primary hover:text-primary-hover">{item.productId}</Link>
-                    </p>
-                    <p className="mt-1 max-w-72 truncate font-mono text-[11px] text-muted" title={item.productVariantId}>{item.productVariantId}</p>
-                  </td>
-                  <td className="px-4 py-4 text-right tabular-nums text-foreground">{formatOrderAmount(item.unitPrice)}</td>
-                  <td className="px-4 py-4 text-right font-semibold tabular-nums text-foreground">{item.quantity}</td>
-                  <td className="px-4 py-4 text-right tabular-nums text-muted">{formatOrderAmount(item.discountTotal)}</td>
-                  <td className="px-4 py-4 text-right tabular-nums text-muted">
-                    <span className="block">{formatOrderAmount(item.taxTotal)}</span>
-                    <span className="mt-1 block text-xs">{item.taxRatePercentage == null ? "Oran yok" : `%${item.taxRatePercentage}`}</span>
-                  </td>
-                  <td className="px-4 py-4 text-right tabular-nums text-muted">{formatOrderAmount(item.refundTotal)}</td>
-                  <td className="px-5 py-4 text-right font-bold tabular-nums text-foreground">{formatOrderAmount(item.totalPrice)}</td>
-                </tr>
-              ))}
+              {order.items.map((item) => {
+                const itemReturns = returns.flatMap((returnRequest) => returnRequest.items
+                  .filter((returnItem) => returnItem.orderItemId === item.id)
+                  .map((returnItem) => ({ returnRequest, returnItem })));
+                return (
+                  <tr key={item.id} className="align-top hover:bg-primary-soft/20">
+                    <td className="px-5 py-4">
+                      <p className="font-bold text-foreground">{item.productTitle}</p>
+                      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                        <span className="font-mono font-medium text-foreground/75">{item.variantSku}</span>
+                        <span aria-hidden="true">•</span>
+                        <Link href={`/products/${encodeURIComponent(item.productId)}`} className="font-medium text-primary hover:text-primary-hover">{item.productId}</Link>
+                      </p>
+                      <p className="mt-1 max-w-72 truncate font-mono text-[11px] text-muted" title={item.productVariantId}>{item.productVariantId}</p>
+                      {itemReturns.length > 0 ? (
+                        <div className="mt-3 space-y-1.5">
+                          {itemReturns.map(({ returnRequest, returnItem }) => (
+                            <p key={`${returnRequest.id}-${returnItem.id}`} className="flex flex-wrap items-center gap-1.5 text-xs">
+                              <span className={`rounded-md border px-1.5 py-0.5 font-semibold ${returnStatusClass(returnRequest.status)}`}>{returnStatusLabel(returnRequest.status)}</span>
+                              <span className="font-semibold text-foreground">{returnItem.quantity} adet {returnTypeLabel(returnRequest.type).toLocaleLowerCase("tr-TR")} talebi</span>
+                              <span className="text-muted">· {returnRequest.returnNumber}</span>
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-4 text-right tabular-nums text-foreground">{formatOrderAmount(item.unitPrice)}</td>
+                    <td className="px-4 py-4 text-right font-semibold tabular-nums text-foreground">{item.quantity}</td>
+                    <td className="px-4 py-4 text-right tabular-nums text-muted">{formatOrderAmount(item.discountTotal)}</td>
+                    <td className="px-4 py-4 text-right tabular-nums text-muted">
+                      <span className="block">{formatOrderAmount(item.taxTotal)}</span>
+                      <span className="mt-1 block text-xs">{item.taxRatePercentage == null ? "Oran yok" : `%${item.taxRatePercentage}`}</span>
+                    </td>
+                    <td className="px-4 py-4 text-right tabular-nums text-muted">{formatOrderAmount(item.refundTotal)}</td>
+                    <td className="px-5 py-4 text-right font-bold tabular-nums text-foreground">{formatOrderAmount(item.totalPrice)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

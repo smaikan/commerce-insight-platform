@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Fragment, useState } from "react";
 import Link from "next/link";
 import { formatOrderAmount } from "@/modules/orders/presentation";
+import { returnStatusClass, returnStatusLabel, returnTypeLabel } from "@/modules/orders/return-presentation";
 import type { OrderListPreview, OrderPreviewError } from "@/modules/orders/types";
 
 type PreviewState =
@@ -178,6 +179,17 @@ function PreviewContent({ preview, orderHref }: { preview: OrderListPreview; ord
                       {item.productTitle}
                     </Link>
                     <p className="mt-1 truncate font-mono text-xs text-muted">SKU: {item.variantSku}</p>
+                    {item.returns.length > 0 ? (
+                      <div className="mt-2 space-y-1">
+                        {item.returns.map((returnRequest) => (
+                          <p key={`${returnRequest.id}-${returnRequest.returnNumber}`} className="flex flex-wrap items-center gap-1.5 text-xs">
+                            <span className={`rounded-md border px-1.5 py-0.5 font-semibold ${returnStatusClass(returnRequest.status)}`}>{returnStatusLabel(returnRequest.status)}</span>
+                            <span className="font-semibold text-foreground">{returnRequest.quantity} adet {returnTypeLabel(returnRequest.type).toLocaleLowerCase("tr-TR")}</span>
+                            <span className="text-muted">· {returnRequest.returnNumber}</span>
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="flex items-center justify-between gap-5 text-sm sm:justify-end">
                     <span className="text-muted">{item.quantity} adet</span>
@@ -191,6 +203,9 @@ function PreviewContent({ preview, orderHref }: { preview: OrderListPreview; ord
             <span className="text-sm font-semibold text-muted">Sipariş toplamı</span>
             <span className="text-lg font-bold tabular-nums text-foreground">{formatOrderAmount(preview.grandTotal)}</span>
           </div>
+          {preview.returnsUnavailable ? (
+            <p className="mt-3 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-900" role="status">İade talebi bilgileri şu anda yüklenemedi.</p>
+          ) : null}
         </div>
 
         <div className="p-5">
@@ -218,6 +233,7 @@ function isOrderListPreview(value: unknown): value is OrderListPreview {
     typeof candidate.id === "string" &&
     typeof candidate.orderNumber === "string" &&
     typeof candidate.grandTotal === "number" &&
+    typeof candidate.returnsUnavailable === "boolean" &&
     Array.isArray(candidate.items) &&
     candidate.items.every(isPreviewItem)
   );
@@ -233,7 +249,22 @@ function isPreviewItem(value: unknown): boolean {
     typeof candidate.productTitle === "string" &&
     typeof candidate.variantSku === "string" &&
     typeof candidate.quantity === "number" &&
-    typeof candidate.totalPrice === "number"
+    typeof candidate.totalPrice === "number" &&
+    Array.isArray(candidate.returns) &&
+    candidate.returns.every(isPreviewReturn)
+  );
+}
+
+// Burada hızlı bakış iade etiketinin yalnız gösterimde kullanılan güvenli alanları taşıdığını doğruluyorum.
+function isPreviewReturn(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.returnNumber === "string" &&
+    (candidate.type === 0 || candidate.type === 1) &&
+    (candidate.status === 0 || candidate.status === 1 || candidate.status === 2 || candidate.status === 3 || candidate.status === 4) &&
+    typeof candidate.quantity === "number"
   );
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toOrderListPreview } from "./preview";
-import type { Order } from "./types";
+import type { Order, ReturnRequest } from "./types";
 
 // Burada hızlı görünüm eşleyicisinin yalnız ihtiyaç duyulan müşteri, adres ve ürün alanlarını taşıdığını doğruluyorum.
 describe("toOrderListPreview", () => {
@@ -49,7 +49,29 @@ describe("toOrderListPreview", () => {
       payments: [],
     };
 
-    const preview = toOrderListPreview(order);
+    const returns: ReturnRequest[] = [{
+      id: "44444444-4444-4444-8444-444444444444",
+      returnNumber: "RET-1001",
+      orderId: order.id,
+      type: 0,
+      status: 0,
+      refundTotal: 1200,
+      createdAt: "2026-08-04T12:00:00Z",
+      items: [{
+        id: "55555555-5555-4555-8555-555555555555",
+        orderItemId: order.items[0].id,
+        productId: "P00004",
+        productVariantId: order.items[0].productVariantId,
+        productTitle: "Uzun Kollu Gömlek",
+        variantSku: "GOM-MAVI-M",
+        unitPrice: 1200,
+        quantity: 1,
+        lineTotal: 1200,
+        refundTotal: 1200,
+      }],
+    }];
+
+    const preview = toOrderListPreview(order, returns);
 
     expect(preview.customer).toEqual(order.customer);
     expect(preview.shippingAddress).toEqual(order.shippingAddress);
@@ -61,9 +83,35 @@ describe("toOrderListPreview", () => {
         variantSku: "GOM-MAVI-M",
         quantity: 1,
         totalPrice: 1200,
+        returns: [{
+          id: returns[0].id,
+          returnNumber: "RET-1001",
+          type: 0,
+          status: 0,
+          quantity: 1,
+        }],
       },
     ]);
     expect(preview).not.toHaveProperty("payments");
     expect(preview).not.toHaveProperty("billingAddress");
+    expect(preview.returnsUnavailable).toBe(false);
+  });
+
+  it("iade servisi kullanılamadığında hızlı bakışta eksikliği açıkça işaretler", () => {
+    const order = {
+      id: "11111111-1111-4111-8111-111111111111",
+      orderNumber: "ORD-1002",
+      status: 8,
+      subTotal: 100,
+      discountTotal: 0,
+      shippingTotal: 0,
+      taxTotal: 0,
+      grandTotal: 100,
+      createdAt: "2026-08-03T12:00:00Z",
+      items: [],
+      payments: [],
+    } satisfies Order;
+
+    expect(toOrderListPreview(order, null).returnsUnavailable).toBe(true);
   });
 });

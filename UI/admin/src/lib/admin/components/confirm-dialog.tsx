@@ -7,6 +7,8 @@ type ConfirmDialogProps = {
   title: string;
   description: string;
   confirmLabel: string;
+  confirmTone?: "primary" | "danger";
+  pendingLabel?: string;
   pending?: boolean;
   error?: string;
   onCancel: () => void;
@@ -14,7 +16,7 @@ type ConfirmDialogProps = {
 };
 
 // Burada geri alınamayan işlemi odak yönetimi ve Escape desteği olan erişilebilir pencerede onaylatıyorum.
-export function ConfirmDialog({ open, title, description, confirmLabel, pending = false, error, onCancel, onConfirm }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, description, confirmLabel, confirmTone = "danger", pendingLabel = "Siliniyor…", pending = false, error, onCancel, onConfirm }: ConfirmDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -61,7 +63,7 @@ export function ConfirmDialog({ open, title, description, confirmLabel, pending 
         {error ? <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-900" role="alert">{error}</p> : null}
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button ref={cancelRef} type="button" disabled={pending} onClick={onCancel} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-border-strong bg-surface-strong px-4 text-sm font-semibold text-foreground hover:bg-surface-subtle disabled:opacity-60">Vazgeç</button>
-          <button type="button" disabled={pending} onClick={onConfirm} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-danger px-4 text-sm font-semibold text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60">{pending ? "Siliniyor…" : confirmLabel}</button>
+          <button type="button" disabled={pending} onClick={onConfirm} className={`inline-flex min-h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 ${confirmTone === "primary" ? "bg-primary" : "bg-danger"}`}>{pending ? pendingLabel : confirmLabel}</button>
         </div>
       </section>
     </div>

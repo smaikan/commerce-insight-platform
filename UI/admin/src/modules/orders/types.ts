@@ -7,6 +7,10 @@ export type OrderStatus = components["schemas"]["OrderStatus"];
 export type OrderPayment = components["schemas"]["ECommerce.Application.Orders.Dtos.PaymentDto"];
 export type PaymentStatus = components["schemas"]["ECommerce.Domain.Enums.PaymentStatus"];
 export type PaymentProvider = components["schemas"]["PaymentProvider"];
+export type ReturnRequest = components["schemas"]["ReturnRequestDto"];
+export type ReturnRequestPage = components["schemas"]["ReturnRequestSummaryDtoPagedResult"];
+export type ReturnRequestStatus = components["schemas"]["ReturnRequestStatus"];
+export type ReturnType = components["schemas"]["ReturnType"];
 
 export type OrderPage = components["schemas"]["OrderSummaryDtoPagedResult"];
 
@@ -37,8 +41,16 @@ export type OrderListPreview = {
     variantSku: string;
     quantity: number;
     totalPrice: number;
+    returns: Array<{
+      id: string;
+      returnNumber: string;
+      type: ReturnType;
+      status: ReturnRequestStatus;
+      quantity: number;
+    }>;
   }>;
   grandTotal: number;
+  returnsUnavailable: boolean;
 };
 
 // Burada BFF hata cevabında kullanıcıya yalnız güvenli mesajı ve destek takip kodunu açıyorum.

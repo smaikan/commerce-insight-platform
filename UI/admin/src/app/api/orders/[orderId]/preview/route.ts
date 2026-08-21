@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ApiError } from "@/lib/api/problem";
 import { requireAdminActionSession } from "@/lib/auth/session";
-import { getOrder } from "@/modules/orders/api";
+import { getOrder, getOrderReturns } from "@/modules/orders/api";
 import { toOrderListPreview } from "@/modules/orders/preview";
 import type { OrderPreviewError } from "@/modules/orders/types";
 
@@ -15,8 +15,13 @@ export async function GET(_request: Request, context: RouteContext): Promise<Nex
     if (!isUuid(orderId)) {
       return noStoreJson<OrderPreviewError>({ message: "Geçersiz sipariş kimliği." }, 400);
     }
-    const order = await getOrder(orderId, session);
-    return noStoreJson(toOrderListPreview(order), 200);
+    const [orderResult, returnsResult] = await Promise.allSettled([
+      getOrder(orderId, session),
+      getOrderReturns(orderId, session),
+    ]);
+    if (orderResult.status === "rejected") throw orderResult.reason;
+    const returns = returnsResult.status === "fulfilled" ? returnsResult.value : null;
+    return noStoreJson(toOrderListPreview(orderResult.value, returns), 200);
   } catch (error) {
     return orderPreviewErrorResponse(error);
   }
