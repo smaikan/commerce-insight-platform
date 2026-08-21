@@ -205,7 +205,8 @@ public sealed class IyzicoCheckoutFormPaymentServiceTests
             new StubCurrentUser(7),
             new FixedClock(),
             unitOfWork,
-            notifications.Object);
+            notifications.Object,
+            Mock.Of<ICartRepository>());
     }
 
     // Burada üye ödeme testinde aynı takipli aggregate'ı döndüren repository mockunu hazırlıyorum.
@@ -321,6 +322,5 @@ public sealed class IyzicoCheckoutFormPaymentServiceTests
         }
     }
 }
-
 
 
