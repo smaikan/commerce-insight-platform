@@ -21,6 +21,7 @@ export const navigationSections: NavigationSection[] = [
     label: "Satış",
     items: [
       { label: "Siparişler", href: "/orders", status: "available" },
+      { label: "İletişim Mesajları", href: "/contact-messages", status: "available" },
       { label: "Müşteriler", href: "/customers", status: "available" },
       { label: "İndirimler", href: "/coupons", status: "available" },
     ],
@@ -43,7 +44,8 @@ export const navigationSections: NavigationSection[] = [
   {
     label: "Pazarlama",
     items: [
-      { label: "Meta Reklam Yönetimi", status: "in-development" },
+      { label: "Google Analytics", href: "/marketing/google-analytics", status: "in-development" },
+      { label: "Meta Reklam Yönetimi", href: "/marketing/meta-ads", status: "in-development" },
     ],
   },
   {

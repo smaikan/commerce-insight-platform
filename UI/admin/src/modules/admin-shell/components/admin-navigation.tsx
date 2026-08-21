@@ -27,13 +27,18 @@ function NavigationItems({ section, pathname, onNavigate }: { section: Navigatio
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 onClick={onNavigate}
-                className={`flex min-h-11 items-center rounded-md border-l-2 py-2 pl-6 pr-3 text-sm transition-colors lg:min-h-9 ${
+                className={`flex min-h-11 flex-col justify-center rounded-md border-l-2 py-2 pl-6 pr-3 text-sm transition-colors lg:min-h-9 ${
                   isActive
                     ? "border-blue-200 bg-sidebar-active/75 font-semibold text-sidebar-foreground"
                     : "border-transparent font-medium text-sidebar-foreground hover:bg-sidebar-hover"
                 }`}
               >
                 <span className="min-w-0 whitespace-normal break-words leading-5">{item.label}</span>
+                {item.status !== "available" && section.status !== item.status ? (
+                  <span className="mt-0.5 block text-[11px] font-normal leading-4 text-sidebar-muted">
+                    {navigationStatusLabel(item.status)}
+                  </span>
+                ) : null}
               </Link>
             ) : (
               <span
