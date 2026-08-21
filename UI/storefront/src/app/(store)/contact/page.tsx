@@ -44,6 +44,8 @@ function getWhatsappLink(phone: string): string {
 
 export default async function ContactPage() {
   const settings = await getPublicStoreSettings().catch(() => null);
+  const turnstileSiteKey = process.env.TURNSTILE_SITE_KEY?.trim() || "";
+  const turnstileRequired = process.env.NODE_ENV === "production";
 
   const displayName = settings?.displayName?.trim() || siteConfig.name;
   const supportPhone = settings?.supportPhone?.trim() || "0536 256 78 45";
@@ -120,7 +122,7 @@ export default async function ContactPage() {
               </div>
               <h3 className="mt-4 text-base font-bold text-ink">E-posta Danışma</h3>
               <p className="mt-1 text-xs text-ink-muted leading-relaxed">
-                Tüm sorularınız ve kurumsal talepleriniz için 24 saat içinde yanıt verilir.
+                Tüm sorularınız ve kurumsal talepleriniz mümkün olan en kısa sürede yanıtlanır.
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-line/60">
@@ -192,10 +194,10 @@ export default async function ContactPage() {
             <div className="mb-6">
               <h2 className="text-2xl font-bold tracking-tight text-brand-950">Bize Mesaj Gönderin</h2>
               <p className="mt-1 text-sm text-ink-muted">
-                Aşağıdaki formu doldurarak bize doğrudan ulaşabilirsiniz. Müşteri ekibimiz en kısa sürede dönüş sağlayacaktır.
+                Talebiniz güvenli biçimde müşteri deneyimi ekibimize iletilir. Gönderim sonunda verilen referans numarasıyla kaydınızı takip edebilirsiniz.
               </p>
             </div>
-            <ContactForm />
+            <ContactForm turnstileSiteKey={turnstileSiteKey} turnstileRequired={turnstileRequired} />
           </div>
 
           {/* Sağ Kolon: Sıkça Sorulanlar & Mağaza Bilgileri */}
