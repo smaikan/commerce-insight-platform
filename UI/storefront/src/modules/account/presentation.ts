@@ -15,8 +15,8 @@ const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("tr-TR", {
 });
 
 export const ORDER_STATUS_LABELS: Record<number, string> = {
-  0: "Bekliyor",
-  1: "Onaylandı",
+  0: "Ödeme bekliyor",
+  1: "Sipariş onaylandı",
   2: "Ödendi",
   3: "Hazırlanıyor",
   4: "Kargoya verildi",

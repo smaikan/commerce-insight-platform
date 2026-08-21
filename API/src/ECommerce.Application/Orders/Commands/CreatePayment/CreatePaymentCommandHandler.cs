@@ -77,11 +77,6 @@ public sealed class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentC
                     throw new ConflictException("Another payment attempt is still being processed.");
                 }
 
-                if (order.Status == OrderStatus.Pending)
-                {
-                    order.ChangeStatus(OrderStatus.Confirmed, _clock.UtcNow);
-                }
-
                 var payment = new Payment(order.Id, request.Provider, order.GrandTotal, idempotencyKey);
                 order.AddPayment(payment);
                 await _orderRepository.AddPaymentAsync(payment, transactionCancellationToken);

@@ -2,8 +2,8 @@ import type { OrderStatus, PaymentProvider, PaymentStatus } from "@/modules/orde
 
 // Burada backend OrderStatus enumunun bütün numeric değerlerini Türkçe operatör etiketleriyle eşliyorum.
 export const orderStatusOptions: Array<{ value: OrderStatus; label: string }> = [
-  { value: 0, label: "Bekliyor" },
-  { value: 1, label: "Onaylandı" },
+  { value: 0, label: "Ödeme bekliyor" },
+  { value: 1, label: "Sipariş onaylandı" },
   { value: 2, label: "Ödendi" },
   { value: 3, label: "Hazırlanıyor" },
   { value: 4, label: "Kargoya verildi" },

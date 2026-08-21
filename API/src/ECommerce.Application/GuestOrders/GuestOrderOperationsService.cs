@@ -82,10 +82,6 @@ public sealed class GuestOrderOperationsService
                 }
 
                 EnsurePaymentCanStart(order);
-                if (order.Status == OrderStatus.Pending)
-                {
-                    order.ChangeStatus(OrderStatus.Confirmed, _clock.UtcNow);
-                }
 
                 var payment = new Payment(order.Id, provider, order.GrandTotal, normalizedKey);
                 order.AddPayment(payment);
