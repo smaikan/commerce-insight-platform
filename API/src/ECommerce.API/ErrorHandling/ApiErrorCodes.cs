@@ -13,6 +13,7 @@ public static class ApiErrorCodes
     public const string Forbidden = "forbidden";
     public const string RateLimitExceeded = "rate_limit_exceeded";
     public const string BadRequest = "bad_request";
+    public const string PayloadTooLarge = "payload_too_large";
     public const string Internal = "internal_error";
     public const string CouponMembersOnly = "coupon_members_only";
     public const string GuestCheckoutChallengeRequired = "guest_checkout_challenge_required";
@@ -20,4 +21,7 @@ public static class ApiErrorCodes
     public const string GuestCheckoutProtectionUnavailable = "guest_checkout_protection_unavailable";
     public const string IdempotencyKeyReused = "idempotency_key_reused";
     public const string InvalidGuestAccess = "invalid_guest_access";
+    public const string ContactChallengeRequired = "contact_challenge_required";
+    public const string ContactSubmissionRateLimited = "contact_submission_rate_limited";
+    public const string ContactProtectionUnavailable = "contact_protection_unavailable";
 }

@@ -49,6 +49,13 @@ public sealed class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(order => order.OrderNumber == orderNumber, cancellationToken);
     }
 
+    // Burada iletişim formundaki sipariş numarasını yalnız authenticated sahibinin siparişi olarak doğruluyorum.
+    public Task<Order?> GetByOrderNumberForUserAsync(string orderNumber, long userId, CancellationToken cancellationToken = default)
+    {
+        return _context.Orders.AsNoTracking()
+            .FirstOrDefaultAsync(order => order.OrderNumber == orderNumber && order.UserId == userId, cancellationToken);
+    }
+
     // Burada kullanıcının kendi siparişini ödeme veya iptal akışında takipli ilişkileriyle getiriyorum.
     public Task<Order?> GetByIdForUserForUpdateAsync(
         Guid orderId,

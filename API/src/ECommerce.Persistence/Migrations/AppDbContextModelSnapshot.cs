@@ -2121,7 +2121,6 @@ namespace ECommerce.Persistence.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Neighborhood")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -2133,11 +2132,6 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<string>("PostalCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Street")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -2210,6 +2204,8 @@ namespace ECommerce.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Brands", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Cart", b =>
@@ -2247,7 +2243,7 @@ namespace ECommerce.Persistence.Migrations
 
                     b.ToTable("Carts", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Carts_ExactlyOneOwner", "([UserId] IS NOT NULL AND [SessionId] IS NULL)\r\nOR\r\n([UserId] IS NULL AND [SessionId] IS NOT NULL AND [SessionId] <> '')");
+                            t.HasCheckConstraint("CK_Carts_ExactlyOneOwner", "([UserId] IS NOT NULL AND [SessionId] IS NULL)\nOR\n([UserId] IS NULL AND [SessionId] IS NOT NULL AND [SessionId] <> '')");
                         });
                 });
 
@@ -2339,6 +2335,247 @@ namespace ECommerce.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Collections", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ContactMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("AnonymizedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("AssignedAdminUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<DateTime?>("FirstRespondedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("PrivacyNoticePublishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PrivacyNoticeVersion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ProvidedOrderNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ReferenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("VerifiedOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProvidedOrderNumber");
+
+                    b.HasIndex("ReferenceNumber")
+                        .IsUnique();
+
+                    b.HasIndex("VerifiedOrderId");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.HasIndex("AnonymizedAt", "CreatedAt", "Id");
+
+                    b.HasIndex("AssignedAdminUserId", "Status", "UpdatedAt");
+
+                    b.HasIndex("Status", "CreatedAt", "Id");
+
+                    b.HasIndex("Subject", "CreatedAt", "Id");
+
+                    b.ToTable("ContactMessages", (string)null);
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ContactMessageActivity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long?>("ActorAdminUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("ContactMessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NewValue")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PreviousValue")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("ReplyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorAdminUserId");
+
+                    b.HasIndex("ContactMessageId", "CreatedAt", "Id");
+
+                    b.ToTable("ContactMessageActivities", (string)null);
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ContactMessageReply", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("AdminUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ContactMessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IdempotencyKeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.Property<Guid>("OutboxMessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RequestFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminUserId");
+
+                    b.HasIndex("OutboxMessageId")
+                        .IsUnique();
+
+                    b.HasIndex("ContactMessageId", "IdempotencyKeyHash")
+                        .IsUnique();
+
+                    b.ToTable("ContactMessageReplies", (string)null);
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ContactSubmissionIdempotency", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ContactMessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.Property<string>("ReferenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("RequestFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContactMessageId");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("KeyHash")
+                        .IsUnique();
+
+                    b.ToTable("ContactSubmissionIdempotencies", (string)null);
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Coupon", b =>
@@ -2465,6 +2702,12 @@ namespace ECommerce.Persistence.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ContactMessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ContactReplyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -2517,14 +2760,32 @@ namespace ECommerce.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("ShippingCarrier")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("Status")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TrackingNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TrackingUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ContactMessageId");
+
+                    b.HasIndex("ContactReplyId")
+                        .IsUnique()
+                        .HasFilter("[ContactReplyId] IS NOT NULL");
 
                     b.HasIndex("DeduplicationKey")
                         .IsUnique();
@@ -2873,7 +3134,6 @@ namespace ECommerce.Persistence.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Neighborhood")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -2891,11 +3151,6 @@ namespace ECommerce.Persistence.Migrations
 
                     b.Property<Guid?>("SourceAddressId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Street")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -3317,6 +3572,8 @@ namespace ECommerce.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("ProductCollections", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.ProductDailyMetric", b =>
@@ -3499,6 +3756,8 @@ namespace ECommerce.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("ProductTags", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.ProductType", b =>
@@ -3535,6 +3794,8 @@ namespace ECommerce.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("ProductTypes", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.ProductUrlRedirect", b =>
@@ -4321,6 +4582,8 @@ namespace ECommerce.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Tags", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.TaxRate", b =>
@@ -5135,6 +5398,86 @@ namespace ECommerce.Persistence.Migrations
                     b.Navigation("ProductVariant");
                 });
 
+            modelBuilder.Entity("ECommerce.Domain.Entities.ContactMessage", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.User", "AssignedAdminUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedAdminUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ECommerce.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ECommerce.Domain.Entities.Order", "VerifiedOrder")
+                        .WithMany()
+                        .HasForeignKey("VerifiedOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AssignedAdminUser");
+
+                    b.Navigation("User");
+
+                    b.Navigation("VerifiedOrder");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ContactMessageActivity", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.User", "ActorAdminUser")
+                        .WithMany()
+                        .HasForeignKey("ActorAdminUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ECommerce.Domain.Entities.ContactMessage", "ContactMessage")
+                        .WithMany("Activities")
+                        .HasForeignKey("ContactMessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ActorAdminUser");
+
+                    b.Navigation("ContactMessage");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ContactMessageReply", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.User", "AdminUser")
+                        .WithMany()
+                        .HasForeignKey("AdminUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECommerce.Domain.Entities.ContactMessage", "ContactMessage")
+                        .WithMany("Replies")
+                        .HasForeignKey("ContactMessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ECommerce.Domain.Entities.EmailOutboxMessage", "OutboxMessage")
+                        .WithMany()
+                        .HasForeignKey("OutboxMessageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AdminUser");
+
+                    b.Navigation("ContactMessage");
+
+                    b.Navigation("OutboxMessage");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ContactSubmissionIdempotency", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.ContactMessage", "ContactMessage")
+                        .WithMany()
+                        .HasForeignKey("ContactMessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ContactMessage");
+                });
+
             modelBuilder.Entity("ECommerce.Domain.Entities.CouponUsage", b =>
                 {
                     b.HasOne("ECommerce.Domain.Entities.Coupon", "Coupon")
@@ -5685,6 +6028,13 @@ namespace ECommerce.Persistence.Migrations
             modelBuilder.Entity("ECommerce.Domain.Entities.Collection", b =>
                 {
                     b.Navigation("ProductCollections");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ContactMessage", b =>
+                {
+                    b.Navigation("Activities");
+
+                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Order", b =>

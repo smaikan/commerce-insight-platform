@@ -11,6 +11,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
     private readonly IHostEnvironment _environment;
     private readonly ILogger<GlobalExceptionHandler> _logger;
 
+    // Burada global hata işleyicisini ortam ve güvenli logger bağımlılıklarıyla hazırlıyorum.
     public GlobalExceptionHandler(
         IHostEnvironment environment,
         ILogger<GlobalExceptionHandler> logger)
@@ -34,6 +35,8 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             ConcurrencyException => (StatusCodes.Status409Conflict, "Concurrency conflict", ApiErrorCodes.Concurrency),
             ConflictException => (StatusCodes.Status409Conflict, "Conflict", ApiErrorCodes.Conflict),
             UnauthorizedException => (StatusCodes.Status401Unauthorized, "Unauthorized", ApiErrorCodes.Unauthorized),
+            BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge } =>
+                (StatusCodes.Status413PayloadTooLarge, "Payload too large", ApiErrorCodes.PayloadTooLarge),
             BadHttpRequestException => (StatusCodes.Status400BadRequest, "Bad request", ApiErrorCodes.BadRequest),
             _ => (StatusCodes.Status500InternalServerError, "Unexpected error", ApiErrorCodes.Internal)
         };
@@ -62,13 +65,20 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
                 httpContext.TraceIdentifier);
         }
 
-        var detail = statusCode == StatusCodes.Status500InternalServerError
-            ? exception.InnerException != null
-                ? $"{exception.Message} ({exception.InnerException.Message})"
-                : exception.Message
-            : exception.Message;
+        var detail = statusCode switch
+        {
+            StatusCodes.Status500InternalServerError when _environment.IsDevelopment() => exception.Message,
+            StatusCodes.Status500InternalServerError => "An unexpected error occurred. Please try again later.",
+            StatusCodes.Status413PayloadTooLarge => "The request body exceeds the allowed size.",
+            _ => exception.Message
+        };
 
         ProblemDetails problemDetails;
+
+        if (exception is ApiContractException { RetryAfterSeconds: { } retryAfterSeconds })
+        {
+            httpContext.Response.Headers.RetryAfter = retryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
 
         if (exception is ValidationException validationException)
         {

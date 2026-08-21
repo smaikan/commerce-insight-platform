@@ -6,14 +6,16 @@ public class ApiContractException : Exception
     public int StatusCode { get; }
     public string ErrorCode { get; }
     public string Title { get; }
+    public int? RetryAfterSeconds { get; }
 
     // Burada güvenli API hata sözleşmesinin durum, kod, başlık ve açıklamasını taşıyorum.
-    public ApiContractException(int statusCode, string errorCode, string title, string message)
+    public ApiContractException(int statusCode, string errorCode, string title, string message, int? retryAfterSeconds = null)
         : base(message)
     {
         StatusCode = statusCode;
         ErrorCode = errorCode;
         Title = title;
+        RetryAfterSeconds = retryAfterSeconds;
     }
 }
 

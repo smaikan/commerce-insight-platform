@@ -29,6 +29,7 @@ namespace ECommerce.API.Controllers.User;
 public sealed class UsersController : ControllerBase
 {
     private readonly ISender _sender;
+    // Burada kullanıcı HTTP isteklerini Application katmanına iletecek sender'ı hazırlıyorum.
     public UsersController(ISender sender) => _sender = sender;
 
     [HttpGet("me")]
@@ -83,7 +84,9 @@ public sealed class UsersController : ControllerBase
 
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpGet]
-    public async Task<ActionResult> GetUsers([FromQuery] GetUsersQuery query, CancellationToken cancellationToken) =>
+    [ProducesResponseType(typeof(PagedResult<AdminUserDto>), StatusCodes.Status200OK)]
+    // Burada yöneticinin kullanıcıları public kimlik ve sayfalı sözleşmeyle listelemesini sağlıyorum.
+    public async Task<ActionResult<PagedResult<AdminUserDto>>> GetUsers([FromQuery] GetUsersQuery query, CancellationToken cancellationToken) =>
         Ok(await _sender.Send(query, cancellationToken));
 
     // Burada yöneticinin seçili müşteriye ait sipariş özetlerini yalnızca public kullanıcı kimliğiyle getirmesini sağlıyorum.

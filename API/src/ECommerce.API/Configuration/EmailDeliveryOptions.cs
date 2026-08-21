@@ -10,6 +10,9 @@ public sealed class EmailDeliveryOptions
 
     public string FromAddress { get; init; } = string.Empty;
     public string PasswordResetUrl { get; init; } = string.Empty;
+    public string ContactInboxAddress { get; init; } = string.Empty;
+    public string AdminContactMessageBaseUrl { get; init; } = string.Empty;
+    public string SupportReplyToAddress { get; init; } = string.Empty;
     public SmtpDeliveryOptions Smtp { get; init; } = new();
 }
 
@@ -41,6 +44,26 @@ public sealed class EmailDeliveryOptionsValidator : IValidateOptions<EmailDelive
         if (!MailAddress.TryCreate(options.FromAddress, out _))
         {
             failures.Add("Email:FromAddress must be a valid email address.");
+        }
+
+        if (!MailAddress.TryCreate(options.ContactInboxAddress, out _))
+        {
+            failures.Add("Email:ContactInboxAddress must be a valid email address.");
+        }
+
+        if (!MailAddress.TryCreate(options.SupportReplyToAddress, out _))
+        {
+            failures.Add("Email:SupportReplyToAddress must be a valid email address.");
+        }
+
+        if (!TryGetHttpUrl(options.AdminContactMessageBaseUrl, out var adminContactUri))
+        {
+            failures.Add("Email:AdminContactMessageBaseUrl must be an absolute HTTP or HTTPS URL.");
+        }
+        else if (_environment.IsProduction() &&
+                 (!string.Equals(adminContactUri!.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) || adminContactUri.IsLoopback))
+        {
+            failures.Add("Email:AdminContactMessageBaseUrl must use non-loopback HTTPS in production.");
         }
 
         if (string.IsNullOrWhiteSpace(options.Smtp.Host))

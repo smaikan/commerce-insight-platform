@@ -19,5 +19,7 @@ public sealed class EmailTemplateTests
         resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.OrderStatusChangedEmailTemplate.html");
         resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.ReturnRequestedEmailTemplate.html");
         resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.ReturnStatusChangedEmailTemplate.html");
+        resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.ContactMessageReceivedEmailTemplate.html");
+        resources.Should().Contain("ECommerce.Infrastructure.Email.Templates.ContactMessageReplyEmailTemplate.html");
     }
 }

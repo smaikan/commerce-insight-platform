@@ -39,12 +39,15 @@ public interface IEmailSender
         decimal amount,
         CancellationToken cancellationToken = default);
 
-    // Burada sipariş durum değişikliği e-postasının gönderim sözleşmesini tanımlıyorum.
+    // Burada sipariş durum ve opsiyonel kargo takip e-postasının gönderim sözleşmesini tanımlıyorum.
     Task SendOrderStatusChangedAsync(
         string email,
         string recipientName,
         string orderNumber,
         string status,
+        string? shippingCarrier = null,
+        string? trackingNumber = null,
+        string? trackingUrl = null,
         CancellationToken cancellationToken = default);
 
     // Burada iade talebinin açıldığını bildiren e-postanın gönderim sözleşmesini tanımlıyorum.
@@ -71,5 +74,26 @@ public interface IEmailSender
         string orderNumber,
         string rawToken,
         DateTime expiresAt,
+        CancellationToken cancellationToken = default);
+
+    // Burada operasyonel inbox'a güvenli iletişim başvurusu bildirimini gönderme sözleşmesini tanımlıyorum.
+    Task SendContactMessageReceivedAsync(
+        string inboxEmail,
+        string referenceNumber,
+        string name,
+        string customerEmail,
+        string? phone,
+        string subject,
+        string? providedOrderNumber,
+        string body,
+        string? adminDetailUrl,
+        CancellationToken cancellationToken = default);
+
+    // Burada kayıtlı alıcıya güvenli destek Reply-To ile contact reply gönderme sözleşmesini tanımlıyorum.
+    Task SendContactMessageReplyAsync(
+        string recipientEmail,
+        string recipientName,
+        string referenceNumber,
+        string body,
         CancellationToken cancellationToken = default);
 }

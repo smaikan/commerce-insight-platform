@@ -78,7 +78,10 @@ public sealed class OrderNotificationService : IOrderNotificationService
                 order.Id,
                 order.OrderNumber,
                 order.Status,
-                _clock.UtcNow),
+                _clock.UtcNow,
+                order.ShippingCarrier,
+                order.TrackingNumber,
+                order.TrackingUrl),
             cancellationToken);
     }
 

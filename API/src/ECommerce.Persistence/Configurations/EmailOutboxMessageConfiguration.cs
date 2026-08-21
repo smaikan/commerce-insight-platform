@@ -19,10 +19,15 @@ public sealed class EmailOutboxMessageConfiguration : IEntityTypeConfiguration<E
         builder.Property(message => message.OrderNumber).HasMaxLength(50);
         builder.Property(message => message.Amount).HasPrecision(18, 2);
         builder.Property(message => message.Status).HasMaxLength(100);
+        builder.Property(message => message.ShippingCarrier).HasMaxLength(100);
+        builder.Property(message => message.TrackingNumber).HasMaxLength(100);
+        builder.Property(message => message.TrackingUrl).HasMaxLength(500);
         builder.Property(message => message.ReturnNumber).HasMaxLength(50);
         builder.Property(message => message.LastError).HasMaxLength(1000);
         builder.Property(message => message.ProcessingWorker).HasMaxLength(128);
         builder.Property(message => message.ConcurrencyToken).IsConcurrencyToken().IsRequired();
+        builder.HasIndex(message => message.ContactMessageId);
+        builder.HasIndex(message => message.ContactReplyId).IsUnique().HasFilter("[ContactReplyId] IS NOT NULL");
         builder.HasIndex(message => message.DeduplicationKey).IsUnique();
         builder.HasIndex(message => new
         {

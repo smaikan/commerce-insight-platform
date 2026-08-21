@@ -10,6 +10,9 @@ public sealed class EmailOutboxMessage : BaseEntity
     private const int MaximumOrderNumberLength = 50;
     private const int MaximumReturnNumberLength = 50;
     private const int MaximumStatusLength = 100;
+    private const int MaximumShippingCarrierLength = 100;
+    private const int MaximumTrackingNumberLength = 100;
+    private const int MaximumTrackingUrlLength = 500;
     public const int MaximumDeliveryAttempts = 10;
 
     public EmailOutboxMessageType Type { get; private set; }
@@ -20,6 +23,9 @@ public sealed class EmailOutboxMessage : BaseEntity
     public string? OrderNumber { get; private set; }
     public decimal? Amount { get; private set; }
     public string? Status { get; private set; }
+    public string? ShippingCarrier { get; private set; }
+    public string? TrackingNumber { get; private set; }
+    public string? TrackingUrl { get; private set; }
     public string? ReturnNumber { get; private set; }
     public DateTime? ExpiresAt { get; private set; }
     public DateTime CreatedAt { get; private set; }
@@ -32,6 +38,8 @@ public sealed class EmailOutboxMessage : BaseEntity
     public string? ProcessingWorker { get; private set; }
     public DateTime? LeaseExpiresAt { get; private set; }
     public Guid ConcurrencyToken { get; private set; }
+    public Guid? ContactMessageId { get; private set; }
+    public Guid? ContactReplyId { get; private set; }
 
     // Burada EF Core'un kayıt yüklerken kullanacağı boş nesneyi oluşturuyorum.
     private EmailOutboxMessage()
@@ -78,6 +86,77 @@ public sealed class EmailOutboxMessage : BaseEntity
             CreateRandomDeduplicationKey("welcome"),
             createdAt,
             recipientName: recipientName);
+    }
+
+    // Burada yeni iletişim başvurusunu operasyonel inbox'a body kopyalamadan tekilleştirilmiş şekilde kuyruğa hazırlıyorum.
+    public static EmailOutboxMessage CreateContactMessageReceived(string inboxEmail, Guid contactMessageId, DateTime createdAt)
+    {
+        EnsureNonEmptyIdentifier(contactMessageId, "Contact message id");
+        var message = CreateMessage(
+            EmailOutboxMessageType.ContactMessageReceived,
+            inboxEmail,
+            $"contact-received:{contactMessageId:N}",
+            createdAt);
+        message.ContactMessageId = contactMessageId;
+        return message;
+    }
+
+    // Burada müşteri yanıtını body kopyalamadan reply kaydına sonradan bağlanacak outbox mesajı olarak hazırlıyorum.
+    public static EmailOutboxMessage CreateContactMessageReply(string recipientEmail, Guid contactMessageId, DateTime createdAt)
+    {
+        EnsureNonEmptyIdentifier(contactMessageId, "Contact message id");
+        var message = CreateMessage(
+            EmailOutboxMessageType.ContactMessageReply,
+            recipientEmail,
+            $"contact-reply-pending:{Guid.NewGuid():N}",
+            createdAt);
+        message.ContactMessageId = contactMessageId;
+        return message;
+    }
+
+    // Burada reply oluşturulduktan sonra deterministic deduplication anahtarını immutable reply kimliğine bağlıyorum.
+    public void LinkContactReply(Guid replyId)
+    {
+        EnsureNonEmptyIdentifier(replyId, "Contact reply id");
+        if (Type != EmailOutboxMessageType.ContactMessageReply || ContactReplyId.HasValue)
+        {
+            throw new DomainException("Only an unlinked contact reply outbox message can be linked.");
+        }
+
+        ContactReplyId = replyId;
+        DeduplicationKey = NormalizeDeduplicationKey($"contact-reply:{replyId:N}");
+        RefreshConcurrencyToken();
+    }
+
+    // Burada retention süresi dolan contact e-postasının PII hedefini silip bekleyen teslimatı terminal hale getiriyorum.
+    public void AnonymizeContactDataForRetention(DateTime utcNow)
+    {
+        if (utcNow.Kind != DateTimeKind.Utc)
+        {
+            throw new DomainException("Contact retention timestamp must be UTC.");
+        }
+
+        if (Type is not EmailOutboxMessageType.ContactMessageReceived and not EmailOutboxMessageType.ContactMessageReply)
+        {
+            throw new DomainException("Only contact outbox messages can be anonymized by contact retention.");
+        }
+
+        if (Type == EmailOutboxMessageType.ContactMessageReply)
+        {
+            Email = "anonymized@invalid.local";
+        }
+
+        RecipientName = null;
+        LastError = null;
+        if (ProcessedAt is null && DeadLetteredAt is null)
+        {
+            DeadLetteredAt = utcNow;
+            LastError = "Email delivery was stopped by contact retention.";
+            NextAttemptAt = DateTime.MaxValue;
+        }
+
+        ClearClaim();
+        RefreshConcurrencyToken();
     }
 
     // Burada sipariş oluşturulduğunda tekilleştirilmiş müşteri bildirimini hazırlıyorum.
@@ -178,7 +257,10 @@ public sealed class EmailOutboxMessage : BaseEntity
         Guid orderId,
         string orderNumber,
         OrderStatus status,
-        DateTime createdAt)
+        DateTime createdAt,
+        string? shippingCarrier = null,
+        string? trackingNumber = null,
+        string? trackingUrl = null)
     {
         EnsureNonEmptyIdentifier(orderId, "Order id");
 
@@ -189,7 +271,10 @@ public sealed class EmailOutboxMessage : BaseEntity
             createdAt,
             recipientName: recipientName,
             orderNumber: orderNumber,
-            status: status.ToString());
+            status: status.ToString(),
+            shippingCarrier: shippingCarrier,
+            trackingNumber: trackingNumber,
+            trackingUrl: trackingUrl);
     }
 
     // Burada iade talebinin açıldığını tekilleştirilmiş müşteri bildirimi olarak hazırlıyorum.
@@ -385,7 +470,10 @@ public sealed class EmailOutboxMessage : BaseEntity
         string? orderNumber = null,
         decimal? amount = null,
         string? status = null,
-        string? returnNumber = null)
+        string? returnNumber = null,
+        string? shippingCarrier = null,
+        string? trackingNumber = null,
+        string? trackingUrl = null)
     {
         return new EmailOutboxMessage
         {
@@ -399,10 +487,20 @@ public sealed class EmailOutboxMessage : BaseEntity
             Amount = amount,
             Status = status is null ? null : NormalizeStatus(status),
             ReturnNumber = returnNumber is null ? null : NormalizeReturnNumber(returnNumber),
+            ShippingCarrier = NormalizeOptionalField(shippingCarrier, MaximumShippingCarrierLength),
+            TrackingNumber = NormalizeOptionalField(trackingNumber, MaximumTrackingNumberLength),
+            TrackingUrl = NormalizeOptionalField(trackingUrl, MaximumTrackingUrlLength),
             CreatedAt = createdAt,
             NextAttemptAt = createdAt,
             ConcurrencyToken = Guid.NewGuid()
         };
+    }
+
+    private static string? NormalizeOptionalField(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var trimmed = value.Trim();
+        return trimmed.Length > maxLength ? trimmed[..maxLength] : trimmed;
     }
 
     // Burada tekrar denenmesi serbest olan kullanıcı güvenlik e-postaları için benzersiz anahtar üretiyorum.

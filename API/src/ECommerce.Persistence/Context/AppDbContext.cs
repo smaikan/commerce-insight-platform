@@ -58,6 +58,10 @@ public sealed class AppDbContext : DbContext
     public DbSet<GuestOrderAccessGrant> GuestOrderAccessGrants => Set<GuestOrderAccessGrant>();
     public DbSet<GuestOrderMagicLink> GuestOrderMagicLinks => Set<GuestOrderMagicLink>();
     public DbSet<GuestCheckoutIdempotency> GuestCheckoutIdempotencies => Set<GuestCheckoutIdempotency>();
+    public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
+    public DbSet<ContactMessageActivity> ContactMessageActivities => Set<ContactMessageActivity>();
+    public DbSet<ContactMessageReply> ContactMessageReplies => Set<ContactMessageReply>();
+    public DbSet<ContactSubmissionIdempotency> ContactSubmissionIdempotencies => Set<ContactSubmissionIdempotency>();
 
     // Burada normalize edilmiş arama metninin bütün sorgu tokenlarını içerip içermediğini SQL Server'a soruyorum.
     [DbFunction("ProductSearchContainsAllTokens", "dbo")]

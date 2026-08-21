@@ -44,6 +44,9 @@ services:
       - Jwt__Issuer=Eleven
       - Jwt__Audience=ElevenClient
       - Email__Smtp__Password=${SMTP_PASSWORD}
+      - ContactPrivacy__NoticeVersion=2026-08-v1
+      - ContactPrivacy__NoticePublishedAtUtc=2026-08-21T00:00:00Z
+      - ContactPrivacy__RetentionDays=60
       - DataProtection__KeyRingPath=/var/eleven/dataprotection-keys
     volumes:
       - dataprotection_keys:/var/eleven/dataprotection-keys

@@ -25,6 +25,8 @@ using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.ResponseCompression;
 using ECommerce.API.OpenApi;
 using ECommerce.API.OutputCaching;
+using ECommerce.Application.Contacts;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,10 +64,25 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<GuestSessionCookieManager>();
 builder.Services.AddHostedService<UserTokenCleanupBackgroundService>();
 builder.Services.AddHostedService<EmailOutboxBackgroundService>();
+// Burada contact idempotency hash kayıtlarının bounded cleanup worker'ını devreye alıyorum.
+builder.Services.AddHostedService<ContactIdempotencyCleanupBackgroundService>();
+// Burada onaylı retention süresi dolan contact PII alanlarının bounded anonimleştirme worker'ını devreye alıyorum.
+builder.Services.AddHostedService<ContactRetentionBackgroundService>();
 builder.Services.AddSingleton<IValidateOptions<EmailDeliveryOptions>, EmailDeliveryOptionsValidator>();
 builder.Services.AddOptions<EmailDeliveryOptions>()
     .Bind(builder.Configuration.GetSection(EmailDeliveryOptions.SectionName))
     .ValidateOnStart();
+// Burada Application ve worker reader için PII içermeyen contact e-posta hedeflerini bağlıyorum.
+builder.Services.AddOptions<ContactEmailOptions>()
+    .Bind(builder.Configuration.GetSection(EmailDeliveryOptions.SectionName))
+    .ValidateOnStart();
+builder.Services.AddSingleton(builder.Configuration.GetSection(EmailDeliveryOptions.SectionName).Get<ContactEmailOptions>() ?? new ContactEmailOptions());
+builder.Services.AddSingleton<IValidateOptions<ContactPrivacyOptions>, ContactPrivacyOptionsValidator>();
+// Burada server otoriteli privacy notice ve retention blocker ayarlarını başlangıçta doğruluyorum.
+builder.Services.AddOptions<ContactPrivacyOptions>()
+    .Bind(builder.Configuration.GetSection(ContactPrivacyOptions.SectionName))
+    .ValidateOnStart();
+builder.Services.AddSingleton(builder.Configuration.GetSection(ContactPrivacyOptions.SectionName).Get<ContactPrivacyOptions>() ?? new ContactPrivacyOptions());
 builder.Services.AddOptions<OrderReservationOptions>()
     .Bind(builder.Configuration.GetSection(OrderReservationOptions.SectionName))
     .Validate(
@@ -101,6 +118,7 @@ builder.Services.AddSwaggerGen(options =>
     options.OperationFilter<PublishedProductSearchOperationFilter>();
     options.OperationFilter<AllowAnonymousOperationFilter>();
     options.OperationFilter<StoreSettingsOperationFilter>();
+    options.OperationFilter<ContactMessagesOperationFilter>();
     options.CustomSchemaIds(type =>
     {
         if (type.Name is "Payment" or "PaymentStatus" or "PaymentDto")
@@ -130,10 +148,35 @@ builder.Services.AddSwaggerGen(options =>
         [new OpenApiSecuritySchemeReference(bearerScheme, document, null)] = []
     });
 });
+// Burada yalnız deployment tarafından açıkça güvenilen proxy adreslerinden forwarded header kabul ediyorum.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    var configuredKnownProxies = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? [];
+    foreach (var proxy in configuredKnownProxies)
+    {
+        if (!IPAddress.TryParse(proxy, out var address))
+        {
+            throw new InvalidOperationException("ForwardedHeaders:KnownProxies contains an invalid IP address.");
+        }
+
+        options.KnownProxies.Add(address);
+    }
 });
+
+// Burada doğrulanmış proxy zinciri yokken kullanıcı-IP rate limitinin açılmasını engelliyorum.
+if (builder.Configuration.GetValue<bool>("ContactProtection:TrustForwardedClientIp") &&
+    !(builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? []).Any())
+{
+    throw new InvalidOperationException("ContactProtection:TrustForwardedClientIp requires at least one explicit ForwardedHeaders:KnownProxies entry.");
+}
+
+// Burada production Turnstile hostname bağlamı eksikse fail-closed başlangıç uyguluyorum.
+if (builder.Environment.IsProduction() &&
+    string.IsNullOrWhiteSpace(builder.Configuration["ContactProtection:Turnstile:Hostname"]))
+{
+    throw new InvalidOperationException("ContactProtection:Turnstile:Hostname must be configured in production.");
+}
 
 builder.Services.AddApplicationServices();
 builder.Services.AddPersistenceServices(builder.Configuration);
@@ -266,12 +309,18 @@ builder.Services.AddRateLimiter(options =>
     // Burada rate-limit reddini bütün endpointlerde aynı ProblemDetails sözleşmesiyle döndürüyorum.
     options.OnRejected = async (context, cancellationToken) =>
     {
+        var isContact = context.HttpContext.Request.Path.StartsWithSegments("/api/contact-messages");
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter = Math.Ceiling(retryAfter.TotalSeconds)
+                .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
         var problemDetails = ApiProblemDetailsResponse.Create(
             context.HttpContext,
             StatusCodes.Status429TooManyRequests,
-            "Too many requests",
-            "The request limit has been exceeded. Please try again later.",
-            ApiErrorCodes.RateLimitExceeded);
+            isContact ? "Contact submission rate limited" : "Too many requests",
+            isContact ? "İletişim formu gönderim limiti aşıldı." : "The request limit has been exceeded. Please try again later.",
+            isContact ? ApiErrorCodes.ContactSubmissionRateLimited : ApiErrorCodes.RateLimitExceeded);
         await ApiProblemDetailsResponse.WriteAsync(context.HttpContext, problemDetails, cancellationToken);
     };
     // Burada forgot/reset isteklerini aynı IP kovasında dakikada beş çağrıyla sınırlıyorum.
@@ -348,6 +397,16 @@ builder.Services.AddRateLimiter(options =>
                 AutoReplenishment = true
             });
     });
+    // Burada BFF topolojisinde tüm trafiği IP sanmadan coarse contact limiti uyguluyorum.
+    options.AddPolicy("contact", _ => RateLimitPartition.GetFixedWindowLimiter(
+        "contact:coarse-bff",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
     {
         var path = httpContext.Request.Path.Value ?? string.Empty;

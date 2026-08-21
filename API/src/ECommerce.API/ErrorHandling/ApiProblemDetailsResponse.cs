@@ -74,6 +74,7 @@ public static class ApiProblemDetailsResponse
         StatusCodes.Status403Forbidden => ("Forbidden", "You do not have permission to perform this operation.", ApiErrorCodes.Forbidden),
         StatusCodes.Status404NotFound => ("Resource not found", "The requested resource was not found.", ApiErrorCodes.NotFound),
         StatusCodes.Status405MethodNotAllowed => ("Method not allowed", "The HTTP method is not supported for this resource.", ApiErrorCodes.BadRequest),
+        StatusCodes.Status413PayloadTooLarge => ("Payload too large", "The request body exceeds the allowed size.", ApiErrorCodes.PayloadTooLarge),
         StatusCodes.Status429TooManyRequests => ("Too many requests", "The request limit has been exceeded. Please try again later.", ApiErrorCodes.RateLimitExceeded),
         _ => ("Request failed", "The request could not be completed.", ApiErrorCodes.Internal)
     };
@@ -85,6 +86,7 @@ public static class ApiProblemDetailsResponse
         StatusCodes.Status403Forbidden => ApiErrorCodes.Forbidden,
         StatusCodes.Status404NotFound => ApiErrorCodes.NotFound,
         StatusCodes.Status409Conflict => ApiErrorCodes.Conflict,
+        StatusCodes.Status413PayloadTooLarge => ApiErrorCodes.PayloadTooLarge,
         StatusCodes.Status429TooManyRequests => ApiErrorCodes.RateLimitExceeded,
         _ => ApiErrorCodes.Internal
     };

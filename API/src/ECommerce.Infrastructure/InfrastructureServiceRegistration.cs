@@ -76,6 +76,7 @@ public static class InfrastructureServiceRegistration
         }
 
         services.AddSingleton<IGuestCheckoutProtectionService, GuestCheckoutProtectionService>();
+        services.AddSingleton<IContactProtectionService, ContactProtectionService>();
 
         return services;
     }

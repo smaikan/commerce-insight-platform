@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Globalization;
 using ECommerce.Application.Common.Interfaces;
+using ECommerce.Domain.Enums;
 using Microsoft.Extensions.Configuration;
 
 namespace ECommerce.Infrastructure.Email;
@@ -28,6 +29,10 @@ public sealed class SmtpEmailSender : IEmailSender
         "ECommerce.Infrastructure.Email.Templates.ReturnStatusChangedEmailTemplate.html";
     private const string GuestOrderAccessTemplateResource =
         "ECommerce.Infrastructure.Email.Templates.GuestOrderAccessEmailTemplate.html";
+    private const string ContactMessageReceivedTemplateResource =
+        "ECommerce.Infrastructure.Email.Templates.ContactMessageReceivedEmailTemplate.html";
+    private const string ContactMessageReplyTemplateResource =
+        "ECommerce.Infrastructure.Email.Templates.ContactMessageReplyEmailTemplate.html";
 
     private readonly IConfiguration _configuration;
     private readonly IStoreSettingsRepository _storeSettingsRepository;
@@ -42,11 +47,14 @@ public sealed class SmtpEmailSender : IEmailSender
     private async Task<(string StoreName, string LogoHtml)> GetStoreContextAsync(CancellationToken cancellationToken)
     {
         var storeSettings = await _storeSettingsRepository.GetAsync(false, cancellationToken);
-        var storeName = storeSettings?.DisplayName ?? "Mağaza";
+        var storeName = storeSettings?.DisplayName ?? "ELEVEN";
+        var logoUrl = !string.IsNullOrWhiteSpace(storeSettings?.DarkLogoUrl)
+            ? storeSettings.DarkLogoUrl
+            : storeSettings?.LogoUrl;
 
-        var logoHtml = string.IsNullOrWhiteSpace(storeSettings?.LogoUrl)
-            ? $"<span style=\"color: #ffffff; font-size: 24px; font-weight: bold; text-decoration: none;\">{HtmlEncoder.Default.Encode(storeName)}</span>"
-            : $"<img src=\"{HtmlEncoder.Default.Encode(storeSettings.LogoUrl)}\" alt=\"{HtmlEncoder.Default.Encode(storeName)}\" style=\"max-height: 60px; display: block; border: 0; margin: 0 auto;\" />";
+        var logoHtml = string.IsNullOrWhiteSpace(logoUrl)
+            ? $"<span style=\"color: #ffffff; font-size: 24px; font-weight: 800; letter-spacing: 1.5px; text-decoration: none;\">{HtmlEncoder.Default.Encode(storeName)}</span>"
+            : $"<img src=\"{HtmlEncoder.Default.Encode(logoUrl)}\" alt=\"{HtmlEncoder.Default.Encode(storeName)}\" style=\"max-height: 48px; max-width: 220px; width: auto; height: auto; display: block; border: 0; outline: none; margin: 0 auto;\" />";
 
         return (storeName, logoHtml);
     }
@@ -136,7 +144,7 @@ public sealed class SmtpEmailSender : IEmailSender
             .Replace("{{StoreName}}", HtmlEncoder.Default.Encode(storeName), StringComparison.Ordinal)
             .Replace("{{LogoHtml}}", logoHtml, StringComparison.Ordinal);
 
-        await SendAsync(email, "Ödemeniz alındı", body, cancellationToken);
+        await SendAsync(email, "Siparişiniz ve ödemeniz alındı", body, cancellationToken);
     }
 
     // Burada başarısız ödeme template'ini güvenilir ödeme snapshot'ıyla doldurup gönderiyorum.
@@ -165,18 +173,56 @@ public sealed class SmtpEmailSender : IEmailSender
         string recipientName,
         string orderNumber,
         string status,
+        string? shippingCarrier = null,
+        string? trackingNumber = null,
+        string? trackingUrl = null,
         CancellationToken cancellationToken = default)
     {
         var (storeName, logoHtml) = await GetStoreContextAsync(cancellationToken);
+        var localizedStatus = FormatOrderStatus(status);
+        var shipmentHtml = BuildShipmentHtml(shippingCarrier, trackingNumber, trackingUrl);
 
         var body = LoadTemplate(OrderStatusChangedTemplateResource)
             .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
             .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
-            .Replace("{{Status}}", HtmlEncoder.Default.Encode(status), StringComparison.Ordinal)
+            .Replace("{{Status}}", HtmlEncoder.Default.Encode(localizedStatus), StringComparison.Ordinal)
+            .Replace("{{ShipmentHtml}}", shipmentHtml, StringComparison.Ordinal)
             .Replace("{{StoreName}}", HtmlEncoder.Default.Encode(storeName), StringComparison.Ordinal)
             .Replace("{{LogoHtml}}", logoHtml, StringComparison.Ordinal);
 
-        await SendAsync(email, "Siparişinizin durumu güncellendi", body, cancellationToken);
+        await SendAsync(email, $"Siparişinizin durumu güncellendi: {localizedStatus}", body, cancellationToken);
+    }
+
+    private static string BuildShipmentHtml(string? shippingCarrier, string? trackingNumber, string? trackingUrl)
+    {
+        if (string.IsNullOrWhiteSpace(trackingNumber) && string.IsNullOrWhiteSpace(shippingCarrier))
+        {
+            return string.Empty;
+        }
+
+        var carrierText = !string.IsNullOrWhiteSpace(shippingCarrier)
+            ? HtmlEncoder.Default.Encode(shippingCarrier.Trim())
+            : "Kargo";
+
+        var trackingNumberHtml = !string.IsNullOrWhiteSpace(trackingNumber)
+            ? $"<p style=\"margin: 0 0 6px 0; font-size: 13px; color: #718096; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;\">Takip Numarası</p><p style=\"margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #0b0f19; font-family: monospace; letter-spacing: 1px;\">{HtmlEncoder.Default.Encode(trackingNumber.Trim())}</p>"
+            : string.Empty;
+
+        var trackingButtonHtml = !string.IsNullOrWhiteSpace(trackingUrl)
+            ? $"<div style=\"margin-top: 15px;\"><a href=\"{HtmlEncoder.Default.Encode(trackingUrl.Trim())}\" target=\"_blank\" style=\"background-color: #0b0f19; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block;\">Kargomu Takip Et &rarr;</a></div>"
+            : string.Empty;
+
+        return $@"
+        <table border=""0"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""background-color: #f8faff; border: 1px solid #d1e0ff; border-radius: 8px; margin-top: 20px; margin-bottom: 25px;"">
+            <tr>
+                <td style=""padding: 20px 25px;"">
+                    <p style=""margin: 0 0 6px 0; font-size: 13px; color: #718096; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;"">Kargo Firması</p>
+                    <p style=""margin: 0 0 15px 0; font-size: 16px; font-weight: bold; color: #0b0f19;"">{carrierText}</p>
+                    {trackingNumberHtml}
+                    {trackingButtonHtml}
+                </td>
+            </tr>
+        </table>";
     }
 
     // Burada iade talebi template'ini güvenilir iade snapshot'ıyla doldurup gönderiyorum.
@@ -209,16 +255,79 @@ public sealed class SmtpEmailSender : IEmailSender
         CancellationToken cancellationToken = default)
     {
         var (storeName, logoHtml) = await GetStoreContextAsync(cancellationToken);
+        var localizedStatus = FormatReturnStatus(status);
 
         var body = LoadTemplate(ReturnStatusChangedTemplateResource)
             .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
             .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(orderNumber), StringComparison.Ordinal)
             .Replace("{{ReturnNumber}}", HtmlEncoder.Default.Encode(returnNumber), StringComparison.Ordinal)
-            .Replace("{{Status}}", HtmlEncoder.Default.Encode(status), StringComparison.Ordinal)
+            .Replace("{{Status}}", HtmlEncoder.Default.Encode(localizedStatus), StringComparison.Ordinal)
             .Replace("{{StoreName}}", HtmlEncoder.Default.Encode(storeName), StringComparison.Ordinal)
             .Replace("{{LogoHtml}}", logoHtml, StringComparison.Ordinal);
 
-        await SendAsync(email, "İade talebinizin durumu güncellendi", body, cancellationToken);
+        await SendAsync(email, $"İade talebinizin durumu güncellendi: {localizedStatus}", body, cancellationToken);
+    }
+
+    private static string FormatOrderStatus(string status)
+    {
+        if (Enum.TryParse<OrderStatus>(status, true, out var orderStatus))
+        {
+            return orderStatus switch
+            {
+                OrderStatus.Pending => "Ödeme Bekleniyor",
+                OrderStatus.Confirmed => "Sipariş Onaylandı",
+                OrderStatus.Paid => "Ödeme Alındı",
+                OrderStatus.Preparing => "Sipariş Hazırlanıyor",
+                OrderStatus.Shipped => "Kargoya Verildi",
+                OrderStatus.Delivered => "Teslim Edildi",
+                OrderStatus.Cancelled => "Sipariş İptal Edildi",
+                OrderStatus.Refunded => "Ücret İade Edildi",
+                OrderStatus.ReturnRequested => "İade Talebi Oluşturuldu",
+                OrderStatus.ReturnApproved => "İade Onaylandı",
+                _ => status
+            };
+        }
+
+        return status?.Trim().ToLowerInvariant() switch
+        {
+            "pending" => "Ödeme Bekleniyor",
+            "confirmed" => "Sipariş Onaylandı",
+            "paid" => "Ödeme Alındı",
+            "preparing" => "Sipariş Hazırlanıyor",
+            "shipped" => "Kargoya Verildi",
+            "delivered" => "Teslim Edildi",
+            "cancelled" or "canceled" => "Sipariş İptal Edildi",
+            "refunded" => "Ücret İade Edildi",
+            "returnrequested" => "İade Talebi Oluşturuldu",
+            "returnapproved" => "İade Onaylandı",
+            _ => status ?? string.Empty
+        };
+    }
+
+    private static string FormatReturnStatus(string status)
+    {
+        if (Enum.TryParse<ReturnRequestStatus>(status, true, out var returnStatus))
+        {
+            return returnStatus switch
+            {
+                ReturnRequestStatus.Requested => "Talep Alındı",
+                ReturnRequestStatus.Approved => "İade Onaylandı",
+                ReturnRequestStatus.Rejected => "İade Reddedildi",
+                ReturnRequestStatus.Received => "Ürün Teslim Alındı",
+                ReturnRequestStatus.Completed => "İade Tamamlandı",
+                _ => status
+            };
+        }
+
+        return status?.Trim().ToLowerInvariant() switch
+        {
+            "requested" => "Talep Alındı",
+            "approved" => "İade Onaylandı",
+            "rejected" => "İade Reddedildi",
+            "received" => "Ürün Teslim Alındı",
+            "completed" => "İade Tamamlandı",
+            _ => status ?? string.Empty
+        };
     }
 
     // Burada hazırlanmış e-posta içeriğini kısa SMTP retry politikasıyla iletiyorum.
@@ -246,11 +355,57 @@ public sealed class SmtpEmailSender : IEmailSender
         await SendAsync(email, "Siparişinize güvenli erişim bağlantısı", body, cancellationToken);
     }
 
+    // Burada contact başvurusundaki tüm kullanıcı alanlarını encode edip operasyonel inbox'a sabit başlıkla gönderiyorum.
+    public async Task SendContactMessageReceivedAsync(
+        string inboxEmail,
+        string referenceNumber,
+        string name,
+        string customerEmail,
+        string? phone,
+        string subject,
+        string? providedOrderNumber,
+        string body,
+        string? adminDetailUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var template = LoadTemplate(ContactMessageReceivedTemplateResource)
+            .Replace("{{ReferenceNumber}}", HtmlEncoder.Default.Encode(referenceNumber), StringComparison.Ordinal)
+            .Replace("{{Name}}", HtmlEncoder.Default.Encode(name), StringComparison.Ordinal)
+            .Replace("{{Email}}", HtmlEncoder.Default.Encode(customerEmail), StringComparison.Ordinal)
+            .Replace("{{Phone}}", HtmlEncoder.Default.Encode(phone ?? "Belirtilmedi"), StringComparison.Ordinal)
+            .Replace("{{Subject}}", HtmlEncoder.Default.Encode(subject), StringComparison.Ordinal)
+            .Replace("{{OrderNumber}}", HtmlEncoder.Default.Encode(providedOrderNumber ?? "Belirtilmedi"), StringComparison.Ordinal)
+            .Replace("{{Message}}", HtmlEncoder.Default.Encode(body).Replace("\n", "<br />", StringComparison.Ordinal), StringComparison.Ordinal)
+            .Replace("{{AdminDetailUrl}}", HtmlEncoder.Default.Encode(adminDetailUrl ?? string.Empty), StringComparison.Ordinal);
+        await SendAsync(inboxEmail, $"Yeni iletişim mesajı: {referenceNumber}", template, cancellationToken);
+    }
+
+    // Burada müşteri yanıtını kayıtlı alıcıya encode edilmiş body ve yapılandırılmış destek Reply-To ile gönderiyorum.
+    public async Task SendContactMessageReplyAsync(
+        string recipientEmail,
+        string recipientName,
+        string referenceNumber,
+        string body,
+        CancellationToken cancellationToken = default)
+    {
+        var template = LoadTemplate(ContactMessageReplyTemplateResource)
+            .Replace("{{RecipientName}}", HtmlEncoder.Default.Encode(recipientName), StringComparison.Ordinal)
+            .Replace("{{ReferenceNumber}}", HtmlEncoder.Default.Encode(referenceNumber), StringComparison.Ordinal)
+            .Replace("{{Message}}", HtmlEncoder.Default.Encode(body).Replace("\n", "<br />", StringComparison.Ordinal), StringComparison.Ordinal);
+        await SendAsync(
+            recipientEmail,
+            $"İletişim talebiniz yanıtlandı: {referenceNumber}",
+            template,
+            cancellationToken,
+            GetRequiredValue("Email:SupportReplyToAddress"));
+    }
+
     private async Task SendAsync(
         string email,
         string subject,
         string htmlBody,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? replyToAddress = null)
     {
         var host = GetRequiredValue("Email:Smtp:Host");
         var fromAddress = GetRequiredValue("Email:FromAddress");
@@ -268,6 +423,10 @@ public sealed class SmtpEmailSender : IEmailSender
             IsBodyHtml = true
         };
         message.To.Add(email);
+        if (!string.IsNullOrWhiteSpace(replyToAddress))
+        {
+            message.ReplyToList.Add(new MailAddress(replyToAddress));
+        }
 
         using var smtpClient = new SmtpClient(host, port)
         {

@@ -115,7 +115,10 @@ public sealed class OrderCheckoutOrchestrator
         StartReservationOrCompleteFreeOrder(order);
         await _orderRepository.AddAsync(order, cancellationToken);
         await _couponService.ConsumeAsync(checkoutCoupon, input.UserId, order, cancellationToken);
-        await _notificationService.QueueOrderCreatedAsync(order, cancellationToken);
+        if (order.Status == OrderStatus.Paid)
+        {
+            await _notificationService.QueueOrderCreatedAsync(order, cancellationToken);
+        }
         await ApplyStockAndMetricsAsync(order, lines, cancellationToken);
         return order;
     }

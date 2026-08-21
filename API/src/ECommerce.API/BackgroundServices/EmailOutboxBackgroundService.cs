@@ -1,5 +1,6 @@
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Security;
+using ECommerce.Application.Contacts;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using System.Security.Cryptography;
@@ -68,6 +69,7 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
             var protector = scope.ServiceProvider.GetRequiredService<IPasswordResetTokenProtector>();
             var guestProtector = scope.ServiceProvider.GetRequiredService<IGuestOrderAccessTokenProtector>();
             var sender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+            var contactPayloadReader = scope.ServiceProvider.GetRequiredService<IContactEmailPayloadReader>();
             var utcNow = clock.UtcNow;
             var expiredMessageCount = await repository.ExpirePendingAsync(
                 utcNow,
@@ -137,7 +139,7 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
 
                     using var sendTimeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                     sendTimeoutSource.CancelAfter(GetSendTimeout(message, beforeSendUtcNow));
-                    await SendMessageAsync(message, protector, guestProtector, sender, sendTimeoutSource.Token);
+                    await SendMessageAsync(message, protector, guestProtector, sender, contactPayloadReader, sendTimeoutSource.Token);
                     var afterSendUtcNow = clock.UtcNow;
                     if (message.IsExpired(afterSendUtcNow))
                     {
@@ -229,14 +231,48 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
     }
 
     // Burada outbox mesaj türüne uygun güvenilir e-posta template'ini gönderiyorum.
-    private static Task SendMessageAsync(
+    private static async Task SendMessageAsync(
         EmailOutboxMessage message,
         IPasswordResetTokenProtector protector,
         IGuestOrderAccessTokenProtector guestProtector,
         IEmailSender sender,
+        IContactEmailPayloadReader contactPayloadReader,
         CancellationToken cancellationToken)
     {
-        return message.Type switch
+        if (message.Type == EmailOutboxMessageType.ContactMessageReceived)
+        {
+            var payload = await contactPayloadReader.GetReceivedAsync(
+                message.ContactMessageId ?? throw new InvalidOperationException("Contact message id is missing."),
+                cancellationToken) ?? throw new InvalidOperationException("Contact message payload was not found.");
+            await sender.SendContactMessageReceivedAsync(
+                payload.InboxAddress,
+                payload.ReferenceNumber,
+                payload.Name,
+                payload.Email,
+                payload.Phone,
+                payload.Subject.ToString(),
+                payload.ProvidedOrderNumber,
+                payload.Message,
+                payload.AdminDetailUrl,
+                cancellationToken);
+            return;
+        }
+
+        if (message.Type == EmailOutboxMessageType.ContactMessageReply)
+        {
+            var payload = await contactPayloadReader.GetReplyAsync(
+                message.ContactReplyId ?? throw new InvalidOperationException("Contact reply id is missing."),
+                cancellationToken) ?? throw new InvalidOperationException("Contact reply payload was not found.");
+            await sender.SendContactMessageReplyAsync(
+                payload.RecipientEmail,
+                payload.RecipientName,
+                payload.ReferenceNumber,
+                payload.Body,
+                cancellationToken);
+            return;
+        }
+
+        await (message.Type switch
         {
             EmailOutboxMessageType.PasswordReset => sender.SendPasswordResetAsync(
                 message.Email,
@@ -285,6 +321,9 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
                     ?? throw new InvalidOperationException("Order number is missing."),
                 message.Status
                     ?? throw new InvalidOperationException("Order status is missing."),
+                message.ShippingCarrier,
+                message.TrackingNumber,
+                message.TrackingUrl,
                 cancellationToken),
             EmailOutboxMessageType.ReturnRequested => sender.SendReturnRequestedAsync(
                 message.Email,
@@ -318,7 +357,7 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
                     ?? throw new InvalidOperationException("Guest order access expiry is missing."),
                 cancellationToken),
             _ => throw new InvalidOperationException($"Email outbox type '{message.Type}' is not supported.")
-        };
+        });
     }
 
     // Burada SMTP hata ayrıntısını e-posta ve token değerlerini açığa çıkarmayan kısa bir parmak izine dönüştürüyorum.

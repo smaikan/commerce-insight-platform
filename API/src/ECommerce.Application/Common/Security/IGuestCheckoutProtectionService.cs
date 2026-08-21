@@ -20,6 +20,15 @@ public interface ITurnstileVerifier
 {
     // Burada Cloudflare tokenının sunucu tarafında tek kullanımlık doğrulanması sözleşmesini tanımlıyorum.
     Task<TurnstileVerificationResult> VerifyAsync(string token, string ipAddress, CancellationToken cancellationToken = default);
+
+    // Burada action ve hostname bağlamı zorunlu akışlar için genişletilmiş Turnstile doğrulamasını tanımlıyorum.
+    Task<TurnstileVerificationResult> VerifyAsync(
+        string token,
+        string? ipAddress,
+        string expectedAction,
+        string expectedHostname,
+        CancellationToken cancellationToken = default) =>
+        VerifyAsync(token, ipAddress ?? string.Empty, cancellationToken);
 }
 
 public enum TurnstileVerificationResult

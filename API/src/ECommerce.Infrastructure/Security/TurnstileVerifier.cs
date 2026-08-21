@@ -23,7 +23,31 @@ public sealed class TurnstileVerifier : ITurnstileVerifier
         string ipAddress,
         CancellationToken cancellationToken = default)
     {
-        var secret = _configuration["GuestProtection:Turnstile:SecretKey"];
+        return await VerifyCoreAsync(token, ipAddress, null, null, cancellationToken);
+    }
+
+    // Burada contact form tokenını beklenen action ve hostname ile birlikte doğruluyorum.
+    public async Task<TurnstileVerificationResult> VerifyAsync(
+        string token,
+        string? ipAddress,
+        string expectedAction,
+        string expectedHostname,
+        CancellationToken cancellationToken = default)
+    {
+        return await VerifyCoreAsync(token, ipAddress, expectedAction, expectedHostname, cancellationToken);
+    }
+
+    // Burada ortak siteverify çağrısını opsiyonel action ve hostname eşleşmesiyle sonuçlandırıyorum.
+    private async Task<TurnstileVerificationResult> VerifyCoreAsync(
+        string token,
+        string? ipAddress,
+        string? expectedAction,
+        string? expectedHostname,
+        CancellationToken cancellationToken)
+    {
+        var secret = expectedAction is null
+            ? _configuration["GuestProtection:Turnstile:SecretKey"]
+            : _configuration["ContactProtection:Turnstile:SecretKey"] ?? _configuration["GuestProtection:Turnstile:SecretKey"];
         if (string.IsNullOrWhiteSpace(secret) || string.IsNullOrWhiteSpace(token) || token.Length > 2048)
         {
             return string.IsNullOrWhiteSpace(secret)
@@ -43,7 +67,10 @@ public sealed class TurnstileVerifier : ITurnstileVerifier
             }
 
             var result = await response.Content.ReadFromJsonAsync<TurnstileResponse>(cancellationToken);
-            return result?.Success == true
+            var contextMatches = expectedAction is null ||
+                (string.Equals(result?.Action, expectedAction, StringComparison.Ordinal) &&
+                 string.Equals(result?.Hostname, expectedHostname, StringComparison.OrdinalIgnoreCase));
+            return result?.Success == true && contextMatches
                 ? TurnstileVerificationResult.Valid
                 : TurnstileVerificationResult.Invalid;
         }
@@ -61,9 +88,12 @@ public sealed class TurnstileVerifier : ITurnstileVerifier
     private sealed record TurnstileRequest(
         [property: JsonPropertyName("secret")] string Secret,
         [property: JsonPropertyName("response")] string Response,
-        [property: JsonPropertyName("remoteip")] string RemoteIp,
+        [property: JsonPropertyName("remoteip")] string? RemoteIp,
         [property: JsonPropertyName("idempotency_key")] Guid IdempotencyKey);
 
     // Burada siteverify cevabından yalnız güvenlik kararı için gereken success alanını okuyorum.
-    private sealed record TurnstileResponse([property: JsonPropertyName("success")] bool Success);
+    private sealed record TurnstileResponse(
+        [property: JsonPropertyName("success")] bool Success,
+        [property: JsonPropertyName("action")] string? Action,
+        [property: JsonPropertyName("hostname")] string? Hostname);
 }

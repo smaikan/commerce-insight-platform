@@ -1,5 +1,6 @@
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Dashboard;
+using ECommerce.Application.Contacts;
 using ECommerce.Persistence.Context;
 using ECommerce.Persistence.Accounting;
 using ECommerce.Persistence.Repositories;
@@ -81,6 +82,9 @@ public static class PersistenceServiceRegistration
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserTokenCleanupService, UserTokenCleanupService>();
         services.AddScoped<IEmailOutboxRepository, EmailOutboxRepository>();
+        services.AddScoped<ContactMessageRepository>();
+        services.AddScoped<IContactMessageRepository>(provider => provider.GetRequiredService<ContactMessageRepository>());
+        services.AddScoped<IContactEmailPayloadReader>(provider => provider.GetRequiredService<ContactMessageRepository>());
         services.AddAccountingPersistenceServices();
 
         return services;

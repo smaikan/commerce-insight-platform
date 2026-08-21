@@ -6,6 +6,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ECommerce.IntegrationTests.Api;
@@ -541,6 +542,97 @@ public sealed class ApiPipelineTests
         }
     }
 
+    // Burada contact endpointlerinin anonymous/admin güvenlik, header, numeric enum ve ProblemDetails cevap sözleşmelerini doğruluyorum.
+    [Fact]
+    public async Task OpenApi_Should_Document_Contact_Message_Contracts()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var response = await client.GetAsync("/swagger/v1/swagger.json");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = document.RootElement;
+        var paths = root.GetProperty("paths");
+        var submit = paths.GetProperty("/api/contact-messages").GetProperty("post");
+
+        submit.GetProperty("security").GetArrayLength().Should().Be(0);
+        var parameters = submit.GetProperty("parameters").EnumerateArray().ToList();
+        var idempotency = parameters.Single(parameter => parameter.GetProperty("name").GetString() == "Idempotency-Key");
+        idempotency.GetProperty("required").GetBoolean().Should().BeTrue();
+        idempotency.GetProperty("schema").GetProperty("maxLength").GetInt32().Should().Be(200);
+        var turnstile = parameters.Single(parameter => parameter.GetProperty("name").GetString() == "X-Turnstile-Token");
+        turnstile.GetProperty("schema").GetProperty("maxLength").GetInt32().Should().Be(2048);
+
+        var requestReference = submit.GetProperty("requestBody").GetProperty("content").GetProperty("application/json")
+            .GetProperty("schema").GetProperty("$ref").GetString()!;
+        var schemas = root.GetProperty("components").GetProperty("schemas");
+        var requestSchema = schemas.GetProperty(requestReference.Split('/')[^1]);
+        var subjectProperty = requestSchema.GetProperty("properties").GetProperty("subject");
+        var subjectSchema = subjectProperty.TryGetProperty("$ref", out var subjectReference)
+            ? schemas.GetProperty(subjectReference.GetString()!.Split('/')[^1])
+            : subjectProperty;
+        subjectSchema.GetProperty("enum")
+            .EnumerateArray().Select(value => value.GetInt32()).Should().Equal(0, 1, 2, 3, 4, 5);
+        requestSchema.GetProperty("properties").GetProperty("message").GetProperty("maxLength").GetInt32().Should().Be(5000);
+        foreach (var status in new[] { "202", "400", "409", "413", "428", "429", "503" })
+        {
+            submit.GetProperty("responses").TryGetProperty(status, out _).Should().BeTrue();
+        }
+
+        var adminList = paths.GetProperty("/api/contact-messages").GetProperty("get");
+        adminList.TryGetProperty("security", out var adminSecurity).Should().BeFalse();
+        adminList.GetProperty("responses").TryGetProperty("400", out var listBadRequest).Should().BeTrue();
+        listBadRequest.GetProperty("description").GetString().Should().Contain("validation_error");
+        var listParameters = adminList.GetProperty("parameters").EnumerateArray().ToList();
+        listParameters.Single(parameter => string.Equals(
+                parameter.GetProperty("name").GetString(), "CreatedFromUtc", StringComparison.OrdinalIgnoreCase))
+            .GetProperty("description").GetString().Should().Contain("inclusive");
+        listParameters.Single(parameter => string.Equals(
+                parameter.GetProperty("name").GetString(), "CreatedToUtc", StringComparison.OrdinalIgnoreCase))
+            .GetProperty("description").GetString().Should().Contain("inclusive");
+        root.GetProperty("security").GetArrayLength().Should().BeGreaterThan(0);
+        var reply = paths.GetProperty("/api/contact-messages/{id}/replies").GetProperty("post");
+        foreach (var status in new[] { "202", "400", "401", "403", "404", "409" })
+        {
+            reply.GetProperty("responses").TryGetProperty(status, out _).Should().BeTrue();
+        }
+        reply.GetProperty("description").GetString().Should().Contain("FirstRespondedAt")
+            .And.Contain("WaitingForCustomer");
+        reply.GetProperty("responses").GetProperty("400").GetProperty("description")
+            .GetString().Should().Contain("validation_error").And.Contain("bad_request").And.Contain("business_rule_violation");
+        reply.GetProperty("responses").GetProperty("401").GetProperty("description")
+            .GetString().Should().Contain("authentication_required").And.Contain("invalid_access_token");
+        reply.GetProperty("responses").GetProperty("403").GetProperty("description")
+            .GetString().Should().Contain("forbidden");
+        reply.GetProperty("responses").GetProperty("404").GetProperty("description")
+            .GetString().Should().Contain("resource_not_found");
+
+        var changeStatus = paths.GetProperty("/api/contact-messages/{id}/status").GetProperty("patch");
+        changeStatus.GetProperty("description").GetString().Should().Contain("New (0)");
+        changeStatus.GetProperty("description").GetString().Should().Contain("business_rule_violation");
+        changeStatus.GetProperty("responses").GetProperty("400").GetProperty("description")
+            .GetString().Should().Contain("business_rule_violation");
+
+        schemas.GetProperty("ContactMessageActivityType").GetProperty("description")
+            .GetString().Should().Contain("0 Submitted").And.Contain("4 ReplyQueued");
+        var activityProperties = schemas.GetProperty("ContactMessageActivityDto").GetProperty("properties");
+        activityProperties.GetProperty("actorAdminUserId").GetProperty("description")
+            .GetString().Should().Contain("Submitted tipinde null");
+        activityProperties.GetProperty("previousValue").GetProperty("description")
+            .GetString().Should().Contain("önceki enum adı");
+        activityProperties.GetProperty("replyId").GetProperty("description")
+            .GetString().Should().Contain("ContactMessageReplyDto.id");
+
+        var detailProperties = schemas.GetProperty("ContactMessageDetailDto").GetProperty("properties");
+        schemas.GetProperty("ContactMessageDetailDto").GetProperty("required").EnumerateArray()
+            .Select(value => value.GetString()).Should().Contain("message").And.NotContain("phone");
+        detailProperties.GetProperty("phone").GetProperty("nullable").GetBoolean().Should().BeTrue();
+        detailProperties.GetProperty("activities").GetProperty("description")
+            .GetString().Should().Contain("createdAt ASC").And.Contain("id ASC");
+        detailProperties.GetProperty("replies").GetProperty("description")
+            .GetString().Should().Contain("createdAt ASC").And.Contain("id ASC");
+    }
+
     // Burada controller attribute'larından her HTTP route ve AllowAnonymous kararını çıkarıyorum.
     private static IReadOnlyList<ControllerEndpoint> DiscoverControllerEndpoints()
     {
@@ -645,14 +737,29 @@ public sealed class ApiPipelineTests
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment(_environment);
+            var sqlServer = Environment.GetEnvironmentVariable("ECOMMERCE_TEST_SQL_SERVER");
+            var sqlPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+            var connectionString = string.IsNullOrWhiteSpace(sqlServer) || string.IsNullOrWhiteSpace(sqlPassword)
+                ? "Server=(localdb)\\mssqllocaldb;Database=ECommerceHttpTests;Trusted_Connection=True;"
+                : new SqlConnectionStringBuilder
+                {
+                    DataSource = sqlServer,
+                    InitialCatalog = "ECommerceHttpTests",
+                    UserID = "sa",
+                    Password = sqlPassword,
+                    TrustServerCertificate = true,
+                    MultipleActiveResultSets = true
+                }.ConnectionString;
             builder.UseSetting(
                 "ConnectionStrings:DefaultConnection",
-                "Server=(localdb)\\mssqllocaldb;Database=ECommerceHttpTests;Trusted_Connection=True;");
+                connectionString);
             builder.UseSetting("Jwt:Issuer", "ECommerce.IntegrationTests");
             builder.UseSetting("Jwt:Audience", "ECommerce.IntegrationTests.Client");
             builder.UseSetting("Jwt:SecretKey", "integration-test-secret-key-at-least-32-bytes");
             builder.UseSetting("Email:PasswordResetUrl", "https://store.test/reset-password");
             builder.UseSetting("Email:Smtp:Password", "integration-test-smtp-secret");
+            builder.UseSetting("ContactPrivacy:NoticeVersion", "integration-test-v1");
+            builder.UseSetting("ContactPrivacy:RetentionDays", "30");
             builder.UseSetting(
                 "DataProtection:KeyRingPath",
                 Path.Combine(Path.GetTempPath(), "ECommerce.IntegrationTests.DataProtection"));
