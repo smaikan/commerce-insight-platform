@@ -7,6 +7,7 @@ describe("auth policy", () => {
   it("classifies protected admin paths", () => {
     expect(isProtectedAdminPath("/dashboard")).toBe(true);
     expect(isProtectedAdminPath("/products/P00001")).toBe(true);
+    expect(isProtectedAdminPath("/contact-messages/11111111-1111-4111-8111-111111111111")).toBe(true);
     expect(isProtectedAdminPath("/login")).toBe(false);
     expect(isProtectedAdminPath("/productivity")).toBe(false);
   });

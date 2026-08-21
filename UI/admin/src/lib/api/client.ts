@@ -52,7 +52,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   if (!response.ok) {
     const contentType = response.headers.get("content-type") || "";
     const payload = contentType.includes("json") ? await response.json().catch(() => null) : null;
-    throw new ApiError(normalizeApiProblem(payload, response.status));
+    throw new ApiError(normalizeApiProblem(payload, response.status, response.headers.get("retry-after")));
   }
 
   if (response.status === 204) {

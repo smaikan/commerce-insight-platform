@@ -38,6 +38,7 @@ function getBackLabel(backHref: string | undefined): string {
   if (backHref === "/products") return "Ürünlere dön";
   if (backHref === "/orders") return "Siparişlere dön";
   if (backHref === "/customers") return "Müşterilere dön";
+  if (backHref.startsWith("/contact-messages")) return "İletişim mesajlarına dön";
   if (backHref === "/collections") return "Koleksiyonlara dön";
   if (backHref === "/coupons") return "İndirimlere dön";
   if (backHref === "/managers") return "Yöneticilere dön";

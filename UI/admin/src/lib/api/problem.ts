@@ -4,6 +4,7 @@ export type ApiProblem = {
   detail?: string;
   code?: string;
   traceId?: string;
+  retryAfter?: string;
   errors?: Record<string, string[]>;
 };
 
@@ -19,7 +20,7 @@ export class ApiError extends Error {
 }
 
 // Burada bilinmeyen hata gövdelerini güvenli ve tek biçimli bir ProblemDetails modeline dönüştürüyorum.
-export function normalizeApiProblem(value: unknown, status: number): ApiProblem {
+export function normalizeApiProblem(value: unknown, status: number, retryAfter?: string | null): ApiProblem {
   if (value && typeof value === "object") {
     const candidate = value as Record<string, unknown>;
     return {
@@ -28,6 +29,7 @@ export function normalizeApiProblem(value: unknown, status: number): ApiProblem 
       detail: typeof candidate.detail === "string" ? candidate.detail : undefined,
       code: typeof candidate.code === "string" ? candidate.code : undefined,
       traceId: typeof candidate.traceId === "string" ? candidate.traceId : undefined,
+      retryAfter: retryAfter || undefined,
       errors: isFieldErrorMap(candidate.errors) ? candidate.errors : undefined,
     };
   }
@@ -36,6 +38,7 @@ export function normalizeApiProblem(value: unknown, status: number): ApiProblem 
     title: "İstek tamamlanamadı",
     status,
     detail: "Sunucu beklenmeyen bir yanıt döndürdü.",
+    retryAfter: retryAfter || undefined,
   };
 }
 

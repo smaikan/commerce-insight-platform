@@ -13,4 +13,4 @@ const cookieNames = adminCookieNames(process.env.NODE_ENV === "production");
 export const ADMIN_ACCESS_COOKIE = cookieNames.access;
 export const ADMIN_REFRESH_COOKIE = cookieNames.refresh;
 
-export const PROTECTED_ADMIN_PREFIXES = ["/dashboard", "/products", "/orders"] as const;
+export const PROTECTED_ADMIN_PREFIXES = ["/dashboard", "/products", "/orders", "/contact-messages"] as const;
