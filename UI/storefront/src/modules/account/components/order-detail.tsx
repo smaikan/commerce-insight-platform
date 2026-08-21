@@ -10,7 +10,7 @@ import { formatAccountDate, formatAccountDateTime, safeTrackingUrl } from "@/mod
 // Burada sipariş snapshot'larını ürün, toplam, adres ve gerçek kargo hareketleri hiyerarşisinde ayrıntılı olarak sunuyorum.
 export function OrderDetail({ order }: { order: AccountOrder }) {
   const trackingUrl = safeTrackingUrl(order.trackingUrl);
-  const canCancel = order.status === 0 || order.status === 1;
+  const canCancel = order.status < 4 && order.status !== 6 && order.status !== 7;
 
   return (
     <article>
@@ -62,9 +62,13 @@ export function OrderDetail({ order }: { order: AccountOrder }) {
           ) : null}
 
           {canCancel ? <CancelOrderControl orderId={order.id} /> : null}
-          {order.status === 5 || order.status === 8 || order.status === 9 ? (
+          {order.status === 5 ? (
             <Link href={`/account/orders/${order.id}/return`} className="focus-ring inline-flex min-h-11 w-full items-center justify-center border border-brand-700 px-4 text-sm font-bold text-brand-700 hover:bg-surface-subtle">
               İade veya değişim talebi oluştur
+            </Link>
+          ) : order.status === 8 || order.status === 9 ? (
+            <Link href="/account/returns" className="focus-ring inline-flex min-h-11 w-full items-center justify-center border border-line bg-surface-subtle px-4 text-sm font-bold text-brand-700 hover:bg-surface">
+              İade talebini görüntüle →
             </Link>
           ) : null}
         </aside>

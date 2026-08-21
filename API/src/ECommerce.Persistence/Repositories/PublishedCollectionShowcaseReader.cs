@@ -34,9 +34,7 @@ public sealed class PublishedCollectionShowcaseReader : IPublishedCollectionShow
             select new { relation.CollectionId, Product = product };
         var collections = _context.Collections
             .AsNoTracking()
-            .Where(collection =>
-                collection.IsActive &&
-                publishedRelations.Any(relation => relation.CollectionId == collection.Id));
+            .Where(collection => collection.IsActive);
 
         var totalCount = await collections.CountAsync(cancellationToken);
         var items = await collections

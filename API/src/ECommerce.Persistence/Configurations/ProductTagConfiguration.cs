@@ -8,7 +8,7 @@ public sealed class ProductTagConfiguration : IEntityTypeConfiguration<ProductTa
 {
     public void Configure(EntityTypeBuilder<ProductTag> builder)
     {
-        builder.ToTable("ProductTags");
+        builder.ToTable("ProductTags", table => table.UseSqlOutputClause(false));
 
         builder.HasKey(productTag => productTag.Id);
 

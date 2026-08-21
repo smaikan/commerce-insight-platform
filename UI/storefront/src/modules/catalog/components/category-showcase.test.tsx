@@ -104,6 +104,6 @@ describe("category showcase", () => {
 
     expect(html).toContain('href="/categories?pageSize=40"');
     expect(html).toContain('href="/categories?page=3&amp;pageSize=40"');
-    expect(html).toContain("2</span> / 3");
+    expect(html).toContain("2</span> / <span");
   });
 });

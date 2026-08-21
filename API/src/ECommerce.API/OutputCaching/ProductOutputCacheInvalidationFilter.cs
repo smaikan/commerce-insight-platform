@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.Extensions.Logging;
 
 namespace ECommerce.API.OutputCaching;
 
@@ -8,11 +9,15 @@ namespace ECommerce.API.OutputCaching;
 public sealed class ProductOutputCacheInvalidationFilter : IAsyncActionFilter
 {
     private readonly IOutputCacheStore _outputCacheStore;
+    private readonly ILogger<ProductOutputCacheInvalidationFilter> _logger;
 
     // Burada ürün cache etiketini temizleyecek output cache deposunu hazırlıyorum.
-    public ProductOutputCacheInvalidationFilter(IOutputCacheStore outputCacheStore)
+    public ProductOutputCacheInvalidationFilter(
+        IOutputCacheStore outputCacheStore,
+        ILogger<ProductOutputCacheInvalidationFilter> logger)
     {
         _outputCacheStore = outputCacheStore;
+        _logger = logger;
     }
 
     // Burada başarılı GET dışı sınıflandırma işlemlerinden sonra ortak ürün cache etiketini geçersiz kılıyorum.
@@ -30,7 +35,14 @@ public sealed class ProductOutputCacheInvalidationFilter : IAsyncActionFilter
             ?? StatusCodes.Status200OK;
         if (statusCode < StatusCodes.Status400BadRequest)
         {
-            await _outputCacheStore.EvictByTagAsync("products", CancellationToken.None);
+            try
+            {
+                await _outputCacheStore.EvictByTagAsync("products", CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Ürün output cache temizliği başarısız oldu ancak ana işlem korundu.");
+            }
         }
     }
 }

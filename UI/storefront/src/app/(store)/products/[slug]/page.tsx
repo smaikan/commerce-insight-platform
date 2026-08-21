@@ -12,6 +12,7 @@ import {
 import { getPublishedProductBySlug } from "@/modules/product/api";
 import { orderProductImages, ProductGallery } from "@/modules/product/components/product-gallery";
 import { ProductSummary } from "@/modules/product/components/product-summary";
+import { ProductViewTracker } from "@/modules/product/components/product-view-tracker";
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -58,6 +59,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <li aria-current="page" className="line-clamp-1">{data.product.title}</li>
         </ol>
       </nav>
+      <ProductViewTracker productId={data.product.id} />
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(24rem,0.9fr)] lg:gap-x-10 lg:gap-y-4 xl:gap-x-14">
         <ProductGallery images={images} productTitle={data.product.title} />
         <ProductSummary product={data.product} />

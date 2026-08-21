@@ -174,7 +174,6 @@ export function CheckoutForm({
         order = await submitGuestCheckout(result.value as GuestCheckoutRequest, intentRef.current.idempotencyKey, turnstileToken || undefined);
       }
       createdOrderId = order.id;
-      void loadCart(true).catch(() => undefined);
       if (order.status === 2 || order.grandTotal === 0) {
         router.push(`/checkout/confirmation/${encodeURIComponent(order.id)}`);
         return;

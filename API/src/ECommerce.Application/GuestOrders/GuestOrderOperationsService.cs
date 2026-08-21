@@ -116,9 +116,9 @@ public sealed class GuestOrderOperationsService
                 var session = await _access.ValidateSessionAsync(sessionToken, csrfToken, true, token);
                 var order = await _guestOrders.GetOrderForSessionAsync(session.Id, orderId, true, token)
                     ?? throw new NotFoundException("Order was not found.");
-                if (order.Status is not OrderStatus.Pending and not OrderStatus.Confirmed)
+                if (order.Status is not (OrderStatus.Pending or OrderStatus.Confirmed or OrderStatus.Paid or OrderStatus.Preparing))
                 {
-                    throw new ConflictException("Only pending or confirmed orders can be cancelled by the customer.");
+                    throw new ConflictException("Only orders that have not been shipped can be cancelled by the customer.");
                 }
 
                 if (order.Payments.Any(payment => payment.Status == PaymentStatus.Pending))

@@ -1,5 +1,6 @@
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.Common.Models;
 using ECommerce.Application.Common.Payments;
 using ECommerce.Application.Common.Security;
 using ECommerce.Domain.Entities;
@@ -17,6 +18,7 @@ public sealed class CheckoutFormPaymentService
     private readonly IDateTimeProvider _clock;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderNotificationService _notifications;
+    private readonly ICartRepository _carts;
 
     // Burada üye ve guest hosted ödeme akışının ortak bağımlılıklarını hazırlıyorum.
     public CheckoutFormPaymentService(
@@ -27,7 +29,8 @@ public sealed class CheckoutFormPaymentService
         ICurrentUserService currentUser,
         IDateTimeProvider clock,
         IUnitOfWork unitOfWork,
-        IOrderNotificationService notifications)
+        IOrderNotificationService notifications,
+        ICartRepository carts)
     {
         _orders = orders;
         _guestOrders = guestOrders;
@@ -37,6 +40,7 @@ public sealed class CheckoutFormPaymentService
         _clock = clock;
         _unitOfWork = unitOfWork;
         _notifications = notifications;
+        _carts = carts;
     }
 
     // Burada oturumdaki kullanıcının kendi siparişi için idempotent CheckoutForm oturumu başlatıyorum.
@@ -138,6 +142,12 @@ public sealed class CheckoutFormPaymentService
                     await _notifications.QueuePaymentResultAsync(order, payment, transactionCancellationToken);
                 }
 
+                // Burada ödeme başarıyla onaylandığında müşterinin sepetini atomik olarak temizliyorum.
+                if (payment.Status == PaymentStatus.Paid)
+                {
+                    await ClearCartForOrderAsync(order, transactionCancellationToken);
+                }
+
                 await _unitOfWork.SaveChangesAsync(transactionCancellationToken);
                 return ToCompletion(payment);
             },
@@ -205,10 +215,6 @@ public sealed class CheckoutFormPaymentService
                 }
 
                 EnsurePaymentCanStart(order);
-                if (order.Status == OrderStatus.Pending)
-                {
-                    order.ChangeStatus(OrderStatus.Confirmed, _clock.UtcNow);
-                }
 
                 var payment = new Payment(order.Id, PaymentProvider.Iyzico, order.GrandTotal, normalizedKey);
                 order.AddPayment(payment);
@@ -425,5 +431,23 @@ public sealed class CheckoutFormPaymentService
     private static CheckoutFormCompletionDto ToCompletion(Payment payment)
     {
         return new CheckoutFormCompletionDto(payment.Id, payment.OrderId, payment.Status);
+    }
+
+    // Burada ödeme onaylandıktan sonra siparişi veren müşterinin sepetini atomik olarak temizliyorum.
+    private async Task ClearCartForOrderAsync(Order order, CancellationToken cancellationToken)
+    {
+        CartOwner? owner = null;
+        if (order.UserId.HasValue)
+        {
+            owner = CartOwner.ForUser(order.UserId.Value);
+        }
+
+        if (owner is null)
+        {
+            return;
+        }
+
+        var cart = await _carts.GetByOwnerForUpdateAsync(owner, cancellationToken);
+        cart?.Clear();
     }
 }

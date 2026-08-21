@@ -3,9 +3,10 @@ import Link from "next/link";
 import { formatCurrency } from "@/lib/formatting/currency";
 import { AccountIcon } from "@/modules/account/components/account-icon";
 import { AccountPageHeader } from "@/modules/account/components/account-page-header";
+import { OrderStatus } from "@/modules/account/components/orders-view";
 import { ProfileEditor } from "@/modules/account/components/profile-editor";
 import type { AccountAddress, AccountOrderPage, AccountUser } from "@/modules/account/contracts";
-import { formatAccountDate, orderStatusLabel } from "@/modules/account/presentation";
+import { formatAccountDate } from "@/modules/account/presentation";
 
 // Burada genel bakışı doğrulanmış profil, son sipariş ve varsayılan adres verileriyle sade bir hesap merkezine dönüştürüyorum.
 export function AccountOverview({ user, addresses, orders }: { user: AccountUser; addresses: AccountAddress[]; orders: AccountOrderPage }) {
@@ -75,7 +76,7 @@ function RecentOrders({ orders }: { orders: AccountOrderPage }) {
             <li key={order.id}>
               <Link href={`/account/orders/${order.id}`} className="focus-ring grid gap-2 px-5 py-4 hover:bg-surface-subtle sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6">
                 <span><span className="block text-sm font-black text-ink">#{order.orderNumber}</span><span className="mt-1 block text-xs text-ink-muted">{formatAccountDate(order.createdAt)} · {order.itemCount} ürün</span></span>
-                <span className="flex items-center justify-between gap-4 sm:block sm:text-right"><span className="text-xs font-bold text-brand-700">{orderStatusLabel(order.status)}</span><span className="block text-sm font-black tabular-nums text-ink sm:mt-1">{formatCurrency(order.grandTotal)}</span></span>
+                <span className="flex items-center justify-between gap-4 sm:block sm:text-right"><span className="inline-block"><OrderStatus status={order.status} /></span><span className="block text-sm font-black tabular-nums text-ink sm:mt-1">{formatCurrency(order.grandTotal)}</span></span>
               </Link>
             </li>
           ))}

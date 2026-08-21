@@ -211,6 +211,51 @@ public sealed class OrderTests
         act.Should().Throw<DomainException>();
     }
 
+    // Burada kargoya verilmeden önceki Pending, Confirmed, Paid ve Preparing durumlarında iptale izin verildiğini doğruluyorum.
+    [Theory]
+    [InlineData(OrderStatus.Pending)]
+    [InlineData(OrderStatus.Confirmed)]
+    [InlineData(OrderStatus.Paid)]
+    [InlineData(OrderStatus.Preparing)]
+    public void ChangeStatus_Should_Allow_Cancellation_Before_Shipped(OrderStatus initialStatus)
+    {
+        var utcNow = new DateTime(2026, 7, 14, 12, 0, 0, DateTimeKind.Utc);
+        var order = new Order(1, "ORD-CANCEL", 100m, 0m, 0m, 0m, 100m);
+
+        if (initialStatus >= OrderStatus.Confirmed)
+        {
+            order.ChangeStatus(OrderStatus.Confirmed, utcNow);
+        }
+        if (initialStatus >= OrderStatus.Paid)
+        {
+            var payment = new Payment(order.Id, PaymentProvider.Fake, order.GrandTotal, "cancel_payment_key_001");
+            order.AddPayment(payment);
+            payment.MarkAsPaid("fake_cancel_tx_001");
+            order.ChangeStatus(OrderStatus.Paid, utcNow.AddMinutes(1));
+        }
+        if (initialStatus >= OrderStatus.Preparing)
+        {
+            order.ChangeStatus(OrderStatus.Preparing, utcNow.AddMinutes(2));
+        }
+
+        order.ChangeStatus(OrderStatus.Cancelled, utcNow.AddMinutes(3));
+        order.Status.Should().Be(OrderStatus.Cancelled);
+        order.CancelledAt.Should().Be(utcNow.AddMinutes(3));
+    }
+
+    // Burada kargoya verildikten sonra doğrudan iptalin reddedildiğini doğruluyorum.
+    [Fact]
+    public void ChangeStatus_Should_Reject_Cancellation_After_Shipped()
+    {
+        var utcNow = new DateTime(2026, 7, 14, 12, 0, 0, DateTimeKind.Utc);
+        var order = CreatePreparingOrder(utcNow);
+        order.ChangeStatus(OrderStatus.Shipped, utcNow.AddMinutes(3));
+
+        Action act = () => order.ChangeStatus(OrderStatus.Cancelled, utcNow.AddMinutes(4));
+
+        act.Should().Throw<DomainException>();
+    }
+
     // Burada kargo testleri için başarılı ödemeden hazırlama aşamasına kadar geçerli sipariş yaşam döngüsünü kuruyorum.
     private static Order CreatePreparingOrder(DateTime utcNow)
     {

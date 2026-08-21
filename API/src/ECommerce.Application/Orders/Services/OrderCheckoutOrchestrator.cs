@@ -117,7 +117,6 @@ public sealed class OrderCheckoutOrchestrator
         await _couponService.ConsumeAsync(checkoutCoupon, input.UserId, order, cancellationToken);
         await _notificationService.QueueOrderCreatedAsync(order, cancellationToken);
         await ApplyStockAndMetricsAsync(order, lines, cancellationToken);
-        cart.Clear();
         return order;
     }
 

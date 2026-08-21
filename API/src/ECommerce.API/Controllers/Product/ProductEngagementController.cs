@@ -148,8 +148,8 @@ public sealed class ProductEngagementController : ControllerBase
         CancellationToken cancellationToken) =>
         Ok(await _sender.Send(new GetProductMetricsQuery(ApiPublicIdParser.ParseProductId(productId), from, to), cancellationToken));
 
-    // Burada herhangi bir oturum açmış müşterinin tıklama ve sepete ekleme hareketini kaydediyorum.
-    [Authorize]
+    // Burada müşterinin veya ziyaretçinin tıklama ve aktivite hareketini kaydediyorum.
+    [AllowAnonymous]
     [HttpPost("products/{productId}/activities")]
     public async Task<IActionResult> RecordActivity(
         string productId,

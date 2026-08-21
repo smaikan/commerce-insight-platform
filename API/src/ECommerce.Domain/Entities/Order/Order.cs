@@ -538,8 +538,8 @@ public sealed class Order : AuditableEntity
         {
             OrderStatus.Pending => targetStatus is OrderStatus.Confirmed or OrderStatus.Cancelled,
             OrderStatus.Confirmed => targetStatus is OrderStatus.Paid or OrderStatus.Cancelled,
-            OrderStatus.Paid => targetStatus is OrderStatus.Preparing or OrderStatus.Refunded,
-            OrderStatus.Preparing => targetStatus is OrderStatus.Shipped or OrderStatus.Refunded,
+            OrderStatus.Paid => targetStatus is OrderStatus.Preparing or OrderStatus.Cancelled or OrderStatus.Refunded,
+            OrderStatus.Preparing => targetStatus is OrderStatus.Shipped or OrderStatus.Cancelled or OrderStatus.Refunded,
             OrderStatus.Shipped => targetStatus is OrderStatus.Delivered or OrderStatus.Refunded,
             OrderStatus.Delivered => targetStatus == OrderStatus.Refunded,
             OrderStatus.Cancelled or OrderStatus.Refunded => false,

@@ -39,7 +39,7 @@ export default async function Home() {
       }),
     ),
     getPublishedProducts({ SortBy: 1, PageSize: 4, PageNumber: 1 }).catch(() => null),
-    getCollectionShowcase(1, 10).catch(() => null),
+    getCollectionShowcase(1, 100).catch(() => null),
   ]);
 
   const loadedBanners = bannerResults

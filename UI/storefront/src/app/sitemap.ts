@@ -31,14 +31,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     ...[
+      "/contact",
       "/distance-sales-agreement",
       "/payment-and-delivery",
       "/cancellation-and-refund",
       "/privacy-policy",
     ].map((path) => ({
       url: `${siteConfig.url}${path}`,
-      changeFrequency: "yearly" as const,
-      priority: 0.3,
+      changeFrequency: (path === "/contact" ? ("monthly" as const) : ("yearly" as const)),
+      priority: path === "/contact" ? 0.6 : 0.3,
     })),
     ...products.map((product) => ({
       url: productCanonicalUrl(product.url),

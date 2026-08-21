@@ -45,28 +45,28 @@ export async function SiteHeader() {
 
   return (
     <>
-      {/* Burada mağaza adını kaldırıp hizmet duyurularını JavaScript gerektirmeyen, kesintisiz kayan ve duraklatılabilir bir şeritte sunuyorum. */}
-      <div className="bg-brand-950 text-white">
-        <div className="announcement-strip relative overflow-hidden" role="region" aria-label="Mağaza duyuruları">
-          {/* Burada CSS checkbox durumunu küçük bir hareket kontrolüne bağlayarak kullanıcıya kalıcı duraklatma seçeneği veriyorum. */}
-          <input
-            id="announcement-motion-toggle"
-            type="checkbox"
-            className="announcement-motion-toggle peer sr-only"
-            aria-label="Duyuru hareketini duraklat veya başlat"
-          />
-          <div className="announcement-marquee-track flex w-max">
-            <AnnouncementList />
-            {/* Burada yalnız görsel süreklilik sağlayan ikinci kopyayı ekran okuyucudan gizliyorum. */}
-            <AnnouncementList duplicate />
+      {/* Burada hizmet duyurularını kesintisiz kayan bir şeritte sunup sağ tarafına İletişim linkini sabitliyorum. */}
+      <div className="bg-brand-950 text-white border-b border-brand-900/60">
+        <div className="flex items-stretch">
+          <div className="announcement-strip relative flex-1 min-w-0 overflow-hidden" role="region" aria-label="Mağaza duyuruları">
+            <div className="announcement-marquee-track flex w-max">
+              <AnnouncementList />
+              {/* Burada yalnız görsel süreklilik sağlayan ikinci kopyayı ekran okuyucudan gizliyorum. */}
+              <AnnouncementList duplicate />
+            </div>
           </div>
-          <label
-            htmlFor="announcement-motion-toggle"
-            className="announcement-motion-control absolute inset-y-0 right-0 flex w-10 cursor-pointer items-center justify-center border-l border-footer-line bg-brand-950 text-white peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600 peer-focus-visible:ring-inset"
-          >
-            <svg aria-hidden="true" viewBox="0 0 20 20" className="announcement-pause-icon size-3.5" fill="currentColor"><path d="M5 4h3v12H5zm7 0h3v12h-3z" /></svg>
-            <svg aria-hidden="true" viewBox="0 0 20 20" className="announcement-play-icon hidden size-3.5" fill="currentColor"><path d="m6 4 9 6-9 6z" /></svg>
-          </label>
+          <div className="relative z-10 shrink-0 flex items-stretch border-l border-white/10 bg-brand-950">
+            <Link
+              href="/contact"
+              prefetch={false}
+              className="focus-ring flex items-center gap-1.5 px-3.5 sm:px-5 text-[0.625rem] sm:text-[0.6875rem] font-bold tracking-[0.1em] text-white hover:text-brand-300 transition-colors uppercase whitespace-nowrap"
+            >
+              <svg className="size-3 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>İletişim</span>
+            </Link>
+          </div>
         </div>
       </div>
       <ScrollAwareHeader>
@@ -120,7 +120,7 @@ export async function SiteHeader() {
 // Burada aynı duyuru grubunu erişilebilir ana liste ve görsel devam kopyası için tek kaynaktan üretiyorum.
 function AnnouncementList({ duplicate = false }: { duplicate?: boolean }) {
   return (
-    <ul className={`announcement-marquee-group flex min-h-9 shrink-0 items-center justify-around gap-10 px-8 pr-14 text-[0.625rem] font-semibold tracking-[0.08em] whitespace-nowrap uppercase lg:text-[0.6875rem] lg:tracking-[0.1em] ${duplicate ? "announcement-marquee-copy" : ""}`} aria-hidden={duplicate || undefined}>
+    <ul className={`announcement-marquee-group flex min-h-9 shrink-0 items-center justify-around gap-10 px-6 sm:px-10 text-[0.625rem] font-semibold tracking-[0.08em] whitespace-nowrap uppercase lg:text-[0.6875rem] lg:tracking-[0.1em] ${duplicate ? "announcement-marquee-copy" : ""}`} aria-hidden={duplicate || undefined}>
       {STORE_ANNOUNCEMENTS.map((announcement) => (
         // Burada duyuruları başlarında dekoratif nokta olmadan doğrudan, temiz bir metin ritmiyle gösteriyorum.
         <li key={announcement} className="shrink-0">{announcement}</li>

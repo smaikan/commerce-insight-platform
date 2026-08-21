@@ -9,7 +9,7 @@ public sealed class CollectionConfiguration : IEntityTypeConfiguration<Collectio
     // Burada koleksiyon tablosunun alan ve indeks kurallarını tanımlıyorum.
     public void Configure(EntityTypeBuilder<Collection> builder)
     {
-        builder.ToTable("Collections");
+        builder.ToTable("Collections", table => table.UseSqlOutputClause(false));
 
         builder.HasKey(collection => collection.Id);
 

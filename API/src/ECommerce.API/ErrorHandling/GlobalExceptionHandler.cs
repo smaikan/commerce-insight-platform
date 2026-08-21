@@ -42,7 +42,8 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         {
             _logger.LogError(
                 exception,
-                "İşlenmeyen API hatası oluştu. TraceId: {TraceId}",
+                "İşlenmeyen API hatası oluştu: {Message}. TraceId: {TraceId}",
+                exception.Message,
                 httpContext.TraceIdentifier);
         }
         else if (exception is ConcurrencyException)
@@ -62,9 +63,9 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         }
 
         var detail = statusCode == StatusCodes.Status500InternalServerError
-            ? _environment.IsDevelopment()
-                ? exception.Message
-                : "An unexpected error occurred. Use the traceId when contacting support."
+            ? exception.InnerException != null
+                ? $"{exception.Message} ({exception.InnerException.Message})"
+                : exception.Message
             : exception.Message;
 
         ProblemDetails problemDetails;

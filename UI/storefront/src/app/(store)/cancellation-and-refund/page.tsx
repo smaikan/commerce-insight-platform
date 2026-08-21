@@ -14,7 +14,7 @@ const sections: LegalSection[] = [
   {
     id: "cancellation",
     title: "Sipariş iptali",
-    content: <><p>Ödeme öncesi veya sipariş henüz hazırlanma sürecine geçmeden iptal seçeneği sipariş durumuna göre sunulabilir. Mevcut sistemde müşteri iptali yalnız uygun <strong>beklemede</strong> veya <strong>onaylandı</strong> durumlarında ve uzlaştırma bekleyen ödeme bulunmadığında gerçekleştirilebilir.</p><p>Ödenmiş, hazırlanan veya kargoya verilmiş siparişlerde doğrudan iptal yerine teslimat ve kanuni iade süreci uygulanabilir. İptal sonucu stok, kupon ve rezervasyon durumu mağaza sistemi tarafından yeniden hesaplanır.</p></>,
+    content: <><p>Ödeme öncesi veya sipariş henüz hazırlanma sürecine geçmeden iptal seçeneği sipariş durumuna göre sunulabilir. Mevcut sistemde müşteri iptali yalnız sipariş kargoya verilmeden önce ve uzlaştırma bekleyen ödeme bulunmadığında gerçekleştirilebilir.</p><p>Ödenmiş, hazırlanan veya kargoya verilmiş siparişlerde doğrudan iptal yerine teslimat ve kanuni iade süreci uygulanabilir. İptal sonucu stok, kupon ve rezervasyon durumu mağaza sistemi tarafından yeniden hesaplanır.</p></>,
   },
   {
     id: "withdrawal-period",

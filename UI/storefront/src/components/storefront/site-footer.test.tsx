@@ -71,8 +71,8 @@ describe("site footer", () => {
 
     expect(html).toContain("store-settings%2Fdark-logo%2Ffooter.webp");
     expect(html).not.toContain("store-settings%2Flogo%2Flight.webp");
-    expect(html).toContain('sizes="(min-width: 640px) 128px, 112px"');
-    expect(html).toContain("size-28");
+    expect(html).toContain('sizes="(min-width: 640px) 112px, 96px"');
+    expect(html).toContain("size-24");
   });
 
   // Burada görünüm katmanının verilen koleksiyon bağlantılarını semantik koleksiyon navigasyonunda gösterdiğini doğruluyorum.
@@ -95,6 +95,25 @@ describe("site footer", () => {
     expect(emptyHtml).toContain("Tüm koleksiyonlar");
   });
 
+  // Burada görünüm katmanının verilen kategori bağlantılarını semantik kategori navigasyonunda gösterdiğini doğruluyorum.
+  it("renders category navigation with the categories fallback", () => {
+    const populatedHtml = renderToStaticMarkup(
+      <SiteFooterView
+        settings={settings}
+        collections={[]}
+        categories={[
+          { id: "cat1", label: "Kategori 1", href: "/category/kategori-1", productCount: 5 },
+        ]}
+      />,
+    );
+    const emptyHtml = renderToStaticMarkup(<SiteFooterView settings={settings} collections={[]} />);
+
+    expect(populatedHtml).toContain('aria-label="Footer kategorileri"');
+    expect(populatedHtml).toContain('href="/category/kategori-1"');
+    expect(emptyHtml).toContain('href="/categories"');
+    expect(emptyHtml).toContain("Tüm kategoriler");
+  });
+
   // Burada footer'ın yoğun koleksiyon verisinde ilk altı bağlantıyla sınırlı kaldığını doğruluyorum.
   it("limits collection navigation to six items", () => {
     const collections = Array.from({ length: 7 }, (_, index) => ({
@@ -113,8 +132,9 @@ describe("site footer", () => {
   it("renders accessible mobile footer disclosures", () => {
     const html = renderToStaticMarkup(<SiteFooterView settings={settings} collections={[]} />);
 
-    expect(html.match(/aria-expanded="false"/g)).toHaveLength(3);
+    expect(html.match(/aria-expanded="false"/g)).toHaveLength(4);
     expect(html).toContain('aria-controls="footer-contact-panel"');
+    expect(html).toContain('aria-controls="footer-categories-panel"');
     expect(html).toContain('aria-controls="footer-collections-panel"');
     expect(html).toContain('aria-controls="footer-customer-panel"');
     expect(html).toContain("sm:hidden");

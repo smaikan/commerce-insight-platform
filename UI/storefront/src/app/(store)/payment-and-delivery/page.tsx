@@ -32,7 +32,7 @@ const sections: LegalSection[] = [
   {
     id: "delivery-time",
     title: "Hazırlık ve teslimat süresi",
-    content: <><p>Tahmini hazırlık ve teslimat süresi ürün, teslimat bölgesi ve kargo yöntemine göre sipariş öncesinde belirtilir. Mevzuatta daha kısa süre taahhüt edilmedikçe ürün en geç otuz gün içinde gönderilir veya teslim edilir.</p><p>Stok veya teslimatın sonradan imkânsızlaşması halinde tüketici gecikmeden bilgilendirilir; varsa tahsil edilen bedeller mevzuattaki süre ve yönteme uygun olarak iade edilir.</p></>,
+    content: <><p>Tahmini hazırlık ve teslimat süresi ürün, teslimat bölgesi ve kargo yöntemine göre sipariş öncesinde belirtilir. Mevzuatta daha kısa süre taahhüt edilmedikçe ürün en geç 3 iş günü içinde kargoya verilir. Teslimatın 3 iş gününden uzun süreceği durumlarda tüketici bilgilendirilir ve onay alınır.</p><p>Stok veya teslimatın sonradan imkânsızlaşması halinde tüketici gecikmeden bilgilendirilir; varsa tahsil edilen bedeller mevzuattaki süre ve yönteme uygun olarak iade edilir.</p></>,
   },
   {
     id: "address",

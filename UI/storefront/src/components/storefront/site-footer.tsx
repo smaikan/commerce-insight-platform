@@ -67,27 +67,39 @@ const FOOTER_LEGAL_LINKS = legalLinks.filter(
   (link) => link.href !== "/membership-agreement" && link.href !== "/membership-privacy-notice",
 );
 
-// Burada public kimlik/iletişim ayarlarını ve en fazla altı gerçek koleksiyon hedefini paralel okuyarak footer görünümüne aktarıyorum.
+// Burada public kimlik/iletişim ayarlarını ve en çok ürün içeren koleksiyon ile kategorileri paralel okuyarak footer görünümüne aktarıyorum.
 export async function SiteFooter() {
   const [settingsResult, navigationResult] = await Promise.allSettled([
     getPublicStoreSettings(),
     getStorefrontNavigation(),
   ]);
   const settings = settingsResult.status === "fulfilled" ? settingsResult.value : FALLBACK_FOOTER_SETTINGS;
-  const collections = navigationResult.status === "fulfilled"
-    ? navigationResult.value.find((group) => group.id === "collections")?.items.slice(0, 6) || []
-    : [];
+  const navGroups = navigationResult.status === "fulfilled" ? navigationResult.value : [];
+  
+  // İçinde en çok ürün bulunan 6 koleksiyon
+  const rawCollections = navGroups.find((group) => group.id === "collections")?.items || [];
+  const collections = [...rawCollections]
+    .sort((a, b) => b.productCount - a.productCount)
+    .slice(0, 6);
 
-  return <SiteFooterView settings={settings} collections={collections} />;
+  // İçinde en çok ürün bulunan 6 kategori
+  const rawCategories = navGroups.find((group) => group.id === "categories")?.items || [];
+  const categories = [...rawCategories]
+    .sort((a, b) => b.productCount - a.productCount)
+    .slice(0, 6);
+
+  return <SiteFooterView settings={settings} collections={collections} categories={categories} />;
 }
 
-// Burada referanstaki marka, iletişim, koleksiyon ve müşteri hizmetleri kolonlarını responsive ve semantik footer olarak kuruyorum.
+// Burada referanstaki marka, iletişim, kategoriler, koleksiyonlar ve müşteri hizmetleri kolonlarını responsive ve semantik footer olarak kuruyorum.
 export function SiteFooterView({
   settings,
   collections,
+  categories = [],
 }: {
   settings: FooterSettings;
   collections: StorefrontNavigationItem[];
+  categories?: StorefrontNavigationItem[];
 }) {
   const displayName = settings.displayName.trim() || siteConfig.name;
   // Burada koyu footer yüzeyinde önce açık renkli alternatif logoyu, yoksa standart logoyu kullanıyorum.
@@ -102,35 +114,35 @@ export function SiteFooterView({
 
   return (
     <footer className="mt-auto border-t-4 border-brand-600 bg-footer text-footer-ink">
-      {/* Burada footer kolonlarını ana sayfa genişliğiyle hizalayıp daha sakin ve kompakt bir bilgi ritmi kuruyorum. */}
-      <div className="page-shell grid gap-0 pt-9 pb-7 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-9 sm:pt-10 sm:pb-8 lg:grid-cols-[minmax(14rem,1.2fr)_minmax(14rem,1fr)_minmax(9rem,0.65fr)_minmax(14rem,1fr)] lg:gap-x-9 lg:pt-11 lg:pb-8 xl:gap-x-12">
-        <section className="pb-7 sm:pb-0" aria-label="Mağaza bilgileri">
+      {/* Burada footer kolonlarını 5 kolonlu, marka bölümü daraltılmış ve dengeli bir bilgi ritmiyle kuruyorum. */}
+      <div className="page-shell grid gap-0 pt-9 pb-7 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-9 sm:pt-10 sm:pb-8 lg:grid-cols-[minmax(11rem,1fr)_minmax(13rem,1.2fr)_minmax(8rem,0.85fr)_minmax(8rem,0.85fr)_minmax(11rem,1fr)] lg:gap-x-6 lg:pt-11 lg:pb-8 xl:gap-x-9">
+        <section className="pb-7 sm:pb-0 pr-2" aria-label="Mağaza bilgileri">
           <Link href="/" prefetch={false} className="focus-ring inline-flex max-w-full items-center" aria-label={`${displayName} ana sayfa`}>
             {logoUrl ? (
               <Image
                 src={logoUrl}
                 alt={displayName}
-                width={300}
-                height={300}
-                sizes="(min-width: 640px) 128px, 112px"
-                className="size-28 object-contain object-left sm:size-32"
+                width={240}
+                height={240}
+                sizes="(min-width: 640px) 112px, 96px"
+                className="size-24 object-contain object-left sm:size-28"
               />
             ) : (
               <span className="text-xl font-black tracking-[0.13em] sm:text-2xl">{displayName}</span>
             )}
           </Link>
           {settings.shortDescription ? (
-            <p className="mt-3 max-w-sm text-sm leading-6 text-footer-muted">{settings.shortDescription}</p>
+            <p className="mt-2.5 max-w-xs text-xs leading-5 text-footer-muted sm:text-sm sm:leading-6">{settings.shortDescription}</p>
           ) : null}
           {socialLinks.length > 0 ? (
-            <nav className="mt-4 flex flex-wrap gap-2" aria-label="Sosyal medya hesapları">
+            <nav className="mt-3.5 flex flex-wrap gap-1.5" aria-label="Sosyal medya hesapları">
               {socialLinks.map((social) => (
                 <a
                   key={social.key}
                   href={social.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="focus-ring inline-flex size-10 items-center justify-center rounded-lg border border-footer-line bg-footer-chip text-footer-ink transition-colors hover:border-brand-600 hover:bg-brand-700"
+                  className="focus-ring inline-flex size-9 items-center justify-center rounded-lg border border-footer-line bg-footer-chip text-footer-ink transition-colors hover:border-brand-600 hover:bg-brand-700"
                   aria-label={`${social.label} hesabımızı aç`}
                 >
                   <SocialIcon name={social.label} />
@@ -154,11 +166,31 @@ export function SiteFooterView({
           </FooterDisclosure>
         </div>
 
+        <FooterDisclosure id="footer-categories" title="Kategoriler">
+          <nav className="mt-1 flex flex-col items-start sm:mt-4" aria-label="Footer kategorileri">
+            {categories.length > 0 ? (
+              <>
+                {categories.slice(0, 6).map((category) => (
+                  <Link key={category.id} className="footer-link inline-flex min-h-10 items-center text-sm" href={category.href} prefetch={false}>{category.label}</Link>
+                ))}
+                <Link className="footer-link inline-flex min-h-10 items-center text-sm" href="/categories" prefetch={false}>Tüm kategoriler</Link>
+              </>
+            ) : (
+              <Link className="footer-link inline-flex min-h-10 items-center text-sm" href="/categories" prefetch={false}>Tüm kategoriler</Link>
+            )}
+          </nav>
+        </FooterDisclosure>
+
         <FooterDisclosure id="footer-collections" title="Koleksiyonlar">
           <nav className="mt-1 flex flex-col items-start sm:mt-4" aria-label="Footer koleksiyonları">
-            {collections.length > 0 ? collections.slice(0, 6).map((collection) => (
-              <Link key={collection.id} className="footer-link inline-flex min-h-10 items-center text-sm" href={collection.href} prefetch={false}>{collection.label}</Link>
-            )) : (
+            {collections.length > 0 ? (
+              <>
+                {collections.slice(0, 6).map((collection) => (
+                  <Link key={collection.id} className="footer-link inline-flex min-h-10 items-center text-sm" href={collection.href} prefetch={false}>{collection.label}</Link>
+                ))}
+                <Link className="footer-link inline-flex min-h-10 items-center text-sm" href="/collections" prefetch={false}>Tüm koleksiyonlar</Link>
+              </>
+            ) : (
               <Link className="footer-link inline-flex min-h-10 items-center text-sm" href="/collections" prefetch={false}>Tüm koleksiyonlar</Link>
             )}
           </nav>
@@ -169,7 +201,7 @@ export function SiteFooterView({
             {FOOTER_LEGAL_LINKS.map((link) => (
               <Link key={link.href} className="footer-link inline-flex min-h-10 items-center text-sm" href={link.href} prefetch={false}>{link.label}</Link>
             ))}
-            <a className="footer-link inline-flex min-h-10 items-center text-sm" href="#store-contact">İletişim</a>
+            <Link className="footer-link inline-flex min-h-10 items-center text-sm" href="/contact" prefetch={false}>İletişim</Link>
           </nav>
         </FooterDisclosure>
       </div>

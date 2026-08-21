@@ -9,7 +9,7 @@ export const CATALOG_PAGE_SIZE = 24;
 
 export const CATALOG_SORT_LABELS: Record<CatalogSort, string> = {
   newest: "En yeni",
-  popular: "En popüler",
+  popular: "Çok Satanlar",
   "display-order": "Önerilen sıra",
   title: "Ada göre",
 };

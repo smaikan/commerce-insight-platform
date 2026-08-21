@@ -9,31 +9,31 @@ const STORE_BENEFITS: Array<{
   href: string;
   icon: BenefitIcon;
 }> = [
-  {
-    title: "TESLİMAT SEÇENEKLERİ",
-    description: "Aktif kargo seçeneklerini sipariş adımında görebilirsiniz",
-    href: "/payment-and-delivery",
-    icon: "delivery",
-  },
-  {
-    title: "DESTEK KANALLARI",
-    description: "Yayınlanan iletişim bilgilerimizden bize ulaşabilirsiniz",
-    href: "#store-contact",
-    icon: "support",
-  },
-  {
-    title: "14 GÜN İÇİNDE CAYMA",
-    description: "Koşullara tabi cayma ve iade sürecini inceleyebilirsiniz",
-    href: "/cancellation-and-refund",
-    icon: "return",
-  },
-  {
-    title: "GÜVENLİ ÖDEME",
-    description: "Ödeme tutarı yetkili servis yanıtıyla doğrulanır",
-    href: "/payment-and-delivery",
-    icon: "payment",
-  },
-];
+    {
+      title: "TESLİMAT SEÇENEKLERİ",
+      description: "Aktif kargo seçeneklerini sipariş adımında görebilirsiniz",
+      href: "/payment-and-delivery",
+      icon: "delivery",
+    },
+    {
+      title: "DESTEK KANALLARI",
+      description: "Yayınlanan iletişim bilgilerimizden bize ulaşabilirsiniz",
+      href: "/contact",
+      icon: "support",
+    },
+    {
+      title: "14 GÜN İÇİNDE CAYMA",
+      description: "Koşullara tabi cayma ve iade sürecini inceleyebilirsiniz",
+      href: "/cancellation-and-refund",
+      icon: "return",
+    },
+    {
+      title: "GÜVENLİ ÖDEME",
+      description: "Iyzco Altyapısıyla Güvenli Alışveriş.",
+      href: "/payment-and-delivery",
+      icon: "payment",
+    },
+  ];
 
 // Burada footer öncesi fayda satırını referanstaki yatay ritimle, mobilde okunabilir sıraya dönüşecek biçimde sunuyorum.
 export function StoreBenefits() {

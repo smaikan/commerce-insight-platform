@@ -9,7 +9,7 @@ public sealed class BrandConfiguration : IEntityTypeConfiguration<Brand>
     // Burada marka tablosunun alan ve indeks kurallarını tanımlıyorum.
     public void Configure(EntityTypeBuilder<Brand> builder)
     {
-        builder.ToTable("Brands");
+        builder.ToTable("Brands", table => table.UseSqlOutputClause(false));
 
         builder.HasKey(brand => brand.Id);
 

@@ -8,7 +8,7 @@ public sealed class ProductCollectionConfiguration : IEntityTypeConfiguration<Pr
 {
     public void Configure(EntityTypeBuilder<ProductCollection> builder)
     {
-        builder.ToTable("ProductCollections");
+        builder.ToTable("ProductCollections", table => table.UseSqlOutputClause(false));
 
         builder.HasKey(productCollection => productCollection.Id);
 

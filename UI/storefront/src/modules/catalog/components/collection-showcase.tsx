@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import type { CollectionShowcaseItem, CollectionShowcasePage } from "@/modules/catalog/collections";
 import { collectionsHref } from "@/modules/catalog/collections-query";
+import { PageJumpForm } from "@/modules/catalog/components/page-jump-form";
 
 // Burada ürün kataloğundan ayrışan editoryal mozaikle koleksiyonları görsel ve isim odağında sunuyorum.
 export function CollectionShowcase({ page }: { page: CollectionShowcasePage }) {
@@ -54,31 +55,46 @@ export function CollectionShowcase({ page }: { page: CollectionShowcasePage }) {
   );
 }
 
-// Burada API sayfalama sonucunu erişilebilir önceki/sonraki bağlantılarıyla ve seçilmiş pageSize değeri korunarak sunuyorum.
+// Burada API sayfalama sonucunu erişilebilir önceki/sonraki bağlantılarıyla ve doğrudan sayfa atlama formuyla sunuyorum.
 function CollectionPagination({ page }: { page: CollectionShowcasePage }) {
   if (page.totalPages <= 1) return null;
 
   return (
-    <nav className="mt-12 flex items-center justify-between border-t border-line pt-6" aria-label="Koleksiyon sayfaları">
-      {page.hasPreviousPage ? (
-        <Link
-          className="focus-ring rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold hover:border-brand-600"
-          href={collectionsHref({ page: page.pageNumber - 1, pageSize: page.pageSize })}
-          rel="prev"
-        >
-          Önceki
-        </Link>
-      ) : <span />}
-      <p className="text-sm text-ink-muted"><span className="font-semibold text-ink">{page.pageNumber}</span> / {page.totalPages}</p>
-      {page.hasNextPage ? (
-        <Link
-          className="focus-ring rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold hover:border-brand-600"
-          href={collectionsHref({ page: page.pageNumber + 1, pageSize: page.pageSize })}
-          rel="next"
-        >
-          Sonraki
-        </Link>
-      ) : <span />}
+    <nav className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6" aria-label="Koleksiyon sayfaları">
+      <div className="flex items-center">
+        {page.hasPreviousPage ? (
+          <Link
+            className="focus-ring inline-flex items-center rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink hover:border-brand-600 transition-colors"
+            href={collectionsHref({ page: page.pageNumber - 1, pageSize: page.pageSize })}
+            rel="prev"
+          >
+            Önceki
+          </Link>
+        ) : <span />}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+        <p className="text-sm text-ink-muted">
+          Sayfa <span className="font-semibold text-ink">{page.pageNumber}</span> / <span className="font-semibold text-ink">{page.totalPages}</span>
+        </p>
+        <PageJumpForm
+          currentPage={page.pageNumber}
+          totalPages={page.totalPages}
+          hrefTemplate={collectionsHref({ page: 999999, pageSize: page.pageSize }).replace("999999", "__PAGE__")}
+        />
+      </div>
+
+      <div className="flex items-center">
+        {page.hasNextPage ? (
+          <Link
+            className="focus-ring inline-flex items-center rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink hover:border-brand-600 transition-colors"
+            href={collectionsHref({ page: page.pageNumber + 1, pageSize: page.pageSize })}
+            rel="next"
+          >
+            Sonraki
+          </Link>
+        ) : <span />}
+      </div>
     </nav>
   );
 }

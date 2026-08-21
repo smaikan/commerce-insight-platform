@@ -8,7 +8,7 @@ public sealed class TagConfiguration : IEntityTypeConfiguration<Tag>
 {
     public void Configure(EntityTypeBuilder<Tag> builder)
     {
-        builder.ToTable("Tags");
+        builder.ToTable("Tags", table => table.UseSqlOutputClause(false));
 
         builder.HasKey(tag => tag.Id);
 

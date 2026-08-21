@@ -60,9 +60,9 @@ public sealed class ChangeOrderStatusCommandHandler : IRequestHandler<ChangeOrde
             ?? throw new NotFoundException("Order was not found.");
         if (request.Status == OrderStatus.Cancelled)
         {
-            if (order.Status is not OrderStatus.Pending and not OrderStatus.Confirmed)
+            if (order.Status is not (OrderStatus.Pending or OrderStatus.Confirmed or OrderStatus.Paid or OrderStatus.Preparing))
             {
-                throw new ConflictException("Only pending or confirmed orders can be cancelled.");
+                throw new ConflictException("Only orders that have not been shipped can be cancelled.");
             }
 
             if (order.Payments.Any(payment => payment.Status == PaymentStatus.Pending))

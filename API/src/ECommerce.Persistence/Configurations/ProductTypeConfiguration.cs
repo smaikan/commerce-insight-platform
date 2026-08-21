@@ -9,7 +9,7 @@ public sealed class ProductTypeConfiguration : IEntityTypeConfiguration<ProductT
     // Burada ürün türünün tablo, alan ve indeks kurallarını tanımlıyorum.
     public void Configure(EntityTypeBuilder<ProductType> builder)
     {
-        builder.ToTable("ProductTypes");
+        builder.ToTable("ProductTypes", table => table.UseSqlOutputClause(false));
 
         builder.HasKey(type => type.Id);
 

@@ -8,6 +8,7 @@ import {
   confirmationProblemMessage,
   loadCheckoutOrder,
 } from "@/modules/checkout/client/checkout-api";
+import { loadCart } from "@/modules/cart/client/cart-api";
 import { IyzicoPaymentControl } from "@/modules/checkout/components/iyzico-payment-control";
 import { authoritativePaymentState } from "@/modules/checkout/payment-state";
 import type { CheckoutOrder } from "@/modules/checkout/types";
@@ -25,7 +26,11 @@ export function OrderConfirmation({ orderId, currency, isMember = false }: { ord
     let active = true;
     void loadCheckoutOrder(orderId)
       .then((order) => {
-        if (active) setState({ kind: "ready", order });
+        if (active) {
+          setState({ kind: "ready", order });
+          // Burada ödeme sonrası backend'de temizlenmiş sepeti frontend'e yansıtarak header sayacını güncelliyorum.
+          void loadCart(true).catch(() => undefined);
+        }
       })
       .catch((error) => {
         if (active) setState({ kind: "error", message: confirmationProblemMessage(error) });

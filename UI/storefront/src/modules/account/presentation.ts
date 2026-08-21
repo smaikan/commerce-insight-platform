@@ -15,16 +15,16 @@ const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("tr-TR", {
 });
 
 export const ORDER_STATUS_LABELS: Record<number, string> = {
-  0: "Ödeme bekliyor",
-  1: "Sipariş onaylandı",
-  2: "Ödendi",
+  0: "Onay Bekliyor",
+  1: "Onaylandı",
+  2: "Ödeme Alındı",
   3: "Hazırlanıyor",
-  4: "Kargoya verildi",
-  5: "Teslim edildi",
-  6: "İptal edildi",
-  7: "İade edildi",
-  8: "İade talep edildi",
-  9: "İade onaylandı",
+  4: "Kargoya Verildi",
+  5: "Teslim Edildi",
+  6: "İptal Edildi",
+  7: "Ücret İade Edildi",
+  8: "İade Talebi Oluşturuldu",
+  9: "İade Talebi Onaylandı",
 };
 
 // Burada API tarihini mağaza dilinde, sabit Türkiye saat dilimiyle sunuyorum.

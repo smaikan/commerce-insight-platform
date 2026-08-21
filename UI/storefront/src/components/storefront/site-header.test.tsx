@@ -89,19 +89,20 @@ describe("site header auth navigation", () => {
     expect(html).toContain("size-4.5 sm:size-5");
   });
 
-  // Burada üst şeridin kullanıcı tarafından onaylanan hizmet taahhütlerini erişilebilir tek bir listede taşıdığını doğruluyorum.
-  it("renders the store announcement strip", async () => {
+  // Burada üst şeridin duyuruları ve sağda sabit İletişim linkini taşıdığını doğruluyorum.
+  it("renders the store announcement strip with contact link", async () => {
     const html = renderToStaticMarkup(<HeaderSessionProvider>{await SiteHeader()}</HeaderSessionProvider>);
 
     expect(html).toContain('aria-label="Mağaza duyuruları"');
-    expect(html).not.toContain("SERANTIS · Online mağaza");
     expect(html).toContain("Ücretsiz Kargo");
     expect(html).toContain("Vade Farksız 3 Taksit");
     expect(html).toContain("Aynı Gün Kargo");
     expect(html).toContain("Kolay İade");
     expect(html).toContain("7/24 Canlı Destek");
     expect(html).toContain('aria-hidden="true"');
-    expect(html).toContain("Duyuru hareketini duraklat veya başlat");
+    expect(html).toContain('href="/contact"');
+    expect(html).toContain("İletişim");
+    expect(html).not.toContain("Duyuru hareketini duraklat veya başlat");
     expect(html).not.toContain("•");
   });
 });

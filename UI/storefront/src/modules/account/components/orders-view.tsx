@@ -57,7 +57,19 @@ export function OrdersView({ orders, status }: { orders: AccountOrderPage; statu
 
 // Burada sipariş durumunu metin ve kontrollü semantik tonla birlikte gösteriyorum.
 export function OrderStatus({ status }: { status: number }) {
-  const tone = status === 5 ? "border-success/25 bg-success/5 text-success" : status === 6 || status === 7 ? "border-danger/25 bg-danger/5 text-danger" : "border-brand-600/20 bg-surface-subtle text-brand-700";
+  const tones: Record<number, string> = {
+    0: "border-yellow-300 bg-yellow-100 text-yellow-800",
+    1: "border-blue-200 bg-blue-50 text-blue-800",
+    2: "border-success/25 bg-success/5 text-success",
+    3: "border-amber-200 bg-amber-50 text-amber-800",
+    4: "border-indigo-200 bg-indigo-50 text-indigo-800",
+    5: "border-success/50 bg-success/10 text-success",
+    6: "border-danger/25 bg-danger/5 text-danger",
+    7: "border-rose-200 bg-rose-50 text-rose-800",
+    8: "border-orange-200 bg-orange-50 text-orange-800",
+    9: "border-teal-200 bg-teal-50 text-teal-800",
+  };
+  const tone = tones[status] || "border-brand-600/20 bg-surface-subtle text-brand-700";
   return <span className={`inline-flex min-h-7 items-center border px-2 text-xs font-bold ${tone}`}>{orderStatusLabel(status)}</span>;
 }
 

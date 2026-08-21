@@ -104,6 +104,6 @@ describe("collection showcase", () => {
 
     expect(html).toContain('href="/collections?pageSize=40"');
     expect(html).toContain('href="/collections?page=3&amp;pageSize=40"');
-    expect(html).toContain("2</span> / 3");
+    expect(html).toContain("2</span> / <span");
   });
 });
