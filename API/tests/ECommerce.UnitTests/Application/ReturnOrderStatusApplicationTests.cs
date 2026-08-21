@@ -53,9 +53,9 @@ public sealed class ReturnOrderStatusApplicationTests
         order.ToSummaryDto().Status.Should().Be(OrderStatus.ReturnRequested);
     }
 
-    // Burada yönetici onayının sipariş listesindeki durumu iade olarak değiştirdiğini doğruluyorum.
+    // Burada refund onayının sipariş listesindeki kalıcı durumu ücret iadesi olarak değiştirdiğini doğruluyorum.
     [Fact]
-    public async Task ApproveReturnRequest_Should_Set_Order_Status_To_ReturnApproved()
+    public async Task ApproveRefundReturnRequest_Should_Set_Order_Status_To_Refunded()
     {
         var clock = new FixedClock();
         var (order, orderItem) = CreateDeliveredOrder();
@@ -66,10 +66,48 @@ public sealed class ReturnOrderStatusApplicationTests
                 returnRequest.Id,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(returnRequest);
+        returnRequests.Setup(repository => repository.GetByOrderIdForUpdateAsync(
+                order.Id,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([returnRequest]);
         var orders = new Mock<IOrderRepository>();
         orders.Setup(repository => repository.GetByIdForUpdateAsync(
                 order.Id,
                 It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        var unitOfWork = CreateTransactionalUnitOfWork<ReturnRequestDto>();
+        var handler = new ApproveReturnRequestCommandHandler(
+            returnRequests.Object,
+            orders.Object,
+            clock,
+            unitOfWork.Object);
+
+        await handler.Handle(
+            new ApproveReturnRequestCommand(returnRequest.Id),
+            CancellationToken.None);
+
+        returnRequest.Status.Should().Be(ReturnRequestStatus.Approved);
+        order.Status.Should().Be(OrderStatus.Refunded);
+        order.ToSummaryDto().Status.Should().Be(OrderStatus.Refunded);
+        unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // Burada exchange onayının siparişin iade onayı durumunu koruduğunu doğruluyorum.
+    [Fact]
+    public async Task ApproveExchangeReturnRequest_Should_Set_Order_Status_To_ReturnApproved()
+    {
+        var clock = new FixedClock();
+        var (order, orderItem) = CreateDeliveredOrder();
+        var returnRequest = new ReturnRequest(order.Id, order.UserId, "RET-ORDER-EXCHANGE", ReturnType.Exchange);
+        returnRequest.AddItem(orderItem, 1, Guid.NewGuid());
+        order.MarkReturnRequested();
+        var returnRequests = new Mock<IReturnRequestRepository>();
+        returnRequests.Setup(repository => repository.GetByIdForUpdateAsync(returnRequest.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(returnRequest);
+        returnRequests.Setup(repository => repository.GetByOrderIdForUpdateAsync(order.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([returnRequest]);
+        var orders = new Mock<IOrderRepository>();
+        orders.Setup(repository => repository.GetByIdForUpdateAsync(order.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
         var handler = new ApproveReturnRequestCommandHandler(
             returnRequests.Object,
@@ -77,13 +115,47 @@ public sealed class ReturnOrderStatusApplicationTests
             clock,
             CreateTransactionalUnitOfWork<ReturnRequestDto>().Object);
 
-        await handler.Handle(
-            new ApproveReturnRequestCommand(returnRequest.Id),
-            CancellationToken.None);
+        await handler.Handle(new ApproveReturnRequestCommand(returnRequest.Id), CancellationToken.None);
 
         returnRequest.Status.Should().Be(ReturnRequestStatus.Approved);
         order.Status.Should().Be(OrderStatus.ReturnApproved);
-        order.ToSummaryDto().Status.Should().Be(OrderStatus.ReturnApproved);
+    }
+
+    // Burada kısmi bir refund onayından sonra kalan adet için yeni talep açılırken siparişin ücret iadesi durumunu koruduğunu doğruluyorum.
+    [Fact]
+    public async Task CreateReturnRequest_Should_Allow_Remaining_Quantity_After_Partial_Refund()
+    {
+        var (order, orderItem) = CreateDeliveredOrder(2);
+        var approvedRefund = CreateRequestedRefund(order, orderItem, "RET-PARTIAL-REFUND");
+        approvedRefund.Approve(new FixedClock().UtcNow);
+        order.MarkRefunded();
+        var orders = new Mock<IOrderRepository>();
+        orders.Setup(repository => repository.GetByIdForUserForUpdateAsync(
+                order.Id,
+                order.UserId!.Value,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        var returnRequests = new Mock<IReturnRequestRepository>();
+        returnRequests.Setup(repository => repository.GetByOrderIdForUpdateAsync(order.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([approvedRefund]);
+        returnRequests.Setup(repository => repository.AddAsync(It.IsAny<ReturnRequest>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var handler = new CreateReturnRequestCommandHandler(
+            orders.Object,
+            returnRequests.Object,
+            Mock.Of<IProductVariantRepository>(),
+            new FixedCurrentUser(order.UserId!.Value),
+            CreateTransactionalUnitOfWork<ReturnRequestDto>().Object);
+
+        await handler.Handle(
+            new CreateReturnRequestCommand(
+                order.Id,
+                ReturnType.Refund,
+                [new CreateReturnItemCommand(orderItem.Id, 1)]),
+            CancellationToken.None);
+
+        order.Status.Should().Be(OrderStatus.Refunded);
+        returnRequests.Verify(repository => repository.AddAsync(It.IsAny<ReturnRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // Burada tek açık talep reddedildiğinde siparişin teslim edilmiş durumuna döndüğünü doğruluyorum.
@@ -131,7 +203,7 @@ public sealed class ReturnOrderStatusApplicationTests
         var rejectedRequest = CreateRequestedRefund(order, orderItem, "RET-ORDER-REJECTED");
         var approvedRequest = CreateRequestedRefund(order, orderItem, "RET-ORDER-APPROVED");
         approvedRequest.Approve(clock.UtcNow);
-        order.MarkReturnApproved();
+        order.MarkRefunded();
         var returnRequests = new Mock<IReturnRequestRepository>();
         returnRequests.Setup(repository => repository.GetByIdForUpdateAsync(
                 rejectedRequest.Id,
@@ -157,7 +229,7 @@ public sealed class ReturnOrderStatusApplicationTests
             CancellationToken.None);
 
         rejectedRequest.Status.Should().Be(ReturnRequestStatus.Rejected);
-        order.Status.Should().Be(OrderStatus.ReturnApproved);
+        order.Status.Should().Be(OrderStatus.Refunded);
     }
 
     // Burada genel yönetim durum endpointinin iade akışına ait durumları doğrudan kabul etmediğini doğruluyorum.
@@ -176,11 +248,12 @@ public sealed class ReturnOrderStatusApplicationTests
     }
 
     // Burada geçerli teslim edilmiş sipariş ve kalemini iade akışı testleri için hazırlıyorum.
-    private static (Order Order, OrderItem OrderItem) CreateDeliveredOrder()
+    private static (Order Order, OrderItem OrderItem) CreateDeliveredOrder(int quantity = 1)
     {
         var utcNow = new DateTime(2026, 7, 25, 12, 0, 0, DateTimeKind.Utc);
-        var order = new Order(7, $"ORD-{Guid.NewGuid():N}"[..30], 10m, 0m, 0m, 0m, 10m);
-        var orderItem = order.AddItem(11, Guid.NewGuid(), "Returnable product", "RETURN-SKU", 10m, 1);
+        var total = 10m * quantity;
+        var order = new Order(7, $"ORD-{Guid.NewGuid():N}"[..30], total, 0m, 0m, 0m, total);
+        var orderItem = order.AddItem(11, Guid.NewGuid(), "Returnable product", "RETURN-SKU", 10m, quantity);
         order.EnsureItemsMatchSubTotal();
         order.ChangeStatus(OrderStatus.Confirmed, utcNow);
         var payment = new Payment(order.Id, PaymentProvider.Fake, order.GrandTotal, $"return_status_{Guid.NewGuid():N}");

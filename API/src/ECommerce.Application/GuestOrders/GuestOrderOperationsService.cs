@@ -7,6 +7,7 @@ using ECommerce.Application.Orders.Dtos;
 using ECommerce.Application.Orders.Services;
 using ECommerce.Application.Returns.Commands.CreateReturnRequest;
 using ECommerce.Application.Returns.Dtos;
+using ECommerce.Application.Returns.Services;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 
@@ -276,7 +277,7 @@ public sealed class GuestOrderOperationsService
         var session = await _access.ValidateSessionAsync(sessionToken, csrfToken, true, cancellationToken);
         var order = await _guestOrders.GetOrderForSessionAsync(session.Id, orderId, true, cancellationToken)
             ?? throw new NotFoundException("Order was not found.");
-        if (order.Status is not OrderStatus.Delivered and not OrderStatus.ReturnRequested and not OrderStatus.ReturnApproved)
+        if (order.Status is not OrderStatus.Delivered and not OrderStatus.ReturnRequested and not OrderStatus.ReturnApproved and not OrderStatus.Refunded)
         {
             throw new ConflictException("Only delivered orders or orders with an existing return can have a return request.");
         }
@@ -315,7 +316,7 @@ public sealed class GuestOrderOperationsService
         }
 
         await _returns.AddAsync(returnRequest, cancellationToken);
-        order.MarkReturnRequested();
+        ReturnOrderStatusSynchronizer.Synchronize(order, [.. previous, returnRequest]);
         await _notifications.QueueReturnRequestedAsync(returnRequest, order, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return returnRequest.ToDto();

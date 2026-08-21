@@ -396,6 +396,23 @@ public sealed class Order : AuditableEntity
         MarkAsUpdated();
     }
 
+    // Burada onaylanan ücret iadesini siparişin kalıcı iş durumu olarak kaydediyorum.
+    public void MarkRefunded()
+    {
+        if (Status == OrderStatus.Refunded)
+        {
+            return;
+        }
+
+        if (Status is not OrderStatus.Delivered and not OrderStatus.ReturnRequested and not OrderStatus.ReturnApproved)
+        {
+            throw new DomainException("A refund can only be approved for a delivered order with a return request.");
+        }
+
+        Status = OrderStatus.Refunded;
+        MarkAsUpdated();
+    }
+
     // Burada aktif iade kalmadığında siparişi teslim edilmiş durumuna geri getiriyorum.
     public void RestoreDeliveredAfterReturnResolution()
     {

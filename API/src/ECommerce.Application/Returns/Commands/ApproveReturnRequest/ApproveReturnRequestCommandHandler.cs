@@ -2,6 +2,7 @@ using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Security;
 using ECommerce.Application.Returns.Dtos;
+using ECommerce.Application.Returns.Services;
 using MediatR;
 
 namespace ECommerce.Application.Returns.Commands.ApproveReturnRequest;
@@ -49,13 +50,17 @@ public sealed class ApproveReturnRequestCommandHandler : IRequestHandler<Approve
         var order = await _orderRepository.GetByIdForUpdateAsync(returnRequest.OrderId, cancellationToken)
             ?? throw new NotFoundException("Order was not found.");
         returnRequest.Approve(_clock.UtcNow, request.DecisionNote);
-        order.MarkReturnApproved();
+        var returnRequests = await _returnRequestRepository.GetByOrderIdForUpdateAsync(
+            returnRequest.OrderId,
+            cancellationToken);
+        ReturnOrderStatusSynchronizer.Synchronize(order, returnRequests);
         if (_notificationService is not null)
         {
             await _notificationService.QueueReturnStatusChangedAsync(
                 returnRequest,
                 order,
                 cancellationToken);
+            await _notificationService.QueueOrderStatusChangedAsync(order, cancellationToken);
         }
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return returnRequest.ToDto();

@@ -11,10 +11,17 @@ public static class ReturnOrderStatusSynchronizer
         ArgumentNullException.ThrowIfNull(order);
         ArgumentNullException.ThrowIfNull(returnRequests);
 
-        if (returnRequests.Any(request => request.Status is
-                ReturnRequestStatus.Approved or
-                ReturnRequestStatus.Received or
-                ReturnRequestStatus.Completed))
+        if (returnRequests.Any(request =>
+                request.Type == ReturnType.Refund &&
+                request.Status is (ReturnRequestStatus.Approved or ReturnRequestStatus.Received or ReturnRequestStatus.Completed)))
+        {
+            order.MarkRefunded();
+            return;
+        }
+
+        if (returnRequests.Any(request =>
+                request.Type == ReturnType.Exchange &&
+                request.Status is (ReturnRequestStatus.Approved or ReturnRequestStatus.Received or ReturnRequestStatus.Completed)))
         {
             order.MarkReturnApproved();
             return;

@@ -1,6 +1,7 @@
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Returns.Dtos;
+using ECommerce.Application.Returns.Services;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using MediatR;
@@ -55,7 +56,8 @@ public sealed class CreateReturnRequestCommandHandler : IRequestHandler<CreateRe
             ?? throw new NotFoundException("Order was not found.");
         if (order.Status is not OrderStatus.Delivered and
             not OrderStatus.ReturnRequested and
-            not OrderStatus.ReturnApproved)
+            not OrderStatus.ReturnApproved and
+            not OrderStatus.Refunded)
         {
             throw new ConflictException("Only delivered orders or orders with an existing return can have a return request.");
         }
@@ -116,7 +118,7 @@ public sealed class CreateReturnRequestCommandHandler : IRequestHandler<CreateRe
         }
 
         await _returnRequestRepository.AddAsync(returnRequest, cancellationToken);
-        order.MarkReturnRequested();
+        ReturnOrderStatusSynchronizer.Synchronize(order, [.. existingRequests, returnRequest]);
         if (_notificationService is not null)
         {
             await _notificationService.QueueReturnRequestedAsync(returnRequest, order, cancellationToken);
