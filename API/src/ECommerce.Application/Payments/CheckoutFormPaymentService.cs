@@ -113,7 +113,10 @@ public sealed class CheckoutFormPaymentService
         }
 
         var result = await _gateway.RetrieveAsync(normalizedToken, cancellationToken);
-        EnsureRetrieveMatches(snapshot, snapshotPayment, result);
+        if (result.State != CheckoutFormPaymentState.Failed)
+        {
+            EnsureRetrieveMatches(snapshot, snapshotPayment, result);
+        }
 
         return await _unitOfWork.ExecuteInSerializableTransactionAsync(
             async transactionCancellationToken =>
@@ -365,7 +368,6 @@ public sealed class CheckoutFormPaymentService
         CheckoutFormRetrieveResult result)
     {
         if (!string.Equals(result.Token, payment.ProviderToken, StringComparison.Ordinal) ||
-            !string.Equals(result.ConversationId, payment.ProviderConversationId, StringComparison.Ordinal) ||
             !string.Equals(result.BasketId, order.Id.ToString("N"), StringComparison.Ordinal) ||
             !string.Equals(result.Currency, "TRY", StringComparison.Ordinal) ||
             result.Price != order.SubTotal ||

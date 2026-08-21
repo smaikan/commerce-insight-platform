@@ -68,6 +68,12 @@ UI/**/.pnpm-debug.log*
 UI/**/.DS_Store
 UI/**/*.pem
 UI/API-IMPROVEMENT-RECOMMENDATIONS.md
+UI/**/AGENTS.md
+UI/**/.codex
+UI/**/proje_ilerlemesi.md
+UI/**/docs
+
+
 
 # Root level
 .env

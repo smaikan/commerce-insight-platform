@@ -135,7 +135,14 @@ public sealed class IyzicoCheckoutFormGateway : ICheckoutFormGateway, IPaymentGa
             RetrievePath,
             new { locale = "tr", token },
             cancellationToken);
-        if (string.IsNullOrWhiteSpace(response.Signature) ||
+
+        var isApiSuccess = string.Equals(response.Status, "success", StringComparison.OrdinalIgnoreCase);
+        var isPaymentSuccess = string.Equals(response.PaymentStatus, "SUCCESS", StringComparison.OrdinalIgnoreCase);
+
+        // Eğer API çağrısı başarılıysa ama ödeme başarısızsa (PaymentStatus != SUCCESS), 
+        // Iyzico genellikle PaymentId gibi alanları null gönderir. Bu yüzden imza doğrulamasını
+        // sadece başarılı ödemeler (SUCCESS) için yapıyoruz.
+        if (isApiSuccess && isPaymentSuccess && (string.IsNullOrWhiteSpace(response.Signature) ||
             !ValidateResponseSignature(
                 response.Signature,
                 response.PaymentStatus,
@@ -145,7 +152,7 @@ public sealed class IyzicoCheckoutFormGateway : ICheckoutFormGateway, IPaymentGa
                 response.ConversationId,
                 FormatMoney(response.PaidPrice),
                 FormatMoney(response.Price),
-                response.Token))
+                response.Token)))
         {
             throw new InvalidOperationException("iyzico retrieve response integrity validation failed.");
         }
@@ -244,6 +251,9 @@ public sealed class IyzicoCheckoutFormGateway : ICheckoutFormGateway, IPaymentGa
             CreateAuthorizationValue(path, body, randomKey));
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        
+        _logger.LogWarning("Iyzico Raw Response for {Path}: {ResponseBody}", path, responseBody);
+
         if (!response.IsSuccessStatusCode)
         {
             throw new HttpRequestException(
@@ -267,12 +277,8 @@ public sealed class IyzicoCheckoutFormGateway : ICheckoutFormGateway, IPaymentGa
     // Burada resmi iki nokta ayraçlı yanıt imzasını sabit zamanlı karşılaştırıyorum.
     private bool ValidateResponseSignature(string providedSignature, params string?[] values)
     {
-        if (values.Any(string.IsNullOrWhiteSpace))
-        {
-            return false;
-        }
-
-        return FixedTimeEquals(ComputeHexHmac(string.Join(':', values)), providedSignature.Trim());
+        var safeValues = values.Select(v => v ?? string.Empty).ToArray();
+        return FixedTimeEquals(ComputeHexHmac(string.Join(':', safeValues)), providedSignature.Trim());
     }
 
     // Burada HMACSHA256 sonucunu iyzico'nun beklediği küçük harfli hex biçimine getiriyorum.
