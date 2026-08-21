@@ -6,6 +6,7 @@ using ECommerce.Application.Carts.Commands.RemoveCartItem;
 using ECommerce.Application.Carts.Commands.UpdateCartItemQuantity;
 using ECommerce.Application.Carts.Dtos;
 using ECommerce.Application.Carts.Queries.GetCart;
+using ECommerce.Application.Carts.Queries.PreviewCoupon;
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Security;
 using ECommerce.Application.GuestOrders.Checkout;
@@ -114,6 +115,21 @@ public sealed class CartController : ControllerBase
             cancellationToken);
         DeleteGuestCartCookie();
         return Ok(cart);
+    }
+
+    // Burada sepet için girilen kupon kodunu doğruluyor ve uygulanabilir indirim tutarını dönüyorum.
+    [AllowAnonymous]
+    [HttpPost("coupon-preview")]
+    public async Task<ActionResult<CouponPreviewDto>> PreviewCoupon(
+        [FromBody] PreviewCouponRequest request,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _sender.Send(
+            new Application.Carts.Queries.PreviewCoupon.PreviewCouponQuery(
+                request.CouponCode,
+                User.Identity?.IsAuthenticated != true,
+                GetSessionIdForCartAccess()),
+            cancellationToken));
     }
 
     // Burada anonim sepeti zorunlu müşteri, adres, aktif kargo ve idempotency verileriyle siparişe dönüştürüyorum.
@@ -256,7 +272,10 @@ public sealed record GuestAddressRequest(
     string FullAddress,
     string? PostalCode = null)
 {
-    // Burada HTTP adres modelini zorunlu shipping veya billing tipli Application girdisine dönüştürüyorum.
+// Burada HTTP adres modelini zorunlu shipping veya billing tipli Application girdisine dönüştürüyorum.
     public CheckoutAddressInput ToInput(AddressType type) => new(
         null, type, Title, FirstName, LastName, PhoneNumber, City, District, Neighborhood, FullAddress, PostalCode);
 }
+
+// Burada kupon önizlemesi için istemciden gelen isteği tanımlıyorum.
+public sealed record PreviewCouponRequest(string CouponCode);

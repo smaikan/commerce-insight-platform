@@ -62,6 +62,15 @@ export function submitGuestCheckout(
   });
 }
 
+// Burada girilen kupon kodunu ödeme öncesi doğrulayıp önizleme indirimi alıyorum.
+export function previewCoupon(couponCode: string): Promise<{ code: string; discountTotal: number; discountType: number }> {
+  return requestCheckout<{ code: string; discountTotal: number; discountType: number }>("/api/cart/coupon-preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ couponCode }),
+  });
+}
+
 // Burada confirmation sayfasında yalnız session grant'inin izin verdiği guest siparişi no-store olarak okuyorum.
 export function loadCheckoutOrder(orderId: string): Promise<CheckoutOrder> {
   return requestCheckout<CheckoutOrder>(`/api/checkout/orders/${encodeURIComponent(orderId)}`, { method: "GET" });
@@ -111,7 +120,12 @@ export function checkoutProblemMessage(error: unknown): string {
   if (problem.code === "guest_checkout_rate_limited") return "Çok fazla sipariş denemesi yapıldı. Lütfen belirtilen süre sonunda tekrar deneyin.";
   if (problem.code === "guest_checkout_protection_unavailable") return "Güvenlik doğrulama servisine ulaşılamıyor. Lütfen daha sonra tekrar deneyin.";
   if (problem.code === "idempotency_key_reused") return "Sipariş bilgileri önceki denemeden sonra değişti. Lütfen formu kontrol edip tekrar gönderin.";
-  if (problem.status === 409) return "Sepet, stok, kargo veya kupon bilgisi değişti. Sepetin son halini kontrol edin.";
+  if (problem.status === 409) {
+    if (problem.detail === "Coupon was not found." || problem.detail === "Coupon cannot be applied to this order.") {
+      return "Girilen kupon yanlış, süresi dolmuş veya bu sipariş için geçerli değil.";
+    }
+    return "Sepet, stok, kargo veya kupon bilgisi değişti. Sepetin son halini kontrol edin.";
+  }
   if (problem.status === 404) return "Sepet veya seçilen kargo yöntemi artık kullanılamıyor.";
   if (problem.status === 400) return problem.detail || "Form alanlarını kontrol edin.";
   return problem.detail || "Sipariş şu anda tamamlanamıyor. Bilgileriniz korunarak tekrar deneyebilirsiniz.";

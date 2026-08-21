@@ -19,6 +19,7 @@ import {
   paymentIntentKey,
   redirectToPaymentPage,
   submitGuestCheckout,
+  previewCoupon,
 } from "@/modules/checkout/client/checkout-api";
 import { createMemberOrderAction } from "@/modules/checkout/actions";
 import { TurnstileChallenge } from "@/modules/checkout/components/turnstile-challenge";
@@ -81,6 +82,10 @@ export function CheckoutForm({
   const errorSummaryRef = useRef<HTMLDivElement>(null);
   const intentRef = useRef<Intent | null>(null);
   const submittingRef = useRef(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponPreview, setCouponPreview] = useState<{ discountTotal: number; code: string } | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string>();
   const isMember = accountAddresses !== null;
 
   useEffect(() => {
@@ -222,6 +227,26 @@ export function CheckoutForm({
   const checkoutBlocked = !orderCreationEnabled || cart.hasUnavailableItems || cart.hasPriceChanges || shippingMethods.length === 0 || (isMember && memberShippingAddresses.length === 0);
   const selectedShippingMethod = shippingMethods.find((method) => method.id === selectedShippingMethodId);
 
+  async function handleApplyCoupon() {
+    if (!couponCode) return;
+    setIsApplyingCoupon(true);
+    setCouponError(undefined);
+    try {
+      const result = await previewCoupon(couponCode);
+      setCouponPreview(result);
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.couponCode;
+        return next;
+      });
+    } catch (error) {
+      setCouponPreview(null);
+      setCouponError(checkoutProblemMessage(error));
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  }
+
   return (
     <main id="main-content" className="page-shell max-w-[80rem] flex-1 py-8 sm:py-12 lg:py-14">
       <header className="max-w-2xl border-b border-line pb-6 sm:pb-8">
@@ -339,7 +364,27 @@ export function CheckoutForm({
             </CheckoutSection>
 
             <CheckoutSection title="Kupon" description="Kupon opsiyoneldir ve uygunluğu sipariş oluşturulurken kontrol edilir.">
-              <TextField name="couponCode" label="Kupon kodu (opsiyonel)" autoComplete="off" maxLength={50} error={fieldErrors.couponCode} />
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <TextField 
+                    name="couponCode" 
+                    label="Kupon kodu (opsiyonel)" 
+                    autoComplete="off" 
+                    maxLength={50} 
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    error={couponError || fieldErrors.couponCode} 
+                  />
+                </div>
+                <button 
+                  type="button" 
+                  onClick={handleApplyCoupon} 
+                  disabled={!couponCode || isApplyingCoupon}
+                  className="mt-7 shrink-0 rounded-xl bg-surface px-5 py-3 text-sm font-semibold text-ink shadow-sm ring-1 ring-inset ring-line hover:bg-surface-hover disabled:opacity-50"
+                >
+                  {isApplyingCoupon ? "Hesaplanıyor..." : "Uygula"}
+                </button>
+              </div>
             </CheckoutSection>
           </div>
         </div>
@@ -356,8 +401,9 @@ export function CheckoutForm({
           </ul>
           <dl className="mt-5 space-y-3 text-sm">
             <div className="flex justify-between gap-4 text-ink-muted"><dt>Ara toplam</dt><dd className="font-semibold tabular-nums text-ink">{formatMoney(cart.subTotal, currency)}</dd></div>
+            {couponPreview ? <div className="flex justify-between gap-4 text-success"><dt>İndirim ({couponPreview.code})</dt><dd className="font-semibold tabular-nums">- {formatMoney(couponPreview.discountTotal, currency)}</dd></div> : null}
             <div className="flex justify-between gap-4 text-ink-muted"><dt>Kargo</dt><dd className="font-semibold tabular-nums text-ink">{selectedShippingMethod ? (selectedShippingMethod.fixedFee === 0 ? "Ücretsiz" : formatMoney(selectedShippingMethod.fixedFee, currency)) : "Seçilmedi"}</dd></div>
-            <div className="border-t border-line pt-3"><dt className="font-semibold text-ink">Son toplam</dt><dd className="mt-1 text-xs leading-5 text-ink-muted">Vergi, kupon ve kargo API tarafından onaylandığında hesaplanır.</dd></div>
+            <div className="border-t border-line pt-3"><dt className="font-semibold text-ink">Son toplam</dt><dd className="mt-1 font-semibold tabular-nums text-brand-700">{formatMoney(Math.max(0, cart.subTotal - (couponPreview?.discountTotal || 0)) + (selectedShippingMethod?.fixedFee || 0), currency)}</dd></div>
           </dl>
 
           {cart.hasUnavailableItems ? <p className="mt-5 rounded-lg bg-danger/5 px-3 py-3 text-sm text-danger">Kullanılamayan ürünleri sepetten kaldırın.</p> : null}

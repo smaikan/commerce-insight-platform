@@ -34,7 +34,7 @@ async function resolveCartOwner(request: Request): Promise<CartOwner> {
 // Burada guest ve authenticated sepet çağrılarını aynı owner-aware BFF sınırından, birbirlerinin kimliğini karıştırmadan API'ye iletiyorum.
 export async function forwardCartRequest(
   request: Request,
-  path: "/api/cart" | "/api/cart/items" | `/api/cart/items/${string}` | `/api/cart?${string}` | `/api/cart/items/${string}?${string}`,
+  path: "/api/cart" | "/api/cart/items" | `/api/cart/items/${string}` | `/api/cart?${string}` | `/api/cart/items/${string}?${string}` | "/api/cart/coupon-preview",
   init: { method: "GET" | "POST" | "PUT" | "DELETE"; body?: string },
 ): Promise<NextResponse> {
   const owner = await resolveCartOwner(request);
