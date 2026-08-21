@@ -23,5 +23,4 @@ Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, 
 
 ## Başarılı response (200)
 
-Response body yoktur.
-
+`PagedResult<AdminUserDto>` döner. Atanabilir contact adminleri için `Role=2` ve `Status=1` filtreleri kullanılır. `AdminUserDto.id` raw numeric kimlik değil `U...` public ID'dir.

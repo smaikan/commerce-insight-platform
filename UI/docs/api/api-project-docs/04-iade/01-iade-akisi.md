@@ -24,8 +24,8 @@ Guest POST session cookie, `ecommerce_guest_csrf`→`X-Guest-CSRF` ve güvenilir
 }
 ```
 
-`ReturnType`: 0 Refund, 1 Exchange. Yalnız Delivered/ReturnRequested/ReturnApproved siparişlerde açılır. Aynı item aynı istekte tekrarlanamaz; toplam iade adedi kalan eligible adedi aşamaz. Exchange replacement aynı Product’a ait farklı, aktif, stoklu ve aynı net fiyatlı varyant olmalıdır.
+`ReturnType`: 0 Refund, 1 Exchange. Yalnız Delivered/ReturnRequested/ReturnApproved/Refunded siparişlerde açılır. `Refunded`, genel sipariş yaşam döngüsünde terminaldir; ancak kısmi iade desteği nedeniyle kalan uygun adetler için return workflow yeni talep açabilir. Aynı item aynı istekte tekrarlanamaz; toplam iade adedi kalan eligible adedi aşamaz. Exchange replacement aynı Product’a ait farklı, aktif, stoklu ve aynı net fiyatlı varyant olmalıdır.
 
-Admin yaşam döngüsü değişmez: Requested → Approved/Rejected → Received → Completed. ReturnRequested/ReturnApproved Order durumları yalnız iade akışıyla set edilir. Receive/complete mevcut SaleReturn/transfer kurallarını ve StockMovement ledger’ını kullanır; frontend doğrudan stok yazmaz.
+Admin yaşam döngüsü değişmez: Requested → Approved/Rejected → Received → Completed. Onaylanan `Refund` talebi ilgili Order'ı aynı transaction içinde `Refunded (7)` yapar; onaylanan `Exchange` talebi `ReturnApproved (9)` yapar. Birden çok talepte aktif onaylı Refund önceliklidir; yalnız Requested talepler `ReturnRequested` üretir. Bu durum değişimi ödeme sağlayıcısında otomatik para iadesi başlatmaz ve `Payment` durumunu değiştirmez. Receive/complete mevcut SaleReturn/transfer kurallarını ve StockMovement ledger’ını kullanır; frontend doğrudan stok yazmaz.
 
 Guest claim, ilgili return kayıtlarının UserId alanını aynı transaction’da günceller. Claim öncesi guest review/rating yapamaz; iade talebi oluşturabilmesi review hakkı vermez.

@@ -1,6 +1,10 @@
 ﻿# API endpoint sözleşmeleri
 
-Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte tutulur. Güncel runtime sözleşmesi **272 endpoint** yayınlar; frontend işlev alanları aşağıda gruplandırılmıştır. Her ayrıntı dosyasında işlev, parametreler, request body örneği ve başarı/hata sözleşmesi vardır.
+Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte tutulur. Güncel runtime sözleşmesi **280 endpoint** yayınlar; frontend işlev alanları aşağıda gruplandırılmıştır. Her ayrıntı dosyasında işlev, parametreler, request body örneği ve başarı/hata sözleşmesi vardır.
+
+## 14 İletişim mesajları
+
+- [İletişim endpoint sözleşmeleri](14-iletisim-mesajlari/README.md)
 
 ## iyzico CheckoutForm sandbox
 
@@ -317,4 +321,3 @@ Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte
 - [POST /api/returns/{id}/reject](06-iade/POST--api-returns--id--reject.md)
 - [GET /api/returns/admin/{id}](06-iade/GET--api-returns-admin--id-.md)
 - [GET /api/returns/mine](06-iade/GET--api-returns-mine.md)
-

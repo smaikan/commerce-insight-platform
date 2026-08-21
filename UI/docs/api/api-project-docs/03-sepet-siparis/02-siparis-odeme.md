@@ -79,5 +79,7 @@ iyzico hosted ödeme formu sandbox akışı üye ve guest siparişlerde destekle
 - Paid/Preparing/Shipped: müşteri iptal edemez; admin yaşam döngüsü.
 - Delivered: satın alan üye review/rating ve iade talebi oluşturabilir.
 - Guest, claim edilmeden review/rating oluşturamaz. Güvenli claim sonrasında mevcut delivered purchase kontrolü geçerlidir.
-- ReturnRequested/ReturnApproved: iade akışı yönetir.
+- ReturnRequested/ReturnApproved: iade ve değişim akışı yönetir. Onaylanan `Refund` talebi siparişi kalıcı olarak `Refunded (7)` yapar; onaylanan `Exchange` talebi `ReturnApproved (9)` olarak kalır.
 - Cancelled/Refunded: terminal/read-only.
+
+`Refunded (7)` yalnız siparişin iş durumu bilgisidir; bu akış ödeme sağlayıcısında otomatik para iadesi başlatmaz ve `Payment` kaydını değiştirmez. Kısmi iade desteklendiğinde, kalan uygun adetler için yeni return talebi aynı return workflow üzerinden oluşturulabilir.

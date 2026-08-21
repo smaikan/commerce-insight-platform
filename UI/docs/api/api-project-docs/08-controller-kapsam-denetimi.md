@@ -1,8 +1,12 @@
 # Controller Kapsam Denetimi ve Tam Endpoint Envanteri
 
+## 21 Ağustos 2026 iletişim mesajları güncellemesi
+
+`ContactMessagesController` 7 operasyon ekler: public `POST /api/contact-messages`; AdminOnly liste, detay, status, assignment, note ve reply operasyonları. Public POST `security: []`, yaklaşık 16 KB body, idempotency, contact rate-limit ve production Turnstile koruması taşır. Admin operasyonları Bearer + AdminOnly'dir. `GET /api/users` response tipi `PagedResult<AdminUserDto>` olarak controller metadata'sında açıkça tanımlanmıştır. Güncel çalışan Swagger sözleşmesi toplam **280 operasyon** yayınlar.
+
 ## 16 Ağustos 2026 public kategori vitrini güncellemesi
 
-Güncel runtime Swagger sözleşmesi **272 endpoint** yayınlar. Anonim `GET /api/product-types/published` eklendi; ProductType envanteri 7'den 8 operasyona çıktı. ProductType kalıcı nullable `imageUrl` taşır; public vitrin özel görsel yoksa görünür yayımlanmış ürünler içindeki `PopularityScore DESC, Product.Id ASC` sırasının ilk ürün görselini toplu ve N+1 oluşturmadan döndürür. Aynı popularity fallback semantiği koleksiyon vitriniyle hizalandı.
+16 Ağustos sürümünün runtime Swagger sözleşmesi tarihsel olarak **272 endpoint** yayınlıyordu. Anonim `GET /api/product-types/published` eklendi; ProductType envanteri 7'den 8 operasyona çıktı. ProductType kalıcı nullable `imageUrl` taşır; public vitrin özel görsel yoksa görünür yayımlanmış ürünler içindeki `PopularityScore DESC, Product.Id ASC` sırasının ilk ürün görselini toplu ve N+1 oluşturmadan döndürür. Aynı popularity fallback semantiği koleksiyon vitriniyle hizalandı.
 
 ## 16 Ağustos 2026 iyzico CheckoutForm sandbox güncellemesi
 
@@ -38,13 +42,13 @@ Güncel runtime Swagger sözleşmesi **257 endpoint** yayınlar. Önceki 254 ope
 | `GET/POST /api/guest-orders/{id}/returns`, `GET .../{returnId}` | Guest session | İade liste/create/detail |
 | `POST /api/guest-orders/claim` | JWT + verified guest session + CSRF + Origin | Aynı e-postadaki sahipsiz siparişleri bağlar |
 
-Bu bölümde aşağıda görünen eski 206/40/257/264/265/267/271 sayıları tarihsel envanterdir; güncel OpenAPI ve controller audit için 272 sayısı kullanılır.
+Bu bölümde aşağıda görünen eski 206/40/257/264/265/267/271/272 sayıları tarihsel envanterdir; güncel OpenAPI ve controller audit için 280 sayısı kullanılır.
 
 Bu denetim 29 Temmuz 2026'da `API/src/ECommerce.API/Controllers` altındaki 33 controller doğrudan okunarak yapıldı. Route, HTTP fiili ve yetki için controller attribute'ları kaynak kabul edilmiştir.
 
 ## Sonuç
 
-- Güncel runtime Swagger sözleşmesinde **272 endpoint** bulunuyor; aşağıdaki alan tabloları yetki ve davranış denetimini özetler.
+- Güncel runtime Swagger sözleşmesinde **280 endpoint** bulunuyor; aşağıdaki alan tabloları yetki ve davranış denetimini özetler.
 - Eski fonksiyonel belgeler alanları anlatıyor; fakat her endpoint için ayrı request şeması ve başarılı JSON response örneği standardı yok. En büyük eksik muhasebe raporlarıdır: 28 route tek paragrafta özetlenmişti.
 - Bu belge route kaçırılmasını önleyen zorunlu kontrol listesidir. `Public`: token yok; `User`: JWT ve sahiplik; `Admin`: JWT + `AdminOnly`/Admin rolü. Sayfalı yanıt `PagedResult<T>`dir.
 

@@ -16,6 +16,7 @@ Bu dizin ASP.NET Core API’nin storefront ve admin istemcileri için kaynak sö
 - [Muhasebe](06-muhasebe/01-muhasebe-api.md)
 - [Ortak DTO/UI sözleşmeleri](07-ortak/01-dto-ve-ui-sozlesmeleri.md)
 - [Endpoint sözleşmeleri](08-endpoint-sozlesmeleri/README.md)
+- [İletişim mesajları](08-endpoint-sozlesmeleri/14-iletisim-mesajlari/README.md)
 
 ## Checkout seçimi
 

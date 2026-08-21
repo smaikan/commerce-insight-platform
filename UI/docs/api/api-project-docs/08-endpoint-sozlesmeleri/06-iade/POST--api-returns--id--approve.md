@@ -7,6 +7,8 @@
 - Content-Type: request body varsa `application/json` gönderin.
 - Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
 
+`type=Refund` onaylandığında ReturnRequest `Approved` kalır ve ilişkili Order aynı transaction içinde `status=Refunded (7)` olur. `type=Exchange` için Order `status=ReturnApproved (9)` olur. Bu endpoint yalnız return workflow durumunu değiştirir; ödeme sağlayıcısına para iadesi çağrısı yapmaz ve `Payment` durumunu güncellemez.
+
 ## Parametreler
 
 | Ad | Konum | Zorunlu | Şema |
@@ -59,4 +61,3 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
     "createdAt":  "2026-07-29T12:00:00Z"
 }
 ```
-

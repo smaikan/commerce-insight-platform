@@ -21,16 +21,20 @@ Frontend şu alanları hiçbir cart/checkout request’inde gönderemez: `UserId
 }
 ```
 
-Ortak kodlara ek guest kodları:
+Akışa özel ProblemDetails kodları:
 
 | HTTP | code | UI davranışı |
 | --- | --- | --- |
 | 409 | `coupon_members_only` | “Bu kupon yalnızca üyeler içindir”; otomatik retry yapma |
 | 409 | `idempotency_key_reused` | Aynı key farklı body ile kullanılmış; yeni intent oluştur veya eski body’ye dön |
+| 413 | `payload_too_large` | Request body sınırı aşılmış; payload'ı küçült |
 | 401/403/404 | `invalid_guest_access` | Session/CSRF/owner hatası; token veya sipariş varlığını ifşa etme |
 | 428 | `guest_checkout_challenge_required` | Turnstile göster, yeni tokenla aynı intent/key’i tekrar gönder |
 | 429 | `guest_checkout_rate_limited` | Kontrollü bekleme; hızlı otomatik retry yapma |
 | 503 | `guest_checkout_protection_unavailable` | Formu koru, geçici hata göster; kontrolsüz bypass yapma |
+| 428 | `contact_challenge_required` | Contact Turnstile göster; aynı body/key ile yeni token gönder |
+| 429 | `contact_submission_rate_limited` | `Retry-After` kadar kontrollü bekle; otomatik hızlı retry yapma |
+| 503 | `contact_protection_unavailable` | Contact formunu koru; Redis/Turnstile bypass etme |
 
 ## Pagination, concurrency ve idempotency
 
@@ -39,6 +43,8 @@ Sayfalı cevap `items`, `pageNumber`, `pageSize`, `totalCount`, `totalPages`, `h
 Cart concurrency token, başarılı her add/update/remove/clear/merge/checkout temizliğiyle değişir. Her mutasyonda en son response’taki token kullanılmalıdır. `409 concurrency_conflict` sonrasında cart yeniden GET edilir; eski mutasyon körlemesine tekrarlanmaz.
 
 Guest checkout ve payment için `Idempotency-Key` zorunludur. Aynı kullanıcı intent’inin network/timeout retry’ında aynı key ve aynı body korunur. Yeni intent yeni key alır. Guest checkout key’i guest cart kapsamında 24 saat saklanır; aktif kayıtta aynı body önceki Order’ı döndürür, farklı body `409 idempotency_key_reused` üretir.
+
+Contact submission ve admin reply için de `Idempotency-Key` zorunludur. Contact status/assignment/note mutasyonlarında güncel `expectedConcurrencyToken` kullanılır; 409 sonrasında detail yeniden okunur ve kör overwrite yapılmaz.
 
 ## Rate limit
 
@@ -51,6 +57,8 @@ Guest checkout ve payment için `Idempotency-Key` zorunludur. Aynı kullanıcı 
 - magic-link sipariş başına saatte 3, IP başına saatte 10.
 
 Redis kesintisinde process içi fallback sayaç çalışır ve Turnstile zorunlu olur. Turnstile doğrulaması backend’den Cloudflare Siteverify’a yapılır; secret frontend’e verilmez.
+
+Contact formunda Redis kesintisi fallback/bypass yapmaz ve 503 döner. Production Turnstile `action=contact_form` ile yapılandırılmış hostname'e bağlıdır. IP bazlı contact limiti yalnız açık `KnownProxies` kararıyla güvenilir forwarded zinciri doğrulanırsa açılır; aksi halde coarse BFF limiti ile normalize e-posta hash limiti birlikte kullanılır.
 
 ## BFF ve cache
 
