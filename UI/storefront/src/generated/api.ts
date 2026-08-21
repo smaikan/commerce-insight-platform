@@ -3127,6 +3127,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cart/coupon-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PreviewCouponRequest"];
+                    "text/json": components["schemas"]["PreviewCouponRequest"];
+                    "application/*+json": components["schemas"]["PreviewCouponRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["CouponPreviewDto"];
+                        "application/json": components["schemas"]["CouponPreviewDto"];
+                        "text/json": components["schemas"]["CouponPreviewDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cart/checkout/guest": {
         parameters: {
             query?: never;
@@ -3601,6 +3644,662 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/api/contact-messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description createdFromUtc ve createdToUtc UTC olmak zorundadır ve iki sınır da inclusive uygulanır. Sonuçlar createdAt DESC, ardından id DESC sıralanır. */
+        get: {
+            parameters: {
+                query?: {
+                    PageNumber?: number;
+                    PageSize?: number;
+                    Search?: string;
+                    Status?: components["schemas"]["ContactMessageStatus"];
+                    Subject?: components["schemas"]["ContactMessageSubject"];
+                    AssignedAdminUserId?: string;
+                    /** @description Opsiyonel UTC alt sınırı; CreatedAt >= createdFromUtc (inclusive). */
+                    CreatedFromUtc?: string;
+                    /** @description Opsiyonel UTC üst sınırı; CreatedAt <= createdToUtc (inclusive). */
+                    CreatedToUtc?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ContactMessageSummaryDtoPagedResult"];
+                        "application/json": components["schemas"]["ContactMessageSummaryDtoPagedResult"];
+                        "text/json": components["schemas"]["ContactMessageSummaryDtoPagedResult"];
+                    };
+                };
+                /** @description ProblemDetails code=validation_error veya query model-binding hatasında bad_request. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=authentication_required; geçersiz veya süresi dolmuş token için invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=forbidden. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** @description Başvuru kalıcı ContactMessage ve operasyonel bildirim outbox kaydını aynı transaction içinde oluşturur; SMTP request sırasında çalışmaz. */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                    "X-Turnstile-Token"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SubmitContactMessageRequest"];
+                    "text/json": components["schemas"]["SubmitContactMessageRequest"];
+                    "application/*+json": components["schemas"]["SubmitContactMessageRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ContactSubmissionReceiptDto"];
+                        "application/json": components["schemas"]["ContactSubmissionReceiptDto"];
+                        "text/json": components["schemas"]["ContactSubmissionReceiptDto"];
+                    };
+                };
+                /** @description ProblemDetails code=validation_error veya malformed/model-binding isteğinde bad_request. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=idempotency_key_reused; benzersiz referans üretilemezse conflict. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=payload_too_large. */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=contact_challenge_required. */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=contact_submission_rate_limited; Retry-After header'ı döner. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=contact_protection_unavailable. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/contact-messages/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Activity ve reply timeline dizileri createdAt ASC, ardından id ASC sırasıyla döner. Activity alan semantiği component şemalarında açıklanır. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ContactMessageDetailDto"];
+                        "application/json": components["schemas"]["ContactMessageDetailDto"];
+                        "text/json": components["schemas"]["ContactMessageDetailDto"];
+                    };
+                };
+                /** @description ProblemDetails code=authentication_required; geçersiz veya süresi dolmuş token için invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=forbidden. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/contact-messages/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description İzinli geçişler: New (0) → InProgress (1), WaitingForCustomer (2), Closed (4), Spam (5); InProgress (1) → WaitingForCustomer (2), Resolved (3), Closed (4), Spam (5); WaitingForCustomer (2) → InProgress (1), Resolved (3), Closed (4), Spam (5); Resolved (3) → InProgress (1), Closed (4); Closed (4) → InProgress (1); Spam (5) → New (0), Closed (4). Aynı durumdan aynı duruma geçiş geçersizdir. Geçersiz geçiş 400 business_rule_violation, eski token 409 concurrency_conflict üretir. */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ChangeContactMessageStatusRequest"];
+                    "text/json": components["schemas"]["ChangeContactMessageStatusRequest"];
+                    "application/*+json": components["schemas"]["ChangeContactMessageStatusRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ContactMessageDetailDto"];
+                        "application/json": components["schemas"]["ContactMessageDetailDto"];
+                        "text/json": components["schemas"]["ContactMessageDetailDto"];
+                    };
+                };
+                /** @description ProblemDetails code=validation_error veya bad_request; domain geçiş ihlalinde business_rule_violation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=authentication_required; geçersiz veya süresi dolmuş token için invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=forbidden. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=concurrency_conflict. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/contact-messages/{id}/assignment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AssignContactMessageRequest"];
+                    "text/json": components["schemas"]["AssignContactMessageRequest"];
+                    "application/*+json": components["schemas"]["AssignContactMessageRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ContactMessageDetailDto"];
+                        "application/json": components["schemas"]["ContactMessageDetailDto"];
+                        "text/json": components["schemas"]["ContactMessageDetailDto"];
+                    };
+                };
+                /** @description ProblemDetails code=validation_error veya bad_request. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=authentication_required; geçersiz veya süresi dolmuş token için invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=forbidden. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=concurrency_conflict; hedef kullanıcı aktif Admin değilse conflict. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/contact-messages/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AddContactMessageNoteRequest"];
+                    "text/json": components["schemas"]["AddContactMessageNoteRequest"];
+                    "application/*+json": components["schemas"]["AddContactMessageNoteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ContactMessageDetailDto"];
+                        "application/json": components["schemas"]["ContactMessageDetailDto"];
+                        "text/json": components["schemas"]["ContactMessageDetailDto"];
+                    };
+                };
+                /** @description ProblemDetails code=validation_error veya bad_request. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=authentication_required; geçersiz veya süresi dolmuş token için invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=forbidden. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=concurrency_conflict. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/contact-messages/{id}/replies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reply ve e-posta outbox kaydı aynı transaction içinde kuyruğa alınır; SMTP tamamlanmadan Sent denmez. FirstRespondedAt ilk yanıtta set edilir. Mevcut status New veya InProgress ise status WaitingForCustomer olur ve ayrı StatusChanged activity kaydı eklenir; diğer status değerleri değişmez. */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ReplyContactMessageRequest"];
+                    "text/json": components["schemas"]["ReplyContactMessageRequest"];
+                    "application/*+json": components["schemas"]["ReplyContactMessageRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ContactMessageDetailDto"];
+                        "application/json": components["schemas"]["ContactMessageDetailDto"];
+                        "text/json": components["schemas"]["ContactMessageDetailDto"];
+                    };
+                };
+                /** @description ProblemDetails code=validation_error veya malformed/header model-binding isteğinde bad_request; anonimleştirilmiş kayıtta business_rule_violation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=authentication_required; geçersiz veya süresi dolmuş token için invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=forbidden. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=idempotency_key_reused. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/coupons": {
@@ -10935,7 +11634,11 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": components["schemas"]["AdminUserDtoPagedResult"];
+                        "application/json": components["schemas"]["AdminUserDtoPagedResult"];
+                        "text/json": components["schemas"]["AdminUserDtoPagedResult"];
+                    };
                 };
             };
         };
@@ -11400,6 +12103,11 @@ export interface components {
             /** Format: uuid */
             expectedConcurrencyToken?: string | null;
         };
+        AddContactMessageNoteRequest: {
+            note: string;
+            /** Format: uuid */
+            expectedConcurrencyToken: string;
+        };
         AddPurchaseInvoiceExpenseRequest: {
             /** Format: uuid */
             categoryId: string;
@@ -11424,8 +12132,7 @@ export interface components {
             phoneNumber: string;
             city: string;
             district: string;
-            neighborhood?: string;
-            street?: string;
+            neighborhood?: string | null;
             fullAddress: string;
             postalCode?: string | null;
             isDefault: boolean;
@@ -11442,8 +12149,7 @@ export interface components {
             phoneNumber: string;
             city: string;
             district: string;
-            neighborhood?: string;
-            street?: string;
+            neighborhood?: string | null;
             fullAddress: string;
             postalCode?: string | null;
             isDefault: boolean;
@@ -11531,6 +12237,24 @@ export interface components {
             updatedAt?: string | null;
             /** Format: int32 */
             orderCount: number;
+        };
+        AdminUserDtoPagedResult: {
+            items: components["schemas"]["AdminUserDto"][];
+            /** Format: int32 */
+            pageNumber: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            readonly totalPages: number;
+            readonly hasPreviousPage: boolean;
+            readonly hasNextPage: boolean;
+        };
+        AssignContactMessageRequest: {
+            assignedAdminUserId?: string | null;
+            /** Format: uuid */
+            expectedConcurrencyToken: string;
         };
         AuthResultDto: {
             user: components["schemas"]["UserDto"];
@@ -11835,6 +12559,12 @@ export interface components {
             /** Format: double */
             balance: number;
         };
+        /** @description İzinli geçişler: New (0) → InProgress (1), WaitingForCustomer (2), Closed (4), Spam (5); InProgress (1) → WaitingForCustomer (2), Resolved (3), Closed (4), Spam (5); WaitingForCustomer (2) → InProgress (1), Resolved (3), Closed (4), Spam (5); Resolved (3) → InProgress (1), Closed (4); Closed (4) → InProgress (1); Spam (5) → New (0), Closed (4). Aynı durumdan aynı duruma geçiş geçersizdir. */
+        ChangeContactMessageStatusRequest: {
+            status: components["schemas"]["ContactMessageStatus"];
+            /** Format: uuid */
+            expectedConcurrencyToken: string;
+        };
         ChangeEmailCommand: {
             currentPassword: string;
             newEmail: string;
@@ -11902,6 +12632,127 @@ export interface components {
             displayOrder: number;
             imageUrl?: string | null;
         };
+        ContactMessageActivityDto: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["ContactMessageActivityType"];
+            /** @description Submitted tipinde null; diğer tiplerde işlemi yapan yöneticinin U... public ID değeri. */
+            actorAdminUserId?: string | null;
+            /** @description Yalnız InternalNoteAdded tipinde dahili not; diğer tiplerde null. */
+            content?: string | null;
+            /** @description StatusChanged için önceki enum adı; AssignmentChanged için önceki U... public ID veya atamasızsa null; diğer tiplerde null. */
+            previousValue?: string | null;
+            /** @description StatusChanged için yeni enum adı; AssignmentChanged için yeni U... public ID veya atama kaldırıldıysa null; diğer tiplerde null. */
+            newValue?: string | null;
+            /**
+             * Format: uuid
+             * @description Yalnız ReplyQueued tipinde ilişkili ContactMessageReplyDto.id; diğer tiplerde null.
+             */
+            replyId?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /**
+         * Format: int32
+         * @description Numeric değerler: 0 Submitted, 1 StatusChanged, 2 AssignmentChanged, 3 InternalNoteAdded, 4 ReplyQueued.
+         * @enum {integer}
+         */
+        ContactMessageActivityType: 0 | 1 | 2 | 3 | 4;
+        ContactMessageDetailDto: {
+            /** Format: uuid */
+            id: string;
+            referenceNumber: string;
+            userId?: string | null;
+            name: string;
+            email: string;
+            phone?: string | null;
+            subject: components["schemas"]["ContactMessageSubject"];
+            providedOrderNumber?: string | null;
+            /** Format: uuid */
+            verifiedOrderId?: string | null;
+            isOrderVerified: boolean;
+            message: string;
+            status: components["schemas"]["ContactMessageStatus"];
+            assignedAdminUserId?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** Format: date-time */
+            firstRespondedAt?: string | null;
+            /** Format: date-time */
+            resolvedAt?: string | null;
+            /** Format: date-time */
+            closedAt?: string | null;
+            /** Format: uuid */
+            concurrencyToken: string;
+            privacyNoticeVersion: string;
+            /** Format: date-time */
+            privacyNoticePublishedAt: string;
+            /** @description createdAt ASC, ardından id ASC sıralı append-only activity timeline'ı. */
+            activities: components["schemas"]["ContactMessageActivityDto"][];
+            /** @description createdAt ASC, ardından id ASC sıralı immutable müşteri yanıtları. */
+            replies: components["schemas"]["ContactMessageReplyDto"][];
+        };
+        ContactMessageReplyDto: {
+            /** Format: uuid */
+            id: string;
+            adminUserId: string;
+            body: string;
+            deliveryStatus: components["schemas"]["ContactReplyDeliveryStatus"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /**
+         * Format: int32
+         * @description İzinli geçişler: New (0) → InProgress (1), WaitingForCustomer (2), Closed (4), Spam (5); InProgress (1) → WaitingForCustomer (2), Resolved (3), Closed (4), Spam (5); WaitingForCustomer (2) → InProgress (1), Resolved (3), Closed (4), Spam (5); Resolved (3) → InProgress (1), Closed (4); Closed (4) → InProgress (1); Spam (5) → New (0), Closed (4). Aynı durumdan aynı duruma geçiş geçersizdir.
+         * @enum {integer}
+         */
+        ContactMessageStatus: 0 | 1 | 2 | 3 | 4 | 5;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        ContactMessageSubject: 0 | 1 | 2 | 3 | 4 | 5;
+        ContactMessageSummaryDto: {
+            /** Format: uuid */
+            id: string;
+            referenceNumber: string;
+            name: string;
+            email: string;
+            subject: components["schemas"]["ContactMessageSubject"];
+            status: components["schemas"]["ContactMessageStatus"];
+            providedOrderNumber?: string | null;
+            hasVerifiedOrder: boolean;
+            assignedAdminUserId?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        ContactMessageSummaryDtoPagedResult: {
+            items: components["schemas"]["ContactMessageSummaryDto"][];
+            /** Format: int32 */
+            pageNumber: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            readonly totalPages: number;
+            readonly hasPreviousPage: boolean;
+            readonly hasNextPage: boolean;
+        };
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        ContactReplyDeliveryStatus: 0 | 1 | 2 | 3;
+        ContactSubmissionReceiptDto: {
+            referenceNumber: string;
+            /** Format: date-time */
+            submittedAt: string;
+        };
         CostLayerConsumptionDto: {
             /** Format: uuid */
             id: string;
@@ -11965,6 +12816,12 @@ export interface components {
             readonly totalPages: number;
             readonly hasPreviousPage: boolean;
             readonly hasNextPage: boolean;
+        };
+        CouponPreviewDto: {
+            code: string;
+            /** Format: double */
+            discountTotal: number;
+            discountType: components["schemas"]["CouponDiscountType"];
         };
         CouponRequest: {
             code: string;
@@ -12478,8 +13335,7 @@ export interface components {
             phoneNumber: string;
             city: string;
             district: string;
-            neighborhood?: string;
-            street?: string;
+            neighborhood?: string | null;
             fullAddress: string;
             postalCode?: string | null;
         };
@@ -12634,8 +13490,6 @@ export interface components {
             phoneNumber: string;
             city: string;
             district: string;
-            neighborhood?: string;
-            street?: string;
             fullAddress: string;
             postalCode?: string | null;
         };
@@ -12812,6 +13666,9 @@ export interface components {
          * @enum {integer}
          */
         PaymentType: 1 | 2;
+        PreviewCouponRequest: {
+            couponCode: string;
+        };
         /**
          * Format: int32
          * @enum {integer}
@@ -13460,6 +14317,9 @@ export interface components {
         RegisterUserResultDto: {
             user: components["schemas"]["UserDto"];
         };
+        ReplyContactMessageRequest: {
+            body: string;
+        };
         ResetPasswordCommand: {
             token: string;
             newPassword: string;
@@ -13900,6 +14760,15 @@ export interface components {
          * @enum {integer}
          */
         StorefrontStatus: 0 | 1 | 2;
+        SubmitContactMessageRequest: {
+            name: string;
+            /** Format: email */
+            email: string;
+            phone?: string | null;
+            subject: components["schemas"]["ContactMessageSubject"];
+            orderNumber?: string | null;
+            message: string;
+        };
         TagDto: {
             /** Format: uuid */
             id: string;
