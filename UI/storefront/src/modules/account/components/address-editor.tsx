@@ -34,7 +34,7 @@ export function AddressEditor({ address, primary = false }: { address?: AccountA
             <AddressField label="Soyad" name="lastName" defaultValue={address?.lastName} error={state.fieldErrors?.lastName} autoComplete="family-name" />
             <PhoneField variant="account" label="Telefon" name="phoneNumber" defaultValue={address?.phoneNumber} error={state.fieldErrors?.phoneNumber} autoComplete="tel" required />
             <AddressField label="Posta kodu (isteğe bağlı)" name="postalCode" defaultValue={address?.postalCode ?? ""} error={state.fieldErrors?.postalCode} autoComplete="postal-code" required={false} />
-            <TurkiyeAddressFields prefix="" errors={state.fieldErrors} defaultCity={address?.city} defaultDistrict={address?.district} defaultNeighborhood={address?.neighborhood} variant="account" />
+            <TurkiyeAddressFields prefix="" errors={state.fieldErrors} defaultCity={address?.city} defaultDistrict={address?.district} defaultNeighborhood={address?.neighborhood ?? undefined} variant="account" />
             <label className="block text-xs font-bold text-ink sm:col-span-2">
               Açık adres
               <textarea name="fullAddress" defaultValue={address?.fullAddress} required autoComplete="street-address" rows={3} aria-invalid={Boolean(state.fieldErrors?.fullAddress)} aria-describedby={state.fieldErrors?.fullAddress ? "fullAddress-error" : undefined} className="focus-ring mt-2 w-full resize-y border border-line bg-surface px-3 py-2.5 text-sm font-normal text-ink" />
