@@ -88,4 +88,5 @@ UI/**/docs
 !.env.example
 
 
-test_hmac.py
+/test_hmac.py
+/API-IMPROVEMENT-RECOMMENDATIONS.md
