@@ -11,6 +11,7 @@ type ProductFormValue = {
   originalIsFeatured?: boolean;
   originalHasVariants?: boolean;
   variants: ProductVariantInput[];
+  variantFieldIndexes: number[];
   image?: ProductImageInput;
 };
 
@@ -37,10 +38,12 @@ export function parseProductForm(formData: FormData, mode: "create" | "edit"): P
   const tags = repeatedValues(formData, "tags", 20, 150, fieldErrors);
   const collections = repeatedValues(formData, "collections", 100, 150, fieldErrors);
   const parsedVariants = parseVariants(formData, fieldErrors);
-  const variants = mode === "edit"
-    ? parsedVariants.filter((variant) => !variant.id || variant.changed).map(withoutChangedFlag)
-    : parsedVariants.map(withoutChangedFlag);
-  validateUniqueVariantCombinations(parsedVariants, fieldErrors);
+  const mutationVariants = mode === "edit"
+    ? parsedVariants.filter((variant) => !variant.id || variant.changed)
+    : parsedVariants;
+  const variants = mutationVariants.map(withoutChangedFlag);
+  const variantFieldIndexes = mutationVariants.map((variant) => variant.formIndex);
+  validateUniqueVariantCombinations(parsedVariants, fieldErrors, mode);
   const image = parseImage(formData, fieldErrors);
 
   if (!hasVariants && variants.length > 1) {
@@ -88,12 +91,18 @@ export function parseProductForm(formData: FormData, mode: "create" | "edit"): P
       originalIsFeatured: optionalBoolean(formData, "originalIsFeatured"),
       originalHasVariants: optionalBoolean(formData, "originalHasVariants"),
       variants,
+      variantFieldIndexes,
       image,
     },
   };
 }
 
-type ParsedProductVariant = ProductVariantInput & { changed: boolean };
+type ParsedProductVariant = ProductVariantInput & {
+  changed: boolean;
+  identityChanged: boolean;
+  schemaNormalized: boolean;
+  formIndex: number;
+};
 
 // Burada tüm varyantları doğrularken edit mutation listesi için kullanıcının gerçek değişiklik niyetini de taşıyorum.
 function parseVariants(formData: FormData, errors: Record<string, string[]>): ParsedProductVariant[] {
@@ -104,6 +113,11 @@ function parseVariants(formData: FormData, errors: Record<string, string[]>): Pa
     const prefix = `variants.${index}`;
     const id = optionalText(formData, `${prefix}.id`, 36, errors);
     if (!id && isBlankNewVariant(formData, prefix)) continue;
+    const expectedConcurrencyToken = optionalUuid(formData, `${prefix}.expectedConcurrencyToken`, errors);
+    const changed = checkbox(formData, `${prefix}.changed`);
+    if (id && changed && !expectedConcurrencyToken) {
+      addError(errors, "variants", "Kayıtlı varyantların güncel concurrency bilgisi bulunamadı. Sayfayı yenileyip tekrar deneyin.");
+    }
 
     const name = requiredText(formData, `${prefix}.name`, "Varyant adı zorunludur.", 150, errors);
     const value = requiredText(formData, `${prefix}.value`, "Varyant değeri zorunludur.", 150, errors);
@@ -118,6 +132,7 @@ function parseVariants(formData: FormData, errors: Record<string, string[]>): Pa
 
     variants.push({
       id,
+      expectedConcurrencyToken,
       name,
       value,
       sku,
@@ -130,7 +145,10 @@ function parseVariants(formData: FormData, errors: Record<string, string[]>): Pa
       openingUnitCostExcludingVat: optionalDecimal(formData, `${prefix}.openingUnitCostExcludingVat`, errors),
       openingUnitCostIncludingVat: optionalDecimal(formData, `${prefix}.openingUnitCostIncludingVat`, errors),
       stockAdjustmentReason: optionalText(formData, `${prefix}.stockAdjustmentReason`, 500, errors),
-      changed: checkbox(formData, `${prefix}.changed`),
+      changed,
+      identityChanged: checkbox(formData, `${prefix}.identityChanged`),
+      schemaNormalized: checkbox(formData, `${prefix}.schemaNormalized`),
+      formIndex: index,
     });
   }
 
@@ -138,8 +156,11 @@ function parseVariants(formData: FormData, errors: Record<string, string[]>): Pa
 }
 
 // Burada yalnız UI değişiklik niyeti için kullanılan alanı backend varyant gövdesinden çıkarıyorum.
-function withoutChangedFlag({ changed, ...variant }: ParsedProductVariant): ProductVariantInput {
+function withoutChangedFlag({ changed, identityChanged, schemaNormalized, formIndex, ...variant }: ParsedProductVariant): ProductVariantInput {
   void changed;
+  void identityChanged;
+  void schemaNormalized;
+  void formIndex;
   return variant;
 }
 
@@ -184,12 +205,19 @@ function validateCompositeOption(
 
 // Burada aynı birleşik seçenek kombinasyonunun ürün içinde birden fazla varyant satırına dönüşmesini engelliyorum.
 function validateUniqueVariantCombinations(
-  variants: ProductVariantInput[],
+  variants: ParsedProductVariant[],
   errors: Record<string, string[]>,
+  mode: "create" | "edit",
 ): void {
   const identities = variants.map((variant) => `${variant.name.trim()}\u0000${variant.value.trim()}`);
   identities.forEach((identity, index) => {
-    if (identities.indexOf(identity) !== index) {
+    const isDuplicate = identities.some((candidate, candidateIndex) => candidateIndex !== index && candidate === identity);
+    const isPersistedSchemaNormalization = mode === "edit"
+      && Boolean(variants[index].id)
+      && variants[index].schemaNormalized;
+    const shouldValidateIdentity = (mode === "create" || !variants[index].id || variants[index].identityChanged)
+      && !isPersistedSchemaNormalization;
+    if (isDuplicate && shouldValidateIdentity) {
       addError(errors, `variants.${index}.value`, "Aynı seçenek kombinasyonu tekrar eklenemez.");
     }
   });

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
-import { useFormStatus } from "react-dom";
 import { commitProductMediaAction, createProductAction, updateProductAction } from "@/modules/products/actions";
 import { uploadProductImages } from "@/modules/products/cloudinary-upload";
 import type { CloudinaryProductAsset, ProductMediaDraft } from "@/modules/products/product-media";
@@ -11,13 +10,17 @@ import { productStatusOptions } from "@/modules/products/query";
 import {
   initialProductActionState,
   type Product,
+  type ProductActionState,
   type ProductFormOptions,
   type ProductImage,
   type ProductStatus,
 } from "@/modules/products/types";
 import { VariantEditor } from "@/modules/products/components/variant-editor";
+import { editableVariantRevision } from "@/modules/products/variant-editing";
+import { isProductActionAwaitingResult } from "@/modules/products/product-save-state";
 import { ProductMediaEditor } from "@/modules/products/components/product-media-editor";
 import { TagEditor } from "@/modules/products/components/tag-editor";
+import { CollectionSelector } from "@/modules/products/components/collection-selector";
 
 const inputClass = "mt-1 min-h-11 w-full rounded-lg border border-border-strong bg-surface-strong px-3 text-sm text-foreground sm:min-h-9";
 
@@ -41,103 +44,131 @@ export function ProductForm({
   product,
   images = [],
   options,
+  onDirtyChange,
 }: {
   mode: "create" | "edit";
   product?: Product;
   images?: ProductImage[];
   options: ProductFormOptions;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const router = useRouter();
   const action = mode === "create" ? createProductAction : updateProductAction;
-  const [state, formAction] = useActionState(action, initialProductActionState);
+  const [state, formAction, actionPending] = useActionState(action, initialProductActionState);
   const [dirty, setDirty] = useState(false);
   const [baseChanged, setBaseChanged] = useState(mode === "create");
   const [selectedStatus, setSelectedStatus] = useState<ProductStatus>(product?.status ?? 0);
-  const [mediaDraft, setMediaDraft] = useState<ProductMediaDraft>({ localMedia: [], mainKey: null });
+  const [mediaDraft, setMediaDraft] = useState<ProductMediaDraft>({ localMedia: [], mainKey: null, orderedKeys: [] });
   const [mediaPhase, setMediaPhase] = useState<"idle" | "uploading" | "registering" | "error">("idle");
   const [mediaMessage, setMediaMessage] = useState<string>();
   const [mediaEditorRevision, setMediaEditorRevision] = useState(0);
+  const [deletedVariantIds, setDeletedVariantIds] = useState<Set<string>>(() => new Set());
+  const [variantMutationMessage, setVariantMutationMessage] = useState<string>();
   const handledCompletionTokenRef = useRef<string | undefined>(undefined);
   const uploadedAssetsRef = useRef(new Map<string, CloudinaryProductAsset>());
   const committedKeysRef = useRef(new Set<string>());
-  const existingMainUpdatedRef = useRef(false);
+  const [actionStateAtSubmit, setActionStateAtSubmit] = useState<ProductActionState>(state);
+  const awaitingActionResult = isProductActionAwaitingResult(actionPending, state, actionStateAtSubmit);
+  const mediaPending = mediaPhase === "uploading" || mediaPhase === "registering";
+
+  // Burada ürün taslağının değişiklik durumunu hem yerel korumalara hem aynı sayfadaki bağımsız işlemlere bildiriyorum.
+  const setFormDirty = useCallback((nextDirty: boolean) => {
+    setDirty(nextDirty);
+    onDirtyChange?.(nextDirty);
+  }, [onDirtyChange]);
 
   // Burada medya editörünün dosya ve ana seçim taslağını form kaydetme akışı için saklıyorum.
   const handleMediaDraftChange = useCallback((draft: ProductMediaDraft) => {
     setMediaDraft(draft);
   }, []);
 
+  // Burada legacy varyant şemasının canonical birleşik şemaya alınmasını kaydedilebilir değişiklik olarak işaretliyorum.
+  const handleVariantNormalizationNeeded = useCallback(() => {
+    setFormDirty(true);
+  }, [setFormDirty]);
+
   // Burada başarılı kayıttan sonra yerel önizlemeleri ve bekleme durumunu temizleyip veritabanındaki güncel görselleri yeniden okutuyorum.
   const finishSuccessfulSave = useCallback((productId: string) => {
     uploadedAssetsRef.current.clear();
     committedKeysRef.current.clear();
-    existingMainUpdatedRef.current = false;
     setMediaMessage(undefined);
     setMediaPhase("idle");
-    setMediaDraft({ localMedia: [], mainKey: null });
+    setMediaDraft({ localMedia: [], mainKey: null, orderedKeys: [] });
     setMediaEditorRevision((current) => current + 1);
-    setDirty(false);
+    setFormDirty(false);
     router.replace(`/products/${encodeURIComponent(productId)}?${mode === "create" ? "created" : "saved"}=1`);
     router.refresh();
-  }, [mode, router]);
+  }, [mode, router, setFormDirty]);
 
   // Burada ürün kaydı oluştuktan sonra yeni dosyaları Cloudinary'ye yükleyip API görsel kayıtlarını tamamlıyorum.
   const completeMediaSave = useCallback(async (productId: string) => {
-    setMediaMessage(undefined);
-    const uncommittedMedia = mediaDraft.localMedia.filter((item) => !committedKeysRef.current.has(item.key));
-    const missingUploads = uncommittedMedia.filter((item) => !uploadedAssetsRef.current.has(item.key));
+    try {
+      setMediaMessage(undefined);
+      const uncommittedMedia = mediaDraft.localMedia.filter((item) => !committedKeysRef.current.has(item.key));
+      const missingUploads = uncommittedMedia.filter((item) => !uploadedAssetsRef.current.has(item.key));
 
-    if (missingUploads.length > 0) {
-      setMediaPhase("uploading");
-      const batch = await uploadProductImages(missingUploads, productId);
-      batch.uploaded.forEach((asset) => uploadedAssetsRef.current.set(asset.clientKey, asset));
-      if (batch.failed.length > 0) {
-        const firstFailure = batch.failed[0];
-        setMediaPhase("error");
-        setMediaMessage(`${firstFailure.fileName}: ${firstFailure.message}${batch.failed.length > 1 ? ` (${batch.failed.length} dosya başarısız)` : ""}`);
+      if (missingUploads.length > 0) {
+        setMediaPhase("uploading");
+        const batch = await uploadProductImages(missingUploads, productId);
+        batch.uploaded.forEach((asset) => uploadedAssetsRef.current.set(asset.clientKey, asset));
+        if (batch.failed.length > 0) {
+          const firstFailure = batch.failed[0];
+          setMediaPhase("error");
+          setMediaMessage(`${firstFailure.fileName}: ${firstFailure.message}${batch.failed.length > 1 ? ` (${batch.failed.length} dosya başarısız)` : ""}`);
+          return;
+        }
+      }
+
+      const selectedExistingId = mediaDraft.mainKey?.startsWith("existing-")
+        ? mediaDraft.mainKey.slice("existing-".length)
+        : undefined;
+      const selectedExisting = selectedExistingId ? images.find((image) => image.id === selectedExistingId) : undefined;
+      const orderByKey = new Map(mediaDraft.orderedKeys.map((key, index) => [key, index]));
+      const existingImages = images.map((image) => ({
+        id: image.id,
+        displayOrder: orderByKey.get(`existing-${image.id}`) ?? image.displayOrder,
+      }));
+      const newImages = mediaDraft.localMedia
+        .map((item) => {
+          if (committedKeysRef.current.has(item.key)) return null;
+          const asset = uploadedAssetsRef.current.get(item.key);
+          return asset ? {
+            ...asset,
+            displayOrder: orderByKey.get(item.key) ?? mediaDraft.orderedKeys.length,
+            isMain: mediaDraft.mainKey === item.key,
+          } : null;
+        })
+        .filter((image): image is NonNullable<typeof image> => image !== null);
+      const existingOrderChanged = existingImages.some((orderedImage) =>
+        images.find((image) => image.id === orderedImage.id)?.displayOrder !== orderedImage.displayOrder,
+      );
+      const shouldUpdateExistingMain = Boolean(selectedExisting && !selectedExisting.isMain);
+
+      if (newImages.length === 0 && !shouldUpdateExistingMain && !existingOrderChanged) {
+        finishSuccessfulSave(productId);
         return;
       }
-    }
 
-    const selectedExistingId = mediaDraft.mainKey?.startsWith("existing-")
-      ? mediaDraft.mainKey.slice("existing-".length)
-      : undefined;
-    const selectedExisting = selectedExistingId ? images.find((image) => image.id === selectedExistingId) : undefined;
-    const maxDisplayOrder = images.reduce((maximum, image) => Math.max(maximum, image.displayOrder), -1);
-    const newImages = mediaDraft.localMedia
-      .map((item, index) => {
-        if (committedKeysRef.current.has(item.key)) return null;
-        const asset = uploadedAssetsRef.current.get(item.key);
-        return asset ? {
-          ...asset,
-          displayOrder: maxDisplayOrder + index + 1,
-          isMain: mediaDraft.mainKey === item.key,
-        } : null;
-      })
-      .filter((image): image is NonNullable<typeof image> => image !== null);
-    const shouldUpdateExistingMain = Boolean(selectedExisting && !selectedExisting.isMain && !existingMainUpdatedRef.current);
+      setMediaPhase("registering");
+      const result = await commitProductMediaAction({
+        productId,
+        mainExistingImageId: shouldUpdateExistingMain ? selectedExistingId : undefined,
+        existingImages,
+        newImages,
+      });
+      result.committedClientKeys.forEach((key) => committedKeysRef.current.add(key));
 
-    if (newImages.length === 0 && !shouldUpdateExistingMain) {
+      if (result.status !== "success") {
+        setMediaPhase("error");
+        setMediaMessage(`${result.message || "Görseller ürüne bağlanamadı."}${result.traceId ? ` Takip kodu: ${result.traceId}` : ""}`);
+        return;
+      }
+
       finishSuccessfulSave(productId);
-      return;
-    }
-
-    setMediaPhase("registering");
-    const result = await commitProductMediaAction({
-      productId,
-      mainExistingImageId: shouldUpdateExistingMain ? selectedExistingId : undefined,
-      newImages,
-    });
-    result.committedClientKeys.forEach((key) => committedKeysRef.current.add(key));
-    if (result.existingMainUpdated) existingMainUpdatedRef.current = true;
-
-    if (result.status !== "success") {
+    } catch {
       setMediaPhase("error");
-      setMediaMessage(`${result.message || "Görseller ürüne bağlanamadı."}${result.traceId ? ` Takip kodu: ${result.traceId}` : ""}`);
-      return;
+      setMediaMessage("Görsel kaydı beklenmeyen bir bağlantı hatası nedeniyle tamamlanamadı. Yalnız eksik adımı yeniden deneyin.");
     }
-
-    finishSuccessfulSave(productId);
   }, [finishSuccessfulSave, images, mediaDraft]);
 
   // Burada her başarılı form gönderimini benzersiz tamamlanma anahtarıyla yalnız bir kez medya aşamasına geçiriyorum.
@@ -163,10 +194,15 @@ export function ProductForm({
   }, [dirty]);
 
   const fieldError = (name: string) => state.fieldErrors?.[name];
+  const savedVariantEditorState = state.savedVariantEditorState;
+  const editorVariants = (savedVariantEditorState?.variants || product?.variants || [])
+    .filter((variant) => !deletedVariantIds.has(variant.id));
+  const editorHasVariants = savedVariantEditorState?.hasVariants ?? product?.hasVariants ?? false;
+  const editorMainSku = savedVariantEditorState?.mainSku ?? product?.mainSku ?? "";
 
   // Burada yalnız temel ürün DTO'suna ait bir kontrol değiştiğinde temel güncelleme çağrısını etkinleştiriyorum.
   const handleFormChange = (event: React.FormEvent<HTMLFormElement>) => {
-    setDirty(true);
+    setFormDirty(true);
     const control = event.target;
     if (
       (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement || control instanceof HTMLSelectElement)
@@ -182,7 +218,13 @@ export function ProductForm({
   };
 
   return (
-    <form action={formAction} onChange={handleFormChange} className="pb-4">
+    <form
+      action={formAction}
+      onSubmit={() => setActionStateAtSubmit(state)}
+      onChange={handleFormChange}
+      aria-busy={awaitingActionResult || mediaPending}
+      className="pb-4"
+    >
       {baseChanged ? <input type="hidden" name="baseChanged" value="on" /> : null}
       {product ? (
         <>
@@ -197,6 +239,22 @@ export function ProductForm({
         <div className={`mb-5 rounded-xl border px-4 py-3 text-sm ${state.status === "partial" ? "border-amber-300 bg-amber-50 text-amber-900" : "border-red-300 bg-red-50 text-red-900"}`} role="alert">
           <p className="font-semibold">{state.status === "partial" ? "Kısmi kayıt" : "Kayıt tamamlanamadı"}</p>
           <p className="mt-1 leading-6">{state.message}</p>
+          {state.completedOperations?.length ? (
+            <div className="mt-3">
+              <p className="font-semibold">Kaydedilenler</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5">
+                {state.completedOperations.map((operation) => <li key={operation}>{operation}</li>)}
+              </ul>
+            </div>
+          ) : null}
+          {state.failedOperations?.length ? (
+            <div className="mt-3">
+              <p className="font-semibold">Tamamlanamayanlar</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5">
+                {state.failedOperations.map((operation) => <li key={operation}>{operation}</li>)}
+              </ul>
+            </div>
+          ) : null}
           {state.traceId ? <p className="mt-1 text-xs">Takip kodu: {state.traceId}</p> : null}
           {state.productId ? (
             <Link href={state.reloadHref || `/products/${state.productId}`} className="mt-2 inline-flex font-semibold underline">
@@ -224,17 +282,31 @@ export function ProductForm({
             productId={product?.id}
             images={images}
             disabled={mediaPhase === "uploading" || mediaPhase === "registering"}
-            onDirty={() => setDirty(true)}
+            onDirty={() => setFormDirty(true)}
             onDraftChange={handleMediaDraftChange}
           />
 
           <VariantEditor
-            variants={product?.variants || []}
+            key={`${editorHasVariants}:${editorMainSku}:${editableVariantRevision(editorVariants)}`}
+            variants={editorVariants}
             mode={mode}
-            initialHasVariants={product?.hasVariants ?? false}
-            initialMainSku={product?.mainSku || ""}
+            productId={product?.id}
+            initialHasVariants={editorHasVariants}
+            initialMainSku={editorMainSku}
             fieldErrors={state.fieldErrors}
+            deletionDisabled={dirty || awaitingActionResult || mediaPhase !== "idle"}
+            onVariantDeleted={(variantId, message) => {
+              setDeletedVariantIds((current) => new Set(current).add(variantId));
+              setVariantMutationMessage(message);
+              router.refresh();
+            }}
+            onNormalizationNeeded={handleVariantNormalizationNeeded}
           />
+          {variantMutationMessage ? (
+            <p className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-900" role="status">
+              {variantMutationMessage}
+            </p>
+          ) : null}
 
           <FormSection title="Arama motoru bilgileri" description="Storefront ürün sayfasında kullanılacak başlık ve açıklamayı tanımlayın.">
             <div className="grid gap-3">
@@ -290,11 +362,23 @@ export function ProductForm({
                 initialTags={product?.tags.map((tag) => tag.name) || []}
                 error={fieldError("tags")}
                 onTagsChange={() => {
-                  setDirty(true);
+                  setFormDirty(true);
                   setBaseChanged(true);
                 }}
               />
-              <CollectionMemberships mode={mode} product={product} options={options} error={fieldError("collections")} />
+              {mode === "create" ? (
+                <CollectionSelector
+                  collections={options.collections}
+                  unavailable={options.collectionsUnavailable}
+                  error={fieldError("collections")}
+                  onCollectionsChange={() => {
+                    setFormDirty(true);
+                    setBaseChanged(true);
+                  }}
+                />
+              ) : (
+                <CollectionMemberships product={product} />
+              )}
               <Field label="Görüntüleme sırası" name="displayOrder" defaultValue={String(product?.displayOrder ?? 0)} type="number" min="0" step="1" error={fieldError("displayOrder")} />
             </div>
           </FormSection>
@@ -306,7 +390,11 @@ export function ProductForm({
         {mediaPhase !== "idle" ? (
           <div className="sm:mr-auto" role={mediaPhase === "error" ? "alert" : "status"} aria-live="polite">
             <p className={`text-sm font-semibold ${mediaPhase === "error" ? "text-danger" : "text-primary"}`}>
-              {mediaPhase === "uploading" || mediaPhase === "registering" ? "Görseller kaydediliyor…" : mediaMessage}
+              {mediaPhase === "uploading"
+                ? "Görseller medya hizmetine yükleniyor…"
+                : mediaPhase === "registering"
+                  ? "Yüklenen görseller ürüne bağlanıyor…"
+                  : mediaMessage}
             </p>
             {mediaPhase === "error" && state.productId ? (
               <button type="button" onClick={() => void completeMediaSave(state.productId as string)} className="mt-1 text-sm font-semibold text-primary underline underline-offset-2">
@@ -319,7 +407,8 @@ export function ProductForm({
         <SaveButton
           label={mode === "create" ? "Ürünü oluştur" : "Değişiklikleri kaydet"}
           disabled={(mode === "edit" && !dirty) || mediaPhase !== "idle"}
-          externalPending={mediaPhase === "uploading" || mediaPhase === "registering"}
+          actionPending={awaitingActionResult}
+          mediaPhase={mediaPhase}
         />
       </div>
     </form>
@@ -327,12 +416,8 @@ export function ProductForm({
 }
 
 // Burada PDF referansındaki ürün organizasyonu alanına benzer biçimde koleksiyonları türlerine göre rozetle gösteriyorum.
-function CollectionMemberships({ mode, product, options, error }: { mode: "create" | "edit"; product?: Product; options: ProductFormOptions; error?: string[] }) {
-  if (mode === "edit") {
-    return <div><p className="text-sm font-medium text-foreground">Koleksiyonlar</p><div className="mt-1 rounded-lg border border-border bg-surface-subtle p-2.5">{product?.collections.length ? <div className="flex flex-wrap gap-1.5">{product.collections.map((collection) => <span key={collection.id} className="rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{collection.name}</span>)}</div> : <p className="text-xs leading-5 text-muted">Bu ürün henüz manuel bir koleksiyona eklenmemiş.</p>}</div><p className="mt-1 text-xs leading-5 text-muted">Manuel üyelikler gri, otomatik üyelikler API sözleşmesi geldiğinde mavi gösterilecek.</p></div>;
-  }
-
-  return <label className="block text-sm font-medium text-foreground">Koleksiyonlar<select name="collections" multiple className="mt-1 min-h-24 w-full rounded-lg border border-border-strong bg-surface-strong px-3 py-2 text-sm text-foreground" disabled={options.collectionsUnavailable}>{options.collections.map((collection) => <option key={collection.id} value={collection.name}>{collection.name}</option>)}</select>{options.collectionsUnavailable ? <span className="mt-1 block text-xs font-normal leading-5 text-warning">Koleksiyonlar şu anda yüklenemedi.</span> : <span className="mt-1 block text-xs font-normal leading-5 text-muted">Birden fazla manuel koleksiyon seçebilirsiniz.</span>}<FieldError messages={error} /></label>;
+function CollectionMemberships({ product }: { product?: Product }) {
+  return <div><p className="text-sm font-medium text-foreground">Koleksiyonlar</p><div className="mt-1 rounded-lg border border-border bg-surface-subtle p-2.5">{product?.collections.length ? <div className="flex flex-wrap gap-1.5">{product.collections.map((collection) => <span key={collection.id} className="rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{collection.name}</span>)}</div> : <p className="text-xs leading-5 text-muted">Bu ürün henüz manuel bir koleksiyona eklenmemiş.</p>}</div><p className="mt-1 text-xs leading-5 text-muted">Manuel üyelikler gri, otomatik üyelikler API sözleşmesi geldiğinde mavi gösterilecek.</p></div>;
 }
 
 // Burada anlamlı ürün alanlarını ağır kart tekrarına girmeden aynı bölüm yüzeyinde topluyorum.
@@ -380,12 +465,28 @@ function FieldError({ id, messages }: { id?: string; messages?: string[] }) {
 }
 
 // Burada değişiklik yokken kaydı kapatıyor, gönderim sırasında çift tıklamayı engelleyip durumu metinle bildiriyorum.
-function SaveButton({ label, disabled = false, externalPending = false }: { label: string; disabled?: boolean; externalPending?: boolean }) {
-  const { pending } = useFormStatus();
-  const isDisabled = pending || externalPending || disabled;
+function SaveButton({
+  label,
+  disabled = false,
+  actionPending = false,
+  mediaPhase = "idle",
+}: {
+  label: string;
+  disabled?: boolean;
+  actionPending?: boolean;
+  mediaPhase?: "idle" | "uploading" | "registering" | "error";
+}) {
+  const externalPending = mediaPhase === "uploading" || mediaPhase === "registering";
+  const isPending = actionPending || externalPending;
+  const isDisabled = isPending || disabled;
+  const pendingLabel = actionPending
+    ? "Ürün kaydediliyor…"
+    : mediaPhase === "uploading"
+      ? "Görseller yükleniyor…"
+      : "Görseller bağlanıyor…";
   return (
     <button type="submit" disabled={isDisabled} aria-disabled={isDisabled} className="inline-flex min-h-11 min-w-44 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-muted disabled:text-white/80">
-      {pending || externalPending ? "Kaydediliyor…" : label}
+      {isPending ? pendingLabel : label}
     </button>
   );
 }

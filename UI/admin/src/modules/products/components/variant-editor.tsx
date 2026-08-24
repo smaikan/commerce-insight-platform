@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ConfirmDialog } from "@/lib/admin/components/confirm-dialog";
+import { deleteProductVariantAction } from "@/modules/products/actions";
 import type { ProductVariant } from "@/modules/products/types";
+import { variantNeedsCanonicalIdentity, variantsByCombination } from "@/modules/products/variant-editing";
 import {
   buildVariantCombinations,
   groupsFromVariants,
@@ -13,7 +16,12 @@ import {
 type DraftVariant = {
   key: string;
   id?: string;
+  expectedConcurrencyToken?: string;
+  originalName?: string;
+  originalValue?: string;
   changed: boolean;
+  identityChanged: boolean;
+  schemaNormalized: boolean;
   sku: string;
   price: string;
   stock: string;
@@ -28,6 +36,8 @@ type DraftField = keyof Pick<
   "sku" | "price" | "stock" | "compareAtPrice" | "barcode" | "material"
 >;
 
+type VariantDetailMap = Record<string, DraftVariant[]>;
+
 const inputClass =
   "min-h-11 w-full rounded-lg border border-border-strong bg-surface-strong px-3 text-sm text-foreground outline-none focus:border-primary sm:min-h-9";
 
@@ -36,7 +46,12 @@ function toDraft(variant: ProductVariant, key: string): DraftVariant {
   return {
     key,
     id: variant.id,
+    expectedConcurrencyToken: variant.concurrencyToken,
+    originalName: variant.name,
+    originalValue: variant.value,
     changed: false,
+    identityChanged: false,
+    schemaNormalized: false,
     sku: variant.sku,
     price: String(variant.price),
     stock: String(variant.stock),
@@ -52,6 +67,8 @@ function emptyDraft(key = "variant-new-0"): DraftVariant {
   return {
     key,
     changed: false,
+    identityChanged: false,
+    schemaNormalized: false,
     sku: "",
     price: "",
     stock: "0",
@@ -66,56 +83,62 @@ function emptyDraft(key = "variant-new-0"): DraftVariant {
 function detailsFromVariants(
   variants: ProductVariant[],
   combinations: VariantCombination[],
-): Record<string, DraftVariant> {
-  const details: Record<string, DraftVariant> = {};
-  variants.forEach((variant, index) => {
-    const values = splitComposite(variant.value);
-    const combination = combinations.find((item) => {
-      const combinationValues = splitComposite(item.value);
-      return combinationValues.length === values.length && combinationValues.every((value, partIndex) => value === values[partIndex]);
-    }) || combinations[index];
-    if (combination) details[combination.key] = toDraft(variant, combination.key);
-  });
-  return details;
+): VariantDetailMap {
+  return Object.fromEntries(
+    Object.entries(variantsByCombination(variants, combinations)).map(([combinationKey, groupedVariants]) => {
+      const combination = combinations.find((item) => item.key === combinationKey);
+      if (!combination) return [combinationKey, []];
+      return [combinationKey, groupedVariants.map((variant) => {
+        const draft = toDraft(variant, `variant-${variant.id}`);
+        const schemaNormalized = variantNeedsCanonicalIdentity(variant, combination);
+        return {
+          ...draft,
+          changed: schemaNormalized,
+          identityChanged: schemaNormalized,
+          schemaNormalized,
+        };
+      })];
+    }),
+  );
 }
 
 // Burada seçenek yapısı değiştiğinde ortak seçimleri eşleyip mevcut varyant kimliklerini ilk uygun kombinasyona taşıyorum.
 function rebaseDetails(
   previousCombinations: VariantCombination[],
   nextCombinations: VariantCombination[],
-  current: Record<string, DraftVariant>,
-): Record<string, DraftVariant> {
-  const next: Record<string, DraftVariant> = {};
+  current: VariantDetailMap,
+): VariantDetailMap {
+  const next: VariantDetailMap = {};
   const usedPreviousKeys = new Set<string>();
 
   nextCombinations.forEach((combination) => {
-    if (current[combination.key] && !usedPreviousKeys.has(combination.key)) {
+    if (current[combination.key]?.length && !usedPreviousKeys.has(combination.key)) {
       const previousCombination = previousCombinations.find((item) => item.key === combination.key);
       const combinationChanged = previousCombination
         ? previousCombination.name !== combination.name || previousCombination.value !== combination.value
         : false;
-      next[combination.key] = {
-        ...current[combination.key],
-        key: combination.key,
-        changed: current[combination.key].changed || Boolean(current[combination.key].id && combinationChanged),
-      };
+      next[combination.key] = current[combination.key].map((detail) => ({
+        ...detail,
+        changed: detail.changed || Boolean(detail.id && combinationChanged),
+        identityChanged: detail.identityChanged || Boolean(detail.id && combinationChanged),
+        schemaNormalized: combinationChanged ? false : detail.schemaNormalized,
+      }));
       usedPreviousKeys.add(combination.key);
       return;
     }
 
     const candidates = previousCombinations.filter(
-      (previous) => current[previous.key] && !usedPreviousKeys.has(previous.key) && combinationsAreCompatible(previous, combination),
+      (previous) => current[previous.key]?.length && !usedPreviousKeys.has(previous.key) && combinationsAreCompatible(previous, combination),
     );
-    const matched = candidates.find((candidate) => current[candidate.key].id) || candidates[0];
+    const matched = candidates.find((candidate) => current[candidate.key].some((detail) => detail.id)) || candidates[0];
     if (matched) {
-      next[combination.key] = {
-        ...current[matched.key],
-        key: combination.key,
-        changed: current[matched.key].changed || Boolean(current[matched.key].id),
-      };
+      next[combination.key] = current[matched.key].map((detail) => ({
+        ...detail,
+        changed: detail.changed || Boolean(detail.id),
+        identityChanged: detail.identityChanged || Boolean(detail.id),
+        schemaNormalized: false,
+      }));
       usedPreviousKeys.add(matched.key);
-    } else {
-      next[combination.key] = emptyDraft(combination.key);
     }
   });
 
@@ -132,13 +155,15 @@ function combinationsAreCompatible(previous: VariantCombination, next: VariantCo
 
 // Burada seçenek adı veya değeri değişince yalnız ilgili kayıtlı varyantları güncellenecek olarak işaretliyorum.
 function markPersistedDetailsChanged(
-  current: Record<string, DraftVariant>,
+  current: VariantDetailMap,
   affectedKeys?: Set<string>,
-): Record<string, DraftVariant> {
+): VariantDetailMap {
   return Object.fromEntries(
-    Object.entries(current).map(([key, detail]) => [
+    Object.entries(current).map(([key, details]) => [
       key,
-      detail.id && (!affectedKeys || affectedKeys.has(key)) ? { ...detail, changed: true } : detail,
+      details.map((detail) => detail.id && (!affectedKeys || affectedKeys.has(key))
+        ? { ...detail, changed: true, identityChanged: true, schemaNormalized: false }
+        : detail),
     ]),
   );
 }
@@ -147,17 +172,25 @@ function markPersistedDetailsChanged(
 export function VariantEditor({
   variants,
   mode,
+  productId,
   initialHasVariants,
   initialMainSku,
   fieldErrors,
+  deletionDisabled = false,
+  onVariantDeleted,
+  onNormalizationNeeded,
 }: {
   variants: ProductVariant[];
   mode: "create" | "edit";
+  productId?: string;
   initialHasVariants: boolean;
   initialMainSku: string;
   fieldErrors?: Record<string, string[]>;
+  deletionDisabled?: boolean;
+  onVariantDeleted?: (variantId: string, message: string) => void;
+  onNormalizationNeeded?: () => void;
 }) {
-  const initialGroups = initialHasVariants ? groupsFromVariants(variants) : [];
+  const initialGroups = variants.length > 0 ? groupsFromVariants(variants) : [];
   const initialCombinations = buildVariantCombinations(initialGroups);
   const initialDetails = detailsFromVariants(variants, initialCombinations);
   const initialSimpleDraft = variants[0] ? toDraft(variants[0], "variant-new-0") : emptyDraft();
@@ -166,15 +199,44 @@ export function VariantEditor({
   const [mainSku, setMainSku] = useState(initialMainSku);
   const [simpleDraft, setSimpleDraft] = useState<DraftVariant>(initialSimpleDraft);
   const [groups, setGroups] = useState<VariantOptionGroupDraft[]>(initialGroups);
-  const [details, setDetails] = useState<Record<string, DraftVariant>>(initialDetails);
+  const [details, setDetails] = useState<VariantDetailMap>(initialDetails);
+  const [deleteCandidate, setDeleteCandidate] = useState<{ id: string; label: string }>();
+  const [deleteError, setDeleteError] = useState<string>();
+  const [deleting, setDeleting] = useState(false);
   const combinations = buildVariantCombinations(groups);
   const preventsDisabling = mode === "edit" && initialHasVariants && variants.length > 1;
+  const canDeletePersistedVariant = mode === "edit" && Boolean(productId) && variants.length > 1;
+  const hasSchemaNormalization = Object.values(initialDetails).some((items) =>
+    items.some((detail) => detail.schemaNormalized),
+  );
+
+  // Burada legacy ad/değerlerin canonical şemaya taşınacağını üst forma gerçek bir kayıt değişikliği olarak bildiriyorum.
+  useEffect(() => {
+    if (hasSchemaNormalization) onNormalizationNeeded?.();
+  }, [hasSchemaNormalization, onNormalizationNeeded]);
+
+  // Burada silme onayından sonra gerçek API kaydını kaldırıyor, hata halinde form taslağını yerinde koruyorum.
+  const confirmVariantDeletion = async () => {
+    if (!productId || !deleteCandidate || deleting || deletionDisabled) return;
+    setDeleting(true);
+    setDeleteError(undefined);
+    const result = await deleteProductVariantAction(productId, deleteCandidate.id);
+    setDeleting(false);
+    if (result.status === "error") {
+      setDeleteError(`${result.message}${result.traceId ? ` Takip kodu: ${result.traceId}` : ""}`);
+      return;
+    }
+    const deletedId = deleteCandidate.id;
+    setDeleteCandidate(undefined);
+    onVariantDeleted?.(deletedId, result.message);
+  };
 
   // Burada varyant modunu değiştirirken çoklu mevcut varyantların yanlışlıkla gizlenmesini engelliyorum.
   const changeVariantMode = (checked: boolean) => {
     if (!checked && preventsDisabling) return;
+
     if (!checked && combinations[0]) {
-      const source = details[combinations[0].key] || emptyDraft();
+      const source = details[combinations[0].key]?.[0] || emptyDraft();
       setSimpleDraft({ ...source, changed: source.changed || Boolean(source.id) });
     }
     setHasVariants(checked);
@@ -271,14 +333,13 @@ export function VariantEditor({
   };
 
   // Burada her kombinasyonun fiyat, stok ve SKU alanlarını kendi anahtarında güncelliyorum.
-  const updateDetail = (combinationKey: string, field: DraftField, value: string) => {
+  const updateDetail = (combinationKey: string, detailKey: string, field: DraftField, value: string) => {
     setDetails((current) => ({
       ...current,
-      [combinationKey]: {
-        ...(current[combinationKey] || emptyDraft(combinationKey)),
-        [field]: value,
-        changed: true,
-      },
+      [combinationKey]: (current[combinationKey]?.length
+        ? current[combinationKey]
+        : [emptyDraft(combinationKey)]
+      ).map((detail) => detail.key === detailKey ? { ...detail, [field]: value, changed: true } : detail),
     }));
   };
 
@@ -288,7 +349,9 @@ export function VariantEditor({
         <div>
           <h2 id="variants-title" className="text-base font-semibold text-foreground">Fiyatlandırma ve varyantlar</h2>
           <p className="mt-0.5 text-xs leading-5 text-muted">
-            Tek ürün bilgilerini girin veya seçenek değerlerini çaprazlayarak varyantlar oluşturun.
+            {mode === "edit"
+              ? "Mevcut stok yalnız aşağıdaki stok hareketi bölümünden değiştirilir; yeni varyantlarda açılış stoğu girilebilir."
+              : "Tek ürün bilgilerini girin veya seçenek değerlerini çaprazlayarak varyantlar oluşturun."}
           </p>
         </div>
         <label className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-border bg-surface-subtle px-3 text-sm font-semibold text-foreground sm:min-h-9">
@@ -319,7 +382,7 @@ export function VariantEditor({
 
         {preventsDisabling ? (
           <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
-            Birden fazla kayıtlı varyant bulunduğu için varyant modu kapatılamaz. Backend&apos;de birleştirme veya silme desteği eklendiğinde bu kilit kaldırılabilir.
+            Birden fazla kayıtlı varyant bulunduğu için varyant modu doğrudan kapatılamaz. Varyantları tek kayıt kalana kadar ayrı ayrı silebilirsiniz.
           </p>
         ) : null}
         {fieldErrors?.hasVariants ? <FieldError messages={fieldErrors.hasVariants} /> : null}
@@ -338,6 +401,12 @@ export function VariantEditor({
             removeValue={removeValue}
             updateDetail={updateDetail}
             fieldErrors={fieldErrors}
+            canDeletePersistedVariant={canDeletePersistedVariant}
+            deletionDisabled={deletionDisabled || deleting}
+            requestVariantDeletion={(id, label) => {
+              setDeleteError(undefined);
+              setDeleteCandidate({ id, label });
+            }}
           />
         ) : (
           <SimpleProductFields
@@ -348,6 +417,26 @@ export function VariantEditor({
           />
         )}
       </div>
+      {canDeletePersistedVariant && deletionDisabled ? (
+        <p className="mx-4 mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+          Varyant silmeden önce formdaki bekleyen değişiklikleri kaydedin.
+        </p>
+      ) : null}
+      <ConfirmDialog
+        open={Boolean(deleteCandidate)}
+        title="Varyant silinsin mi?"
+        description={`${deleteCandidate?.label || "Seçilen varyant"} katalogdan ve normal ürün sorgularından kaldırılacak. Stok ve işlem geçmişi korunacak; bu işlem Admin panelinden geri alınamaz.`}
+        confirmLabel="Varyantı sil"
+        pending={deleting}
+        error={deleteError}
+        onCancel={() => {
+          if (!deleting) {
+            setDeleteCandidate(undefined);
+            setDeleteError(undefined);
+          }
+        }}
+        onConfirm={() => void confirmVariantDeletion()}
+      />
     </section>
   );
 }
@@ -379,14 +468,28 @@ function SimpleProductFields({
       <input type="hidden" name={`${prefix}.value`} value="Standart" />
       <input type="hidden" name={`${prefix}.sku`} value={mainSku} />
       {draft.id ? <input type="hidden" name={`${prefix}.id`} value={draft.id} /> : null}
+      {draft.id && draft.expectedConcurrencyToken ? <input type="hidden" name={`${prefix}.expectedConcurrencyToken`} value={draft.expectedConcurrencyToken} /> : null}
       {draft.id && draft.changed ? <input type="hidden" name={`${prefix}.changed`} value="on" /> : null}
+      {draft.id && draft.identityChanged ? <input type="hidden" name={`${prefix}.identityChanged`} value="on" /> : null}
+      {draft.id && draft.schemaNormalized ? <input type="hidden" name={`${prefix}.schemaNormalized`} value="on" /> : null}
       {draft.isActive ? <input type="hidden" name={`${prefix}.isActive`} value="on" /> : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <Field label="Barkod" name={`${prefix}.barcode`} value={draft.barcode} onChange={(value) => update("barcode", value)} maxLength={100} error={fieldErrors?.[`${prefix}.barcode`]} />
         <Field label="Fiyat" name={`${prefix}.price`} value={draft.price} onChange={(value) => update("price", value)} type="number" step="0.01" min="0.01" required error={fieldErrors?.[`${prefix}.price`]} />
         <Field label="Karşılaştırma fiyatı" name={`${prefix}.compareAtPrice`} value={draft.compareAtPrice} onChange={(value) => update("compareAtPrice", value)} type="number" step="0.01" min="0" error={fieldErrors?.[`${prefix}.compareAtPrice`]} />
-        <Field label="Stok" name={`${prefix}.stock`} value={draft.stock} onChange={(value) => update("stock", value)} type="number" step="1" min="0" required error={fieldErrors?.[`${prefix}.stock`]} />
+        <Field
+          label={draft.id ? "Mevcut stok" : "Açılış stoğu"}
+          name={`${prefix}.stock`}
+          value={draft.stock}
+          onChange={(value) => update("stock", value)}
+          type="number"
+          step="1"
+          min="0"
+          required
+          readOnly={Boolean(draft.id)}
+          error={fieldErrors?.[`${prefix}.stock`]}
+        />
         <Field label="Materyal" name={`${prefix}.material`} value={draft.material} onChange={(value) => update("material", value)} maxLength={120} error={fieldErrors?.[`${prefix}.material`]} />
       </div>
     </div>
@@ -406,18 +509,24 @@ function VariantOptions({
   removeValue,
   updateDetail,
   fieldErrors,
+  canDeletePersistedVariant,
+  deletionDisabled,
+  requestVariantDeletion,
 }: {
   groups: VariantOptionGroupDraft[];
   combinations: VariantCombination[];
-  details: Record<string, DraftVariant>;
+  details: VariantDetailMap;
   addGroup: () => void;
   updateGroupName: (groupKey: string, name: string) => void;
   removeGroup: (groupKey: string) => void;
   addValue: (groupKey: string) => void;
   updateValue: (groupKey: string, valueKey: string, value: string) => void;
   removeValue: (groupKey: string, valueKey: string) => void;
-  updateDetail: (combinationKey: string, field: DraftField, value: string) => void;
+  updateDetail: (combinationKey: string, detailKey: string, field: DraftField, value: string) => void;
   fieldErrors?: Record<string, string[]>;
+  canDeletePersistedVariant: boolean;
+  deletionDisabled: boolean;
+  requestVariantDeletion: (variantId: string, label: string) => void;
 }) {
   if (groups.length === 0) {
     return (
@@ -434,6 +543,12 @@ function VariantOptions({
   const duplicateNames = groups
     .map((group) => group.name.trim())
     .filter((name, index, all) => name && all.indexOf(name) !== index);
+  const variantRows = combinations.flatMap((combination) => {
+    const combinationDetails = details[combination.key]?.length
+      ? details[combination.key]
+      : [emptyDraft(combination.key)];
+    return combinationDetails.map((detail) => ({ combination, detail }));
+  });
 
   return (
     <div className="mt-4 space-y-4 border-t border-border pt-4">
@@ -528,18 +643,19 @@ function VariantOptions({
             <h3 className="text-sm font-semibold text-foreground">Varyant detayları</h3>
             <p className="mt-1 text-xs leading-5 text-muted">Seçenek değerlerinin tüm çapraz kombinasyonları aşağıda listelenir. Satış alanlarını tamamen boş bıraktığınız yeni varyantlar kayda eklenmez.</p>
           </div>
-          <span className="text-xs font-semibold text-muted">{combinations.length} varyant</span>
+          <span className="text-xs font-semibold text-muted">{variantRows.length} varyant</span>
         </div>
 
-        <input type="hidden" name="variantCount" value={combinations.length} />
+        <input type="hidden" name="variantCount" value={variantRows.length} />
         {combinations.length > 0 ? (
           <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
-            {combinations.map((combination, index) => {
+            {variantRows.map(({ combination, detail }, index) => {
               const prefix = `variants.${index}`;
-              const detail = details[combination.key] || emptyDraft(combination.key);
               const requiresSalesDetails = Boolean(detail.id) || !isBlankDraft(detail);
+              const submittedName = detail.id && !detail.identityChanged ? detail.originalName || combination.name : combination.name;
+              const submittedValue = detail.id && !detail.identityChanged ? detail.originalValue || combination.value : combination.value;
               return (
-                <section key={combination.key} aria-labelledby={`variant-detail-${index}`} className="bg-surface-strong p-3">
+                <section key={`${combination.key}:${detail.key}`} aria-labelledby={`variant-detail-${index}`} className="bg-surface-strong p-3">
                   <div id={`variant-detail-${index}`} className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-normal leading-5 text-foreground">
                     {formatCombinationParts(combination).map((part, partIndex) => (
                       <span key={`${combination.key}-${part.name}`} className="inline-flex items-baseline gap-1">
@@ -548,21 +664,46 @@ function VariantOptions({
                         <span className="font-semibold text-gray-500">{part.value}</span>
                       </span>
                     ))}
+                    {detail.id && canDeletePersistedVariant ? (
+                      <button
+                        type="button"
+                        disabled={deletionDisabled}
+                        onClick={() => requestVariantDeletion(detail.id as string, `${combination.name} · ${combination.value}`)}
+                        className="ml-auto inline-flex min-h-9 items-center rounded-lg border border-red-200 bg-white px-3 text-xs font-bold text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label={`${combination.name} ${combination.value} varyantını sil`}
+                      >
+                        Varyantı sil
+                      </button>
+                    ) : null}
                   </div>
-                  <input type="hidden" name={`${prefix}.name`} value={combination.name} />
-                  <input type="hidden" name={`${prefix}.value`} value={combination.value} />
+                  <input type="hidden" name={`${prefix}.name`} value={submittedName} />
+                  <input type="hidden" name={`${prefix}.value`} value={submittedValue} />
                   {detail.id ? <input type="hidden" name={`${prefix}.id`} value={detail.id} /> : null}
+                  {detail.id && detail.expectedConcurrencyToken ? <input type="hidden" name={`${prefix}.expectedConcurrencyToken`} value={detail.expectedConcurrencyToken} /> : null}
                   {detail.id && detail.changed ? <input type="hidden" name={`${prefix}.changed`} value="on" /> : null}
+                  {detail.id && detail.identityChanged ? <input type="hidden" name={`${prefix}.identityChanged`} value="on" /> : null}
+                  {detail.id && detail.schemaNormalized ? <input type="hidden" name={`${prefix}.schemaNormalized`} value="on" /> : null}
                   {detail.isActive ? <input type="hidden" name={`${prefix}.isActive`} value="on" /> : null}
                   <FieldError messages={mergeErrors(fieldErrors?.[`${prefix}.name`], fieldErrors?.[`${prefix}.value`])} />
 
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    <Field label="SKU" name={`${prefix}.sku`} value={detail.sku} onChange={(value) => updateDetail(combination.key, "sku", value)} maxLength={100} required={requiresSalesDetails} error={fieldErrors?.[`${prefix}.sku`]} />
-                    <Field label="Barkod" name={`${prefix}.barcode`} value={detail.barcode} onChange={(value) => updateDetail(combination.key, "barcode", value)} maxLength={100} error={fieldErrors?.[`${prefix}.barcode`]} />
-                    <Field label="Fiyat" name={`${prefix}.price`} value={detail.price} onChange={(value) => updateDetail(combination.key, "price", value)} type="number" step="0.01" min="0.01" required={requiresSalesDetails} error={fieldErrors?.[`${prefix}.price`]} />
-                    <Field label="Karşılaştırma fiyatı" name={`${prefix}.compareAtPrice`} value={detail.compareAtPrice} onChange={(value) => updateDetail(combination.key, "compareAtPrice", value)} type="number" step="0.01" min="0" error={fieldErrors?.[`${prefix}.compareAtPrice`]} />
-                    <Field label="Stok" name={`${prefix}.stock`} value={detail.stock} onChange={(value) => updateDetail(combination.key, "stock", value)} type="number" step="1" min="0" required={requiresSalesDetails} error={fieldErrors?.[`${prefix}.stock`]} />
-                    <Field label="Materyal" name={`${prefix}.material`} value={detail.material} onChange={(value) => updateDetail(combination.key, "material", value)} maxLength={120} error={fieldErrors?.[`${prefix}.material`]} />
+                    <Field label="SKU" name={`${prefix}.sku`} value={detail.sku} onChange={(value) => updateDetail(combination.key, detail.key, "sku", value)} maxLength={100} required={requiresSalesDetails} error={fieldErrors?.[`${prefix}.sku`]} />
+                    <Field label="Barkod" name={`${prefix}.barcode`} value={detail.barcode} onChange={(value) => updateDetail(combination.key, detail.key, "barcode", value)} maxLength={100} error={fieldErrors?.[`${prefix}.barcode`]} />
+                    <Field label="Fiyat" name={`${prefix}.price`} value={detail.price} onChange={(value) => updateDetail(combination.key, detail.key, "price", value)} type="number" step="0.01" min="0.01" required={requiresSalesDetails} error={fieldErrors?.[`${prefix}.price`]} />
+                    <Field label="Karşılaştırma fiyatı" name={`${prefix}.compareAtPrice`} value={detail.compareAtPrice} onChange={(value) => updateDetail(combination.key, detail.key, "compareAtPrice", value)} type="number" step="0.01" min="0" error={fieldErrors?.[`${prefix}.compareAtPrice`]} />
+                    <Field
+                      label={detail.id ? "Mevcut stok" : "Açılış stoğu"}
+                      name={`${prefix}.stock`}
+                      value={detail.stock}
+                      onChange={(value) => updateDetail(combination.key, detail.key, "stock", value)}
+                      type="number"
+                      step="1"
+                      min="0"
+                      required={requiresSalesDetails}
+                      readOnly={Boolean(detail.id)}
+                      error={fieldErrors?.[`${prefix}.stock`]}
+                    />
+                    <Field label="Materyal" name={`${prefix}.material`} value={detail.material} onChange={(value) => updateDetail(combination.key, detail.key, "material", value)} maxLength={120} error={fieldErrors?.[`${prefix}.material`]} />
                   </div>
                 </section>
               );
@@ -596,13 +737,13 @@ function projectedCombinationCount(groups: VariantOptionGroupDraft[], targetGrou
 // Burada belirli bir seçenek değerinin kaydedilmiş varyant kimliği taşıyan kombinasyonda kullanılıp kullanılmadığını buluyorum.
 function valueOwnsPersistedDetail(
   combinations: VariantCombination[],
-  details: Record<string, DraftVariant>,
+  details: VariantDetailMap,
   groupKey: string,
   valueKey: string,
 ): boolean {
   return combinations.some(
     (combination) =>
-      Boolean(details[combination.key]?.id) &&
+      Boolean(details[combination.key]?.some((detail) => detail.id)) &&
       combination.selections.some((selection) => selection.groupKey === groupKey && selection.valueKey === valueKey),
   );
 }
@@ -626,6 +767,7 @@ function Field({
   min,
   maxLength,
   required,
+  readOnly,
   help,
   placeholder,
   error,
@@ -639,6 +781,7 @@ function Field({
   min?: string;
   maxLength?: number;
   required?: boolean;
+  readOnly?: boolean;
   help?: string;
   placeholder?: string;
   error?: string[];
@@ -655,12 +798,13 @@ function Field({
         min={min}
         maxLength={maxLength}
         required={required}
+        readOnly={readOnly}
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? errorId : help ? helpId : undefined}
-        className={`${inputClass} mt-1.5`}
+        className={`${inputClass} mt-1.5 read-only:cursor-not-allowed read-only:bg-surface-subtle read-only:text-muted`}
       />
       {help ? <span id={helpId} className="mt-1 block text-xs font-normal leading-5 text-muted">{help}</span> : null}
       <FieldError id={errorId} messages={error} />

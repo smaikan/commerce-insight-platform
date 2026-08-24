@@ -11,6 +11,7 @@ export type ProductMediaDraftItem = {
 export type ProductMediaDraft = {
   localMedia: ProductMediaDraftItem[];
   mainKey: string | null;
+  orderedKeys: string[];
 };
 
 export type CloudinaryProductAsset = {
@@ -22,6 +23,10 @@ export type CloudinaryProductAsset = {
 export type ProductMediaCommitInput = {
   productId: string;
   mainExistingImageId?: string;
+  existingImages: Array<{
+    id: string;
+    displayOrder: number;
+  }>;
   newImages: Array<CloudinaryProductAsset & {
     displayOrder: number;
     isMain: boolean;
@@ -34,8 +39,20 @@ export type ProductMediaCommitResult = {
   message?: string;
   traceId?: string;
   committedClientKeys: string[];
-  existingMainUpdated: boolean;
+  updatedExistingImageIds: string[];
 };
+
+// Burada sürüklenen veya klavye kontrolleriyle taşınan medya anahtarını hedef konuma yerleştiriyorum.
+export function moveMediaKey(keys: string[], sourceKey: string, targetKey: string): string[] {
+  const sourceIndex = keys.indexOf(sourceKey);
+  const targetIndex = keys.indexOf(targetKey);
+  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return keys;
+
+  const next = [...keys];
+  const [moved] = next.splice(sourceIndex, 1);
+  next.splice(targetIndex, 0, moved);
+  return next;
+}
 
 // Burada API'ye iletilecek Cloudinary kaydının beklenen ürün klasörüne ve hesaba ait olduğunu doğruluyorum.
 export function isTrustedCloudinaryProductAsset(

@@ -20,15 +20,30 @@ export type VariantCombination = {
 
 type VariantIdentity = { name: string; value: string };
 
-// Burada backend'in slash ile birleştirdiği mevcut varyantları düzenlenebilir seçenek gruplarına ayırıyorum.
+// Burada karışık legacy şemalarda ilk kayda güvenmeden en zengin şemayı ve ad bazlı değerleri yeniden kuruyorum.
 export function groupsFromVariants(variants: VariantIdentity[]): VariantOptionGroupDraft[] {
-  const first = variants[0];
-  if (!first) return [];
+  if (variants.length === 0) return [];
 
-  const names = splitComposite(first.name).slice(0, 3);
+  const schemas = variants.map((variant) => splitComposite(variant.name).filter(Boolean));
+  const richestSchema = schemas.reduce<string[]>(
+    (richest, schema) => schema.length > richest.length ? schema : richest,
+    [],
+  );
+  const names = schemas.reduce<string[]>((ordered, schema) => {
+    schema.forEach((name) => {
+      if (ordered.length < 3 && !ordered.includes(name)) ordered.push(name);
+    });
+    return ordered;
+  }, [...richestSchema.slice(0, 3)]);
+
   return names.map((name, groupIndex) => {
     const values = variants
-      .map((variant) => splitComposite(variant.value)[groupIndex] || "")
+      .map((variant) => {
+        const variantNames = splitComposite(variant.name);
+        const variantValues = splitComposite(variant.value);
+        const matchingIndex = variantNames.indexOf(name);
+        return matchingIndex >= 0 ? variantValues[matchingIndex] || "" : "";
+      })
       .filter((value, index, all) => value && all.indexOf(value) === index)
       .map((value, valueIndex) => ({
         key: `group-${groupIndex}-value-${valueIndex}`,

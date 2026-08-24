@@ -98,11 +98,11 @@ export function ProductFilters({
           </select>
         </label>
 
-        <button type="submit" className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover sm:min-h-9">
+        <button type="submit" className="min-h-10 cursor-pointer rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover sm:min-h-9">
           Uygula
         </button>
         {hasProductFilters(query) ? (
-          <Link href="/products" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-border-strong bg-surface-strong px-4 text-sm font-medium text-foreground hover:bg-surface-subtle sm:min-h-9">
+          <Link href="/products" className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-lg border border-border-strong bg-surface-strong px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface-subtle sm:min-h-9">
             Temizle
           </Link>
         ) : null}

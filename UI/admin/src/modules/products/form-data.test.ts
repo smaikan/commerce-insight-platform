@@ -222,12 +222,156 @@ describe("product form data", () => {
     const form = validProductForm();
     form.set("productId", "P00004");
     form.set("variants.0.id", "11111111-1111-4111-8111-111111111111");
+    form.set("variants.0.expectedConcurrencyToken", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
     form.set("variants.0.changed", "on");
 
     const result = parseProductForm(form, "edit");
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.variants).toHaveLength(1);
+    if (result.ok) {
+      expect(result.value.variants).toHaveLength(1);
+      expect(result.value.variants[0].expectedConcurrencyToken).toBe("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    }
+  });
+
+  // Burada bulk mutation'a girecek kayıtlı varyantın concurrency token olmadan gönderilmesini engelliyorum.
+  it("requires a concurrency token for a changed persisted variant", () => {
+    const form = validProductForm();
+    form.set("productId", "P00004");
+    form.set("variants.0.id", "11111111-1111-4111-8111-111111111111");
+    form.set("variants.0.changed", "on");
+
+    const result = parseProductForm(form, "edit");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.fieldErrors.variants).toBeDefined();
+  });
+
+  // Burada legacy tekrarlı seçenek kombinasyonları satış alanı güncellemesini engellemeden iki kimliği de koruyor.
+  it("updates a persisted duplicate combination by id when its identity is unchanged", () => {
+    const form = validProductForm();
+    form.set("productId", "P00004");
+    form.set("hasVariants", "on");
+    form.set("variantCount", "2");
+    form.set("variants.0.id", "11111111-1111-4111-8111-111111111110");
+    form.set("variants.0.expectedConcurrencyToken", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    form.set("variants.0.changed", "on");
+    form.set("variants.0.price", "999.90");
+    form.set("variants.1.id", "11111111-1111-4111-8111-111111111111");
+    form.set("variants.1.expectedConcurrencyToken", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+    form.set("variants.1.name", "Varsayılan");
+    form.set("variants.1.value", "Standart");
+    form.set("variants.1.sku", "LUNA-002");
+    form.set("variants.1.price", "899.90");
+    form.set("variants.1.stock", "3");
+
+    const result = parseProductForm(form, "edit");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.variants).toEqual([
+        expect.objectContaining({ id: "11111111-1111-4111-8111-111111111110", price: 999.9 }),
+      ]);
+    }
+  });
+
+  // Burada yeni bir satırın mevcut seçenek kimliğini tekrar etmesine izin vermiyorum.
+  it("rejects a new duplicate combination while editing", () => {
+    const form = validProductForm();
+    form.set("productId", "P00004");
+    form.set("hasVariants", "on");
+    form.set("variants.0.id", "11111111-1111-4111-8111-111111111110");
+    form.set("variantCount", "2");
+    form.set("variants.1.name", "Varsayılan");
+    form.set("variants.1.value", "Standart");
+    form.set("variants.1.sku", "LUNA-002");
+    form.set("variants.1.price", "899.90");
+    form.set("variants.1.stock", "3");
+
+    const result = parseProductForm(form, "edit");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.fieldErrors["variants.1.value"]).toBeDefined();
+  });
+
+  // Burada dokunulmamış kayıtlı satırlar mutation listesinden çıkarılsa bile yeni varyantın gerçek form indeksini koruyorum.
+  it("preserves the original field index for a new edit variant", () => {
+    const form = validProductForm();
+    form.set("productId", "P00004");
+    form.set("hasVariants", "on");
+    form.set("variants.0.id", "11111111-1111-4111-8111-111111111110");
+    form.set("variantCount", "2");
+    form.set("variants.1.name", "Renk / Beden");
+    form.set("variants.1.value", "Kahverengi / L");
+    form.set("variants.1.sku", "LUNA-KAHVE-L");
+    form.set("variants.1.price", "899.90");
+    form.set("variants.1.stock", "3");
+
+    const result = parseProductForm(form, "edit");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.variants).toHaveLength(1);
+      expect(result.value.variantFieldIndexes).toEqual([1]);
+    }
+  });
+
+  // Burada kayıtlı bir satırın seçenek kimliği başka bir satırla çakışacak şekilde değiştirilemez.
+  it("rejects an edited identity that duplicates another persisted variant", () => {
+    const form = validProductForm();
+    form.set("productId", "P00004");
+    form.set("hasVariants", "on");
+    form.set("variants.0.id", "11111111-1111-4111-8111-111111111110");
+    form.set("variantCount", "2");
+    form.set("variants.1.id", "11111111-1111-4111-8111-111111111111");
+    form.set("variants.1.expectedConcurrencyToken", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+    form.set("variants.1.name", "Varsayılan");
+    form.set("variants.1.value", "Standart");
+    form.set("variants.1.sku", "LUNA-002");
+    form.set("variants.1.price", "899.90");
+    form.set("variants.1.stock", "3");
+    form.set("variants.1.changed", "on");
+    form.set("variants.1.identityChanged", "on");
+
+    const result = parseProductForm(form, "edit");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.fieldErrors["variants.1.value"]).toBeDefined();
+  });
+
+  // Burada iki mevcut kaydı silmeden tek canonical şemaya taşıyan normalizasyonun aynı kombinasyona izin verdiğini doğruluyorum.
+  it("allows a persisted legacy identity to normalize into an existing canonical combination", () => {
+    const form = validProductForm();
+    form.set("productId", "P00004");
+    form.set("hasVariants", "on");
+    form.set("variantCount", "2");
+    form.set("variants.0.id", "11111111-1111-4111-8111-111111111110");
+    form.set("variants.0.expectedConcurrencyToken", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    form.set("variants.0.name", "Renk / Beden");
+    form.set("variants.0.value", "Kırmızı / L");
+    form.set("variants.0.changed", "on");
+    form.set("variants.0.identityChanged", "on");
+    form.set("variants.0.schemaNormalized", "on");
+    form.set("variants.1.id", "11111111-1111-4111-8111-111111111111");
+    form.set("variants.1.name", "Renk / Beden");
+    form.set("variants.1.value", "Kırmızı / L");
+    form.set("variants.1.sku", "LUNA-002");
+    form.set("variants.1.price", "899.90");
+    form.set("variants.1.stock", "3");
+
+    const result = parseProductForm(form, "edit");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.variants).toEqual([
+        expect.objectContaining({
+          id: "11111111-1111-4111-8111-111111111110",
+          name: "Renk / Beden",
+          value: "Kırmızı / L",
+          sku: "LUNA-001",
+        }),
+      ]);
+    }
   });
 
   // Burada çoklu varyantlı üründe yalnız ana SKU değiştiğinde temel kaydın güncellenip dört varyantın tekrar gönderilmediğini doğruluyorum.

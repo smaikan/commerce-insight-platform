@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  CLOUDINARY_UPLOAD_TIMEOUT_MS,
   isTrustedCloudinaryAsset,
   uploadCloudinaryAsset,
   validateBannerFile,
@@ -25,6 +26,7 @@ describe("Cloudinary dosya doğrulaması", () => {
 
 describe("Cloudinary güvenli yükleme", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     delete process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     delete process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
@@ -46,6 +48,24 @@ describe("Cloudinary güvenli yükleme", () => {
       secureUrl: "https://res.cloudinary.com/demo/image/upload/v1/brands/123/logo.webp",
       resourceType: "image",
     });
+  });
+
+  // Burada Cloudinary bağlantısı cevap vermediğinde formun sonsuza kadar beklemek yerine yeniden denenebilir hataya geçtiğini doğruluyorum.
+  it("yükleme zaman aşımını güvenli ve anlaşılır hataya dönüştürür", async () => {
+    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = "demo";
+    process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET = "admin-images";
+    const timeoutController = new AbortController();
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout").mockReturnValue(timeoutController.signal);
+    vi.stubGlobal("fetch", vi.fn((_url: string | URL | Request, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true });
+    })));
+
+    const file = new File(["image"], "logo.webp", { type: "image/webp" });
+    const upload = uploadCloudinaryAsset({ file, folder: "brands/123" });
+    timeoutController.abort(new DOMException("Timed out", "TimeoutError"));
+
+    await expect(upload).rejects.toThrow("zaman aşımına uğradı");
+    expect(timeoutSpy).toHaveBeenCalledWith(CLOUDINARY_UPLOAD_TIMEOUT_MS);
   });
 
   // Burada farklı Cloudinary klasöründen gelen bir varlığın güvenilir sayılmadığını doğruluyorum.

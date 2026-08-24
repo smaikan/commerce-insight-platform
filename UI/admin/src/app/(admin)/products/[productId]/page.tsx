@@ -7,7 +7,7 @@ import { getProductDailyMetrics } from "@/modules/analytics/api";
 import { AnalyticsUnavailable, ProductAnalyticsPanel } from "@/modules/analytics/components/analytics-panels";
 import { getAnalyticsDateRange, parseAnalyticsPeriod } from "@/modules/analytics/query";
 import { getProduct, getProductFormOptions, getProductImages } from "@/modules/products/api";
-import { ProductForm } from "@/modules/products/components/product-form";
+import { ProductEditWorkspace } from "@/modules/products/components/product-edit-workspace";
 
 // Burada ürün kimliğini metadata başlığında güvenli bağlam olarak gösteriyorum.
 export async function generateMetadata({ params }: { params: Promise<{ productId: string }> }): Promise<Metadata> {
@@ -61,8 +61,12 @@ export default async function EditProductPage({
       ) : notices.saved === "1" ? (
         <p className="mb-5 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900" role="status">Ürün değişiklikleri kaydedildi.</p>
       ) : null}
-      {/* Burada sunucudan doğrulanan durum değiştiğinde formu yeni yetkili değerle yeniden kuruyorum. */}
-      <ProductForm key={`${product.id}:${product.status}`} mode="edit" product={product} images={imagePage.items} options={options} />
+      {/* Burada ürün kaydı ve ürün bağlamlı stok hareketini ayrı formlarla aynı çalışma alanında sunuyorum. */}
+      <ProductEditWorkspace
+        product={product}
+        images={imagePage.items}
+        options={options}
+      />
       {/* Burada performans analizini düzenleme akışından ayırıp sayfanın en altındaki inceleme alanına taşıyorum. */}
       <div className="mt-4">
         {metrics ? (

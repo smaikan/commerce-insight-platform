@@ -40,6 +40,13 @@ export type ProductActionState = {
   completionToken?: string;
   reloadHref?: string;
   fieldErrors?: Record<string, string[]>;
+  completedOperations?: string[];
+  failedOperations?: string[];
+  savedVariantEditorState?: {
+    mainSku: string;
+    hasVariants: boolean;
+    variants: ProductVariant[];
+  };
 };
 
 export const initialProductActionState: ProductActionState = { status: "idle" };

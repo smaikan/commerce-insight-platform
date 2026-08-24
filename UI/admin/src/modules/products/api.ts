@@ -2,6 +2,7 @@ import "server-only";
 
 import { apiRequest } from "@/lib/api/client";
 import type { AdminSession } from "@/lib/auth/contracts";
+import type { paths } from "@/generated/api";
 import type {
   Brand,
   Collection,
@@ -17,6 +18,7 @@ import type {
 
 export type ProductVariantInput = {
   id?: string;
+  expectedConcurrencyToken?: string;
   name: string;
   value: string;
   sku: string;
@@ -30,6 +32,16 @@ export type ProductVariantInput = {
   openingUnitCostIncludingVat?: number | null;
   stockAdjustmentReason?: string | null;
 };
+
+type BulkUpdateProductVariantsOperation = NonNullable<
+  paths["/api/product-variants/by-product/{productId}/bulk"]["put"]
+>;
+type DeleteProductVariantOperation = NonNullable<paths["/api/product-variants/{id}"]["delete"]>;
+type DeleteProductVariantId = DeleteProductVariantOperation["parameters"]["path"]["id"];
+export type BulkUpdateProductVariantsInput = NonNullable<
+  BulkUpdateProductVariantsOperation["requestBody"]
+>["content"]["application/json"];
+export type BulkUpdateProductVariantsResponse = BulkUpdateProductVariantsOperation["responses"][200]["content"]["application/json"];
 
 // Burada güncel runtime/Markdown sözleşmesinin OpenAPI'den ileride olan ürün oluşturma gövdesini açıkça tanımlıyorum.
 export type CreateProductInput = {
@@ -151,21 +163,13 @@ export function patchProductState(
   });
 }
 
-// Burada mevcut varyantın bilgi, fiyat, stok sayımı ve aktivasyon alanlarını tek belgelenmiş komutla güncelliyorum.
-export function updateProductVariant(variant: ProductVariantInput & { id: string }, session: AdminSession): Promise<ProductVariant> {
-  const body = {
-    name: variant.name,
-    value: variant.value,
-    sku: variant.sku,
-    price: variant.price,
-    stock: variant.stock,
-    compareAtPrice: variant.compareAtPrice,
-    barcode: variant.barcode,
-    material: variant.material,
-    isActive: variant.isActive,
-    stockAdjustmentReason: variant.stockAdjustmentReason,
-  };
-  return apiRequest(`/api/product-variants/${encodeURIComponent(variant.id)}`, {
+// Burada değişen mevcut varyantları SKU takaslarını da destekleyen atomik bulk sözleşmesiyle güncelliyorum.
+export function bulkUpdateProductVariants(
+  productId: string,
+  body: BulkUpdateProductVariantsInput,
+  session: AdminSession,
+): Promise<BulkUpdateProductVariantsResponse> {
+  return apiRequest(`/api/product-variants/by-product/${encodeURIComponent(productId)}/bulk`, {
     method: "PUT",
     body,
     accessToken: session.accessToken,
@@ -188,6 +192,14 @@ export function createProductVariant(productId: string, variant: ProductVariantI
   return apiRequest(`/api/product-variants/by-product/${encodeURIComponent(productId)}`, {
     method: "POST",
     body,
+    accessToken: session.accessToken,
+  });
+}
+
+// Burada kayıtlı varyantı stok ve işlem geçmişini koruyan belgelenmiş soft-delete endpoint'iyle kaldırıyorum.
+export function deleteProductVariant(variantId: DeleteProductVariantId, session: AdminSession): Promise<void> {
+  return apiRequest(`/api/product-variants/${encodeURIComponent(variantId)}`, {
+    method: "DELETE",
     accessToken: session.accessToken,
   });
 }

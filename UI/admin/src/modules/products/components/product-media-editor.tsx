@@ -9,6 +9,7 @@ import { deleteProductImageAction } from "@/modules/products/actions";
 import { validateProductImageFile } from "@/modules/products/cloudinary-upload";
 import {
   MAX_PRODUCT_IMAGES,
+  moveMediaKey,
   type ProductMediaDraft,
   type ProductMediaDraftItem,
 } from "@/modules/products/product-media";
@@ -33,6 +34,8 @@ export function ProductMediaEditor({ productId, images, disabled = false, onDirt
   const initialMainImage = visibleExistingImages.find((image) => image.isMain) || visibleExistingImages[0];
   const [localMedia, setLocalMedia] = useState<LocalMedia[]>([]);
   const [mainKey, setMainKey] = useState<string | null>(initialMainImage ? `existing-${initialMainImage.id}` : null);
+  const [orderedKeys, setOrderedKeys] = useState<string[]>(() => visibleExistingImages.map((image) => `existing-${image.id}`));
+  const [draggedKey, setDraggedKey] = useState<string>();
   const [message, setMessage] = useState<string>();
   const [deleteCandidate, setDeleteCandidate] = useState<ProductImage>();
   const [deleting, setDeleting] = useState(false);
@@ -60,8 +63,9 @@ export function ProductMediaEditor({ productId, images, disabled = false, onDirt
     onDraftChange({
       localMedia: localMedia.map(({ key, file }) => ({ key, file })),
       mainKey,
+      orderedKeys,
     });
-  }, [localMedia, mainKey, onDraftChange]);
+  }, [localMedia, mainKey, onDraftChange, orderedKeys]);
 
   // Burada bileşen kapandığında tarayıcıda ürettiğim geçici önizleme URL'lerini serbest bırakıyorum.
   useEffect(() => {
@@ -91,6 +95,7 @@ export function ProductMediaEditor({ productId, images, disabled = false, onDirt
 
     if (nextMedia.length > 0) {
       setLocalMedia((current) => [...current, ...nextMedia]);
+      setOrderedKeys((current) => [...current, ...nextMedia.map((item) => item.key)]);
       setMainKey((current) => current || nextMedia[0].key);
       onDirty();
     }
@@ -110,10 +115,11 @@ export function ProductMediaEditor({ productId, images, disabled = false, onDirt
     }
 
     const remainingLocalMedia = localMedia.filter((item) => item.key !== key);
+    const remainingKeys = orderedKeys.filter((item) => item !== key);
     setLocalMedia(remainingLocalMedia);
+    setOrderedKeys(remainingKeys);
     if (mainKey === key) {
-      const firstExisting = visibleExistingImages.find((image) => image.isMain) || visibleExistingImages[0];
-      setMainKey(firstExisting ? `existing-${firstExisting.id}` : remainingLocalMedia[0]?.key || null);
+      setMainKey(remainingKeys[0] || null);
     }
     setMessage(undefined);
     onDirty();
@@ -126,6 +132,22 @@ export function ProductMediaEditor({ productId, images, disabled = false, onDirt
     onDirty();
   };
 
+  // Burada sürükleme ve klavye taşıma işlemlerini aynı deterministik anahtar sırasına uygularım.
+  const moveMedia = (sourceKey: string, targetKey: string) => {
+    if (disabled || sourceKey === targetKey) return;
+    setOrderedKeys((current) => moveMediaKey(current, sourceKey, targetKey));
+    onDirty();
+  };
+
+  const moveMediaByOffset = (key: string, offset: -1 | 1) => {
+    const index = orderedKeys.indexOf(key);
+    const targetKey = orderedKeys[index + offset];
+    if (targetKey) moveMedia(key, targetKey);
+  };
+
+  const existingByKey = new Map(visibleExistingImages.map((image) => [`existing-${image.id}`, image]));
+  const localByKey = new Map(localMedia.map((item) => [item.key, item]));
+
   return (
     <section aria-labelledby="product-media-title" aria-busy={disabled} className="rounded-xl border border-border bg-surface-strong p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -136,37 +158,34 @@ export function ProductMediaEditor({ productId, images, disabled = false, onDirt
         <span className="rounded-md bg-surface-subtle px-2 py-1 text-xs font-bold tabular-nums text-muted">{totalCount}/{MAX_PRODUCT_IMAGES}</span>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-6">
-        {visibleExistingImages.map((image) => {
-          const key = `existing-${image.id}`;
+      <p className="mt-3 text-xs leading-5 text-muted">Görselleri sürükleyerek veya kartlardaki oklarla sıralayın. Dosya seçicinin verdiği sıra korunur.</p>
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-6">
+        {orderedKeys.map((key, index) => {
+          const existing = existingByKey.get(key);
+          const local = localByKey.get(key);
+          if (!existing && !local) return null;
           return (
             <MediaCard
               key={key}
               mediaKey={key}
-              src={image.imageUrl}
-              alt={image.altText || "Ürün görseli"}
-              label={image.altText || "Kayıtlı görsel"}
+              src={existing?.imageUrl || local?.previewUrl || ""}
+              alt={existing?.altText || local?.file.name || "Ürün görseli"}
+              label={existing?.altText || local?.file.name || "Kayıtlı görsel"}
+              position={index + 1}
+              total={orderedKeys.length}
               isMain={mainKey === key}
+              isDragging={draggedKey === key}
               disabled={disabled}
               onSelectMain={selectMain}
-              onRemove={productId ? () => setDeleteCandidate(image) : undefined}
+              onMoveBackward={() => moveMediaByOffset(key, -1)}
+              onMoveForward={() => moveMediaByOffset(key, 1)}
+              onDragStart={() => setDraggedKey(key)}
+              onDragOver={(sourceKey) => moveMedia(sourceKey, key)}
+              onDragEnd={() => setDraggedKey(undefined)}
+              onRemove={existing && productId ? () => setDeleteCandidate(existing) : local ? removeLocalMedia : undefined}
             />
           );
         })}
-
-        {localMedia.map((item) => (
-          <MediaCard
-            key={item.key}
-            mediaKey={item.key}
-            src={item.previewUrl}
-            alt={item.file.name}
-            label={item.file.name}
-            isMain={mainKey === item.key}
-            disabled={disabled}
-            onSelectMain={selectMain}
-            onRemove={removeLocalMedia}
-          />
-        ))}
 
         {totalCount < MAX_PRODUCT_IMAGES ? (
           <button
@@ -220,24 +239,60 @@ function MediaCard({
   src,
   alt,
   label,
+  position,
+  total,
   isMain,
+  isDragging,
   disabled,
   onSelectMain,
+  onMoveBackward,
+  onMoveForward,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
   onRemove,
 }: {
   mediaKey: string;
   src: string;
   alt: string;
   label: string;
+  position: number;
+  total: number;
   isMain: boolean;
+  isDragging: boolean;
   disabled: boolean;
   onSelectMain: (key: string) => void;
+  onMoveBackward: () => void;
+  onMoveForward: () => void;
+  onDragStart: () => void;
+  onDragOver: (sourceKey: string) => void;
+  onDragEnd: () => void;
   onRemove?: (key: string) => void;
 }) {
   const [failed, setFailed] = useState(false);
 
   return (
-    <article className={`group relative aspect-square min-h-24 overflow-hidden rounded-lg border-2 bg-surface-subtle transition-colors ${isMain ? "border-primary ring-2 ring-primary/15" : "border-border hover:border-border-strong"}`}>
+    <article
+      draggable={!disabled}
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", mediaKey);
+        onDragStart();
+      }}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        const sourceKey = event.dataTransfer.getData("text/plain");
+        if (sourceKey) onDragOver(sourceKey);
+        onDragEnd();
+      }}
+      onDragEnd={onDragEnd}
+      aria-label={`${label}, sıra ${position}/${total}${isMain ? ", ana görsel" : ""}`}
+      className={`group relative aspect-square min-h-24 overflow-hidden rounded-lg border-2 bg-surface-subtle transition-colors ${disabled ? "cursor-default" : "cursor-grab active:cursor-grabbing"} ${isDragging ? "opacity-60" : ""} ${isMain ? "border-primary ring-2 ring-primary/15" : "border-border hover:border-border-strong"}`}
+    >
       {failed ? (
         <span className="flex size-full items-center justify-center px-2 text-center text-xs font-semibold text-muted">Görsel açılamadı</span>
       ) : (
@@ -262,6 +317,27 @@ function MediaCard({
           ×
         </button>
       ) : null}
+      <div role="group" className="absolute left-2 top-2 flex overflow-hidden rounded-md border border-white/50 bg-black/70 text-white shadow-sm" aria-label={`${label} sıralama kontrolleri`}>
+        <button
+          type="button"
+          disabled={disabled || position === 1}
+          onClick={onMoveBackward}
+          aria-label={`${label} görselini önceki sıraya taşı`}
+          className="flex size-7 items-center justify-center text-sm font-bold hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          ←
+        </button>
+        <span className="flex min-w-7 items-center justify-center border-x border-white/30 px-1 text-[10px] font-bold tabular-nums" aria-hidden="true">{position}</span>
+        <button
+          type="button"
+          disabled={disabled || position === total}
+          onClick={onMoveForward}
+          aria-label={`${label} görselini sonraki sıraya taşı`}
+          className="flex size-7 items-center justify-center text-sm font-bold hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          →
+        </button>
+      </div>
     </article>
   );
 }

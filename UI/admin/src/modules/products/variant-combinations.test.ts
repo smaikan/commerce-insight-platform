@@ -40,4 +40,17 @@ describe("variant combinations", () => {
       { name: "Cins", values: ["Kadın", "Erkek"] },
     ]);
   });
+
+  it("uses the richest schema and matches legacy values by option name", () => {
+    const groups = groupsFromVariants([
+      { name: "Beden", value: "L" },
+      { name: "Beden", value: "M" },
+      { name: "Renk / Beden", value: "Kırmızı / L" },
+    ]);
+
+    expect(groups.map((item) => ({ name: item.name, values: item.values.map((value) => value.value) }))).toEqual([
+      { name: "Renk", values: ["Kırmızı"] },
+      { name: "Beden", values: ["L", "M"] },
+    ]);
+  });
 });

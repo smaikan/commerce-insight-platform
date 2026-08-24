@@ -1,4 +1,4 @@
-import type { StockMovementDirection, StockMovementType } from "@/modules/inventory/types";
+import type { StockMovementDirection, StockMovementType } from "./types";
 
 export const stockMovementDirectionOptions = [
   { value: 1 as StockMovementDirection, label: "Giriş" },

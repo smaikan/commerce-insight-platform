@@ -1,5 +1,6 @@
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const MAX_BANNER_VIDEO_BYTES = 25 * 1024 * 1024;
+export const CLOUDINARY_UPLOAD_TIMEOUT_MS = 45_000;
 export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const ACCEPTED_BANNER_VIDEO_TYPES = ["video/mp4", "video/webm"] as const;
 
@@ -110,11 +111,23 @@ export async function uploadCloudinaryAsset(input: CloudinaryUploadInput, signal
   body.set("folder", normalizedFolder);
   if (input.tags?.length) body.set("tags", input.tags.join(","));
 
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/${requestedResourceType}/upload`,
-    { method: "POST", body, signal },
-  );
-  const payload = await response.json().catch(() => null) as CloudinaryUploadResponse | null;
+  const timeoutSignal = AbortSignal.timeout(CLOUDINARY_UPLOAD_TIMEOUT_MS);
+  const requestSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+  let response: Response;
+  let payload: CloudinaryUploadResponse | null;
+  try {
+    response = await fetch(
+      `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/${requestedResourceType}/upload`,
+      { method: "POST", body, signal: requestSignal },
+    );
+    payload = await response.json().catch(() => null) as CloudinaryUploadResponse | null;
+  } catch {
+    if (signal?.aborted) throw new Error("Medya yükleme işlemi iptal edildi.");
+    if (timeoutSignal.aborted) {
+      throw new Error("Medya yükleme zaman aşımına uğradı. Bağlantınızı kontrol edip yalnız eksik adımı yeniden deneyin.");
+    }
+    throw new Error("Medya yükleme hizmetine bağlanılamadı. Bağlantınızı kontrol edip tekrar deneyin.");
+  }
   if (!response.ok) throw new Error("Medya yüklenemedi. Lütfen tekrar deneyin.");
 
   const asset: CloudinaryAsset = {
