@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { ContactForm } from "@/modules/contact/components/contact-form";
 import { getPublicStoreSettings } from "@/modules/store-settings/api";
-import { safeStoreSettingsUrl } from "@/modules/store-settings/url";
+import { safeGoogleMapsEmbedUrl, storeMapNavigationUrl } from "@/modules/store-settings/url";
 import { siteConfig } from "@/lib/site-config";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -53,15 +53,15 @@ export default async function ContactPage() {
   const whatsappNumber = settings?.whatsappNumber?.trim() || "0549 586 23 45";
   const contactAddress = settings?.contactAddress?.trim() || "Altıyol Meydanı, Söğütlüçeşme Cad., 34714 Kadıköy/İstanbul";
   const workingHours = settings?.workingHours?.trim() || "Pazartesi - Cumartesi: 09:00 - 18:00";
-  const mapUrl = settings?.mapUrl ? safeStoreSettingsUrl(settings.mapUrl) : null;
-  const isEmbedMap = mapUrl?.includes("google.com/maps/embed") ?? false;
-  const mapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contactAddress)}`;
+  const mapUrl = safeGoogleMapsEmbedUrl(settings?.mapUrl);
+  const mapsSearchUrl = storeMapNavigationUrl(settings?.mapUrl, contactAddress)
+    ?? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contactAddress)}`;
   const whatsappHref = getWhatsappLink(whatsappNumber);
 
   return (
-    <main id="main-content" className="flex-1 pb-16 sm:pb-24">
+    <main id="main-content" className="flex-1 pb-12 sm:pb-16">
       {/* Hero Header */}
-      <header className="border-b border-line bg-surface-subtle/30 py-10 sm:py-14">
+      <header className="border-b border-line bg-surface-subtle/30 py-8 sm:py-10">
         <div className="page-shell">
           <nav aria-label="Breadcrumb" className="mb-4 text-xs font-medium text-ink-muted">
             <ol className="flex items-center gap-2">
@@ -86,7 +86,7 @@ export default async function ContactPage() {
         </div>
       </header>
 
-      <div className="page-shell mt-10 sm:mt-14">
+      <div className="page-shell mt-8 sm:mt-10">
         {/* Hızlı İletişim Kartları */}
         <section aria-label="Hızlı iletişim kanalları" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {/* Telefon Kartı */}
@@ -188,7 +188,7 @@ export default async function ContactPage() {
         </section>
 
         {/* Ana İçerik: İletişim Formu + Sıkça Sorulan Sorular / Bilgiler */}
-        <div className="mt-12 grid gap-12 lg:grid-cols-12 lg:items-start sm:mt-16">
+        <div className="mt-10 grid gap-10 sm:mt-12 lg:grid-cols-12 lg:items-start">
           {/* Sol Kolon: Form */}
           <div className="lg:col-span-7">
             <div className="mb-6">
@@ -259,8 +259,8 @@ export default async function ContactPage() {
         </div>
 
         {/* Harita Bölümü */}
-        {isEmbedMap && mapUrl ? (
-          <section aria-label="Harita konumu" className="mt-16">
+        {mapUrl ? (
+          <section aria-label="Harita konumu" className="mt-12">
             <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
               <div className="border-b border-line bg-surface-subtle/50 px-6 py-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>

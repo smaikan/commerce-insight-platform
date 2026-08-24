@@ -2,13 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { FooterDisclosure } from "@/components/storefront/footer-disclosure";
+import { FloatingWhatsappButton } from "@/components/storefront/floating-whatsapp-button";
+import { ScrollToTopButton } from "@/components/storefront/scroll-to-top-button";
 import type { StorefrontNavigationItem } from "@/components/storefront/navigation-types";
 import { siteConfig } from "@/lib/site-config";
 import { getStorefrontNavigation } from "@/modules/catalog/navigation";
 import { legalLinks } from "@/modules/legal/legal-links";
 import { getPublicStoreSettings } from "@/modules/store-settings/api";
 import type { PublicStoreSettings } from "@/modules/store-settings/types";
-import { safeStoreSettingsUrl } from "@/modules/store-settings/url";
+import { safeStoreSettingsUrl, storeMapNavigationUrl } from "@/modules/store-settings/url";
 
 type FooterSettings = Pick<
   PublicStoreSettings,
@@ -104,7 +106,7 @@ export function SiteFooterView({
   const displayName = settings.displayName.trim() || siteConfig.name;
   // Burada koyu footer yüzeyinde önce açık renkli alternatif logoyu, yoksa standart logoyu kullanıyorum.
   const logoUrl = safeStoreSettingsUrl(settings.darkLogoUrl) ?? safeStoreSettingsUrl(settings.logoUrl);
-  const mapUrl = safeStoreSettingsUrl(settings.mapUrl);
+  const mapNavigationUrl = storeMapNavigationUrl(settings.mapUrl, settings.contactAddress);
   const socialLinks = SOCIAL_LINKS.flatMap((social) => {
     const href = safeStoreSettingsUrl(settings[social.key]);
     return href ? [{ ...social, href }] : [];
@@ -156,7 +158,7 @@ export function SiteFooterView({
           <FooterDisclosure id="footer-contact" title="İletişim">
           <address className="mt-1 flex flex-col items-start gap-2 not-italic text-sm leading-6 text-footer-muted sm:mt-4">
             {settings.contactAddress ? (
-              mapUrl ? <a className="footer-link whitespace-pre-line" href={mapUrl} target="_blank" rel="noreferrer">{settings.contactAddress}</a> : <span className="whitespace-pre-line">{settings.contactAddress}</span>
+              mapNavigationUrl ? <a className="footer-link whitespace-pre-line" href={mapNavigationUrl} target="_blank" rel="noreferrer">{settings.contactAddress}</a> : <span className="whitespace-pre-line">{settings.contactAddress}</span>
             ) : null}
             {settings.supportPhone ? <a className="footer-link" href={`tel:${phoneHref(settings.supportPhone)}`}>{settings.supportPhone}</a> : null}
             {settings.supportEmail ? <a className="footer-link break-all" href={`mailto:${settings.supportEmail}`}>{settings.supportEmail}</a> : null}
@@ -214,25 +216,8 @@ export function SiteFooterView({
         </div>
       </div>
 
-      {whatsappHref ? (
-        <a
-          href={whatsappHref}
-          target="_blank"
-          rel="noreferrer"
-          className="focus-ring fixed bottom-5 left-5 z-30 inline-flex size-14 items-center justify-center rounded-full bg-whatsapp text-white shadow-floating sm:size-16"
-          aria-label="WhatsApp ile iletişime geç"
-        >
-          <WhatsappIcon />
-        </a>
-      ) : null}
-
-      <a
-        href="#page-top"
-        className="focus-ring fixed right-5 bottom-5 z-30 inline-flex size-12 items-center justify-center rounded-full bg-brand-700 text-white shadow-floating transition-colors hover:bg-brand-600 sm:size-14"
-        aria-label="Sayfanın başına dön"
-      >
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 15 6-6 6 6" /></svg>
-      </a>
+      {whatsappHref ? <FloatingWhatsappButton href={whatsappHref} /> : null}
+      <ScrollToTopButton />
     </footer>
   );
 }
@@ -256,14 +241,4 @@ function SocialIcon({ name }: { name: string }) {
   if (name === "TikTok") return <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4v10a5 5 0 1 1-4-4.9" /><path d="M15 4c.7 2.6 2.2 4 5 4" /></svg>;
   if (name === "Pinterest") return <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9" /><path d="M9.5 20 12 9.5m-1.3 5.2c1 1.2 3.8 1.5 5.5-.4 2.2-2.5.9-7-2.8-7.7-4.4-.8-7.2 2.1-6.5 5.2.2.9.8 1.7 1.6 2.1" /></svg>;
   return <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="currentColor"><path d="M4 3h4.7l4.2 5.7L18 3h2l-6.2 7.2L21 21h-4.7l-4.7-6.4L6 21H4l6.7-7.9L4 3Zm3.7 1.6 9.5 14.8h1.9L9.6 4.6H7.7Z" /></svg>;
-}
-
-// Burada referanstaki belirgin WhatsApp eylemini mevcut public ayar varsa erişilebilir tek renkli simgeyle sunuyorum.
-function WhatsappIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 11.6a8 8 0 0 1-11.8 7L4 20l1.4-4A8 8 0 1 1 20 11.6Z" />
-      <path d="M8.5 8.2c.5 3.6 3.2 6.2 6.8 6.8l1.1-1.6-2.4-1.1-.8 1c-1.5-.7-2.7-1.9-3.4-3.4l1-.8-1.1-2.4-1.2 1.5Z" />
-    </svg>
-  );
 }

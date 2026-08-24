@@ -55,8 +55,8 @@ describe("site header auth navigation", () => {
     expect(html).toContain('aria-label="ELEVEN ana sayfa"');
     expect(html).toContain('alt="ELEVEN"');
     expect(html).toContain("store-settings%2Flogo%2Fheader.webp");
-    expect(html).toContain('sizes="(min-width: 640px) 80px, 48px"');
-    expect(html).toContain("size-12");
+    expect(html).toContain('sizes="(min-width: 640px) 64px, 44px"');
+    expect(html).toContain("size-11");
     expect(html).toContain("left-1/2");
     expect(html).toContain("-translate-x-1/2");
   });

@@ -22,7 +22,7 @@ export function AuthShell({ eyebrow, title, description, children }: AuthShellPr
       <div aria-hidden="true" className="pointer-events-none absolute -top-28 right-[8%] -z-10 size-72 rounded-full border border-brand-600/15" />
       <div aria-hidden="true" className="pointer-events-none absolute top-10 right-[14%] -z-10 size-36 rounded-full border border-brand-600/10" />
 
-      <div className="page-shell grid w-full items-stretch py-8 sm:py-12 lg:grid-cols-[minmax(0,0.86fr)_minmax(28rem,1.14fr)] lg:gap-10 lg:py-16 xl:gap-16">
+      <div className="page-shell grid w-full items-stretch py-6 sm:py-8 lg:grid-cols-[minmax(0,0.86fr)_minmax(28rem,1.14fr)] lg:gap-10 lg:py-10 xl:gap-14">
         <section className="order-2 mt-8 border-t border-line pt-8 lg:order-1 lg:mt-0 lg:flex lg:min-h-[42rem] lg:flex-col lg:justify-between lg:border-t-0 lg:border-r lg:pr-10 lg:pt-0 xl:pr-16" aria-labelledby="auth-story-title">
           <div className="max-w-xl">
             <Link href="/" prefetch={false} className="focus-ring inline-flex items-center gap-3 text-xs font-black tracking-[0.18em] text-brand-950 uppercase">

@@ -77,10 +77,11 @@ export function MobileNavigation({ siteName, groups }: MobileNavigationProps) {
         }}
       >
         <div className="flex min-h-18 items-center justify-between gap-4 border-b border-line px-4">
+          {/* Burada mobil çekmece başlığını menü hiyerarşisini bastırmayacak ölçüde kompakt tutuyorum. */}
           <Link
             href="/"
             prefetch={false}
-            className="focus-ring truncate text-base font-black tracking-[0.14em] text-brand-950"
+            className="focus-ring truncate text-sm font-black tracking-[0.14em] text-brand-950"
             onClick={closeMenu}
           >
             {siteName}

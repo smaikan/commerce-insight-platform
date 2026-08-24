@@ -71,7 +71,7 @@ export async function SiteHeader() {
       </div>
       <ScrollAwareHeader>
         {/* Burada mobil aksiyonları dış kenara yaklaştırıp daha geniş ekranlarda kümeleri logoya dengeli biçimde yaklaştırıyorum. */}
-        <div className="page-shell relative flex min-h-22 items-center sm:min-h-24 sm:px-2 lg:px-4 xl:px-6">
+        <div className="page-shell relative flex min-h-18 items-center sm:min-h-20 sm:px-2 lg:px-4 xl:px-6">
           {/* Burada mobil menü tetikleyicisini ve masaüstü menü itemlerini header'ın sol kümesinde tutuyorum. */}
           <div className="relative z-20 flex min-w-0 items-center lg:w-[calc(50%_-_3rem)] lg:flex-none">
             <MobileNavigation siteName={displayName} groups={headerNavigationGroups} />
@@ -91,9 +91,9 @@ export async function SiteHeader() {
                 alt={displayName}
                 width={300}
                 height={300}
-                sizes="(min-width: 640px) 80px, 48px"
-                loading="eager"
-                className="size-12 object-contain sm:size-20"
+                sizes="(min-width: 640px) 64px, 44px"
+                priority
+                className="size-11 object-contain sm:size-16"
               />
             ) : (
               <span className="truncate text-base font-black tracking-[0.14em] text-brand-950 sm:text-lg sm:tracking-[0.16em]">{displayName}</span>

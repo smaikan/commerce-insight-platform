@@ -54,5 +54,6 @@ describe("mobile navigation", () => {
     expect(html).toContain('href="/register"');
     expect(html).toContain("Giriş yap");
     expect(html).toContain("Hesap oluştur");
+    expect(html).toContain('class="focus-ring truncate text-sm font-black tracking-[0.14em] text-brand-950"');
   });
 });

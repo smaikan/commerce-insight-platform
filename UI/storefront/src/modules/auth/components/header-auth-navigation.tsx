@@ -44,11 +44,11 @@ export function DesktopAuthNavigation() {
   if (session === "guest") {
     return (
       <nav className="hidden items-center gap-1.5 lg:flex" aria-label="Hesap işlemleri">
-        <Link href="/login" prefetch={false} className="focus-ring inline-flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap border border-line bg-surface px-2.5 text-xs font-bold text-ink transition-colors hover:border-brand-600 hover:bg-surface-subtle hover:text-brand-700 xl:px-3.5">
+        <Link href="/login" prefetch={false} className="focus-ring inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap border border-line bg-surface px-2.5 text-xs font-bold text-ink transition-colors hover:border-brand-600 hover:bg-surface-subtle hover:text-brand-700 xl:px-3.5">
           <UserIcon />
           Giriş yap
         </Link>
-        <Link href="/register" prefetch={false} className="focus-ring inline-flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap border border-brand-950 bg-brand-950 px-2.5 text-xs font-bold text-white transition-colors hover:border-brand-700 hover:bg-brand-700 xl:px-3.5">
+        <Link href="/register" prefetch={false} className="focus-ring inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap border border-brand-950 bg-brand-950 px-2.5 text-xs font-bold text-white transition-colors hover:border-brand-700 hover:bg-brand-700 xl:px-3.5">
           <UserPlusIcon />
           Hesap oluştur
         </Link>
@@ -78,7 +78,7 @@ export function DesktopAuthNavigation() {
             {/* Burada tekrarlanan panel başlığını kaldırıp hesap hedeflerini tek bakışta taranabilen kompakt satırlarda sunuyorum. */}
             <nav className="p-1.5" aria-label="Hesabım seçenekleri">
               {ACCOUNT_DESTINATIONS.map((item) => (
-                <Link key={item.href} href={item.href} prefetch={false} onClick={() => setOpen(false)} className="focus-ring flex min-h-11 items-center gap-3 px-3 text-sm font-semibold text-ink transition-colors hover:bg-surface-subtle hover:text-brand-700">
+                <Link key={item.href} href={item.href} prefetch={false} onClick={() => setOpen(false)} className="focus-ring flex min-h-11 cursor-pointer items-center gap-3 px-3 text-sm font-semibold text-ink transition-colors hover:bg-surface-subtle hover:text-brand-700">
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-surface-subtle text-brand-700" aria-hidden="true">
                     <AccountIcon icon={item.icon} className="size-4" />
                   </span>
@@ -88,7 +88,7 @@ export function DesktopAuthNavigation() {
             </nav>
             <form action={logoutAction} onSubmit={clearFavoriteStateForOwnerChange} className="border-t border-line p-1.5">
               {/* Burada çıkış eylemini menü hedefleriyle aynı ölçüde, ancak ayrı bölümde sakin bir metin aksiyonu olarak tutuyorum. */}
-              <button type="submit" className="focus-ring flex min-h-11 w-full items-center gap-3 px-3 text-left text-sm font-semibold text-ink-muted transition-colors hover:bg-surface-subtle hover:text-brand-700">
+              <button type="submit" className="focus-ring flex min-h-11 w-full cursor-pointer items-center gap-3 px-3 text-left text-sm font-semibold text-ink-muted transition-colors hover:bg-surface-subtle hover:text-brand-700">
                 <LogoutIcon />
                 Çıkış yap
               </button>
@@ -111,8 +111,8 @@ export function MobileAuthLinks({ onNavigate }: { onNavigate: () => void }) {
   if (session === "guest") {
     return (
       <>
-        <Link className="mobile-nav-link" href="/login" prefetch={false} onClick={onNavigate}>Giriş yap</Link>
-        <Link className="mobile-nav-link text-brand-700" href="/register" prefetch={false} onClick={onNavigate}>Hesap oluştur</Link>
+        <Link className="mobile-nav-link cursor-pointer" href="/login" prefetch={false} onClick={onNavigate}>Giriş yap</Link>
+        <Link className="mobile-nav-link cursor-pointer text-brand-700" href="/register" prefetch={false} onClick={onNavigate}>Hesap oluştur</Link>
       </>
     );
   }
@@ -120,13 +120,13 @@ export function MobileAuthLinks({ onNavigate }: { onNavigate: () => void }) {
   return (
     <>
       {ACCOUNT_DESTINATIONS.map((item) => (
-        <Link key={item.href} className="mobile-nav-link gap-3" href={item.href} prefetch={false} onClick={onNavigate}>
+        <Link key={item.href} className="mobile-nav-link cursor-pointer gap-3" href={item.href} prefetch={false} onClick={onNavigate}>
           <AccountIcon icon={item.icon} className="size-4.5 shrink-0 text-brand-700" />
           {item.label}
         </Link>
       ))}
       <form action={logoutAction} onSubmit={clearFavoriteStateForOwnerChange}>
-        <button type="submit" className="mobile-nav-link w-full gap-3 text-left">
+        <button type="submit" className="mobile-nav-link w-full cursor-pointer gap-3 text-left">
           <LogoutIcon />
           Çıkış yap
         </button>

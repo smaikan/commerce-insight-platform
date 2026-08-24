@@ -19,7 +19,7 @@ const settings = {
   whatsappNumber: "+90 555 000 00 00",
   contactAddress: "İstanbul, Türkiye",
   workingHours: "Hafta içi 09.00–18.00",
-  mapUrl: "https://maps.example.com/store",
+  mapUrl: "https://www.google.com/maps/embed?pb=store-location",
   facebookUrl: null,
   instagramUrl: "https://instagram.com/example",
   tiktokUrl: null,
@@ -56,6 +56,8 @@ describe("site footer", () => {
     expect(html).toContain('href="mailto:destek@example.com"');
     expect(html).toContain('href="tel:+902120000000"');
     expect(html).toContain('href="https://wa.me/905550000000"');
+    expect(html).toContain('href="https://www.google.com/maps/search/?api=1&amp;query=%C4%B0stanbul%2C+T%C3%BCrkiye"');
+    expect(html).not.toContain('href="https://www.google.com/maps/embed');
     expect(html).toContain('href="/collection/gunluk"');
     expect(html).toContain("Koleksiyonlar");
     expect(html).toContain('href="https://instagram.com/example"');
