@@ -60,7 +60,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </ol>
       </nav>
       <ProductViewTracker productId={data.product.id} />
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(24rem,0.9fr)] lg:gap-x-10 lg:gap-y-4 xl:gap-x-14">
+      <div className="grid w-full min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(24rem,0.9fr)] lg:gap-x-10 xl:gap-x-14">
         <ProductGallery images={images} productTitle={data.product.title} />
         <ProductSummary product={data.product} />
       </div>

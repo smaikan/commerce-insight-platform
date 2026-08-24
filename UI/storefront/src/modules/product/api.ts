@@ -8,8 +8,7 @@ import type { ProductSeoData, ProductSeoIndexItem, ProductSeoIndexPage } from "@
 // Burada metadata ve sayfanın aynı yayınlanmış ürün isteğini render kapsamında paylaşmasını sağlıyorum.
 export const getPublishedProductBySlug = cache(async (slug: string): Promise<ProductSeoData> =>
   apiGet<ProductSeoData>(`/api/products/by-url/${encodeURIComponent(slug)}`, {
-    revalidate: 60,
-    tags: ["products", `product:${slug}`],
+    cache: "no-store",
   }),
 );
 

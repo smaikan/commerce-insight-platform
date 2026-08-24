@@ -12,11 +12,11 @@ export function orderProductImages(images: ProductImage[]): ProductImage[] {
   );
 }
 
-// Burada tek görsel ağacını mobilde scroll-snap carousel, masaüstünde hizalı galeri olarak yeniden düzenliyorum.
+// Burada tek görsel ağacını mobilde scroll-snap carousel, masaüstünde sol sütunda derli toplu bağımsız galeri olarak sunuyorum.
 export function ProductGallery({ images, productTitle }: { images: ProductImage[]; productTitle: string }) {
   if (images.length === 0) {
     return (
-      <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+      <div className="w-full min-w-0">
         <div className="mx-auto flex aspect-[4/5] w-full max-w-[34rem] items-center justify-center rounded-2xl border border-line bg-surface-subtle px-8 text-center text-sm text-ink-muted">
           Bu ürün için henüz görsel bulunmuyor
         </div>
@@ -27,28 +27,26 @@ export function ProductGallery({ images, productTitle }: { images: ProductImage[
   const [primaryImage, ...additionalImages] = images;
 
   return (
-    <div className="min-w-0 lg:contents">
+    <div className={`w-full min-w-0 ${images.length <= 1 ? "lg:sticky lg:top-28 lg:self-start" : ""}`}>
       <div
         id={CAROUSEL_ID}
         role="region"
         aria-roledescription="carousel"
         aria-label="Ürün görselleri"
-        className="product-media-carousel -mx-4 flex w-[calc(100%+2rem)] snap-x snap-mandatory overflow-x-auto overscroll-x-contain sm:mx-0 sm:w-auto lg:contents"
+        className="product-media-carousel -mx-4 flex w-[calc(100%+2rem)] snap-x snap-mandatory overflow-x-auto overscroll-x-contain sm:mx-0 sm:w-auto lg:flex-col lg:gap-4 lg:overflow-visible"
       >
         <div
           role="group"
           aria-roledescription="slide"
           aria-label={`1 / ${images.length}`}
           data-carousel-slide
-          className="w-full min-w-0 flex-none snap-start lg:col-start-1 lg:row-start-1 lg:h-full"
+          className="w-full min-w-0 flex-none snap-start"
         >
-          <div className="lg:sticky lg:top-28">
-            <ProductImageFrame image={primaryImage} alt={primaryImage.altText || `${productTitle} ana görseli`} primary />
-          </div>
+          <ProductImageFrame image={primaryImage} alt={primaryImage.altText || `${productTitle} ana görseli`} primary />
         </div>
 
         {additionalImages.length > 0 ? (
-          <div className="contents lg:col-start-1 lg:row-start-2 lg:mx-auto lg:grid lg:w-full lg:max-w-[34rem] lg:grid-cols-2 lg:gap-4">
+          <div className="contents lg:grid lg:w-full lg:grid-cols-2 lg:gap-4">
             {additionalImages.map((image, index) => (
               <div
                 key={image.id}

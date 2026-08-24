@@ -1,6 +1,11 @@
+"use client";
+
+import { useState } from "react";
+
 import { formatCurrency } from "@/lib/formatting/currency";
 import { siteConfig } from "@/lib/site-config";
 import { FavoriteButton } from "@/modules/favorites/components/favorite-button";
+import { ProductInstallmentTable } from "@/modules/product/components/product-installment-table";
 import { ProductPurchasePanel } from "@/modules/product/components/product-purchase-panel";
 import type { Product } from "@/modules/product/types";
 
@@ -8,16 +13,21 @@ import type { Product } from "@/modules/product/types";
 export function ProductSummary({ product }: { product: Product }) {
   const activeVariants = product.variants.filter((variant) => variant.isActive);
   const purchaseVariants = activeVariants.map(({ id, name, value, price, stock }) => ({ id, name, value, price, stock }));
+  const firstAvailable = purchaseVariants.find((variant) => variant.stock > 0);
+  const [selectedVariantId, setSelectedVariantId] = useState(firstAvailable?.id || purchaseVariants[0]?.id || "");
+
+  const selectedVariant = purchaseVariants.find((variant) => variant.id === selectedVariantId);
   const isOutOfStock = !activeVariants.some((variant) => variant.stock > 0);
   const prices = activeVariants.map((variant) => variant.price);
   const minimumPrice = prices.length > 0 ? Math.min(...prices) : null;
-  const maximumPrice = prices.length > 0 ? Math.max(...prices) : null;
+  const currentPrice = selectedVariant?.price ?? minimumPrice;
+
   const materials = Array.from(
     new Set(activeVariants.map((variant) => variant.material?.trim()).filter((value): value is string => Boolean(value))),
   );
 
   return (
-    <aside className="lg:col-start-2 lg:row-start-1 lg:self-start">
+    <aside className="w-full min-w-0">
       {product.brandName ? <p className="text-xs font-bold tracking-[0.12em] text-brand-700 uppercase">{product.brandName}</p> : null}
       <div className="mt-2.5 flex items-start gap-2 sm:gap-3">
         <h1 className="min-w-0 pt-0.5 text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-ink sm:text-4xl">{product.title}</h1>
@@ -25,17 +35,24 @@ export function ProductSummary({ product }: { product: Product }) {
       </div>
 
       <div className="mt-7 border-y border-line py-5">
-        {minimumPrice !== null ? (
+        {currentPrice !== null ? (
           <p className="text-2xl font-bold text-ink">
-            {formatCurrency(minimumPrice)}
-            {maximumPrice !== null && maximumPrice !== minimumPrice ? <span className="ml-2 text-sm font-medium text-ink-muted">başlayan fiyatla</span> : null}
+            {formatCurrency(currentPrice)}
           </p>
         ) : <p className="text-sm text-ink-muted">Fiyat bilgisi bulunmuyor</p>}
         {isOutOfStock ? <p className="mt-2 text-sm font-semibold text-danger">Şu anda stokta yok</p> : null}
       </div>
 
-      <ProductPurchasePanel variants={purchaseVariants} currency={siteConfig.currency} showVariantSelection={product.hasVariants} />
+      {/* 1. Satın Alma / Varyant Seçim Paneli */}
+      <ProductPurchasePanel
+        variants={purchaseVariants}
+        currency={siteConfig.currency}
+        showVariantSelection={product.hasVariants}
+        selectedId={selectedVariantId}
+        onSelectVariant={setSelectedVariantId}
+      />
 
+      {/* 2. Ürün Açıklaması */}
       {product.description ? (
         <details className="mt-7 border-t border-line py-5" open>
           <summary className="focus-ring cursor-pointer text-sm font-bold text-ink">Ürün açıklaması</summary>
@@ -43,11 +60,17 @@ export function ProductSummary({ product }: { product: Product }) {
         </details>
       ) : null}
 
+      {/* 3. Materyal */}
       {materials.length > 0 ? (
         <details className="border-t border-line py-5">
           <summary className="focus-ring cursor-pointer text-sm font-bold text-ink">Materyal</summary>
           <p className="mt-4 text-sm leading-6 text-ink-muted">{materials.join(", ")}</p>
         </details>
+      ) : null}
+
+      {/* 4. İyzico Banka Bazlı Taksit Tablosu (Ürün açıklaması ve materyalin altında) */}
+      {currentPrice !== null ? (
+        <ProductInstallmentTable price={currentPrice} currency={siteConfig.currency} />
       ) : null}
     </aside>
   );

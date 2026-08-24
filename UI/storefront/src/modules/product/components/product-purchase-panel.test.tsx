@@ -32,4 +32,30 @@ describe("product purchase panel", () => {
     expect(html).toContain("Ürün seçeneği");
     expect(html).toContain('type="radio"');
   });
+
+  // Burada birleşik ad ve değerlerin ham metin yerine sıraya göre eşleşen iki yan yana seçenek olarak gösterildiğini doğruluyorum.
+  it("renders composite variant attributes side by side", () => {
+    const html = renderToStaticMarkup(
+      <ProductPurchasePanel
+        variants={[
+          {
+            ...singleVariant,
+            name: "Renk / Beden",
+            value: "Kırmızı / L",
+          },
+        ]}
+        currency="TRY"
+        showVariantSelection
+      />,
+    );
+
+    expect(html).toContain(">Renk:<");
+    expect(html).toContain(">Kırmızı<");
+    expect(html).toContain(">Beden:<");
+    expect(html).toContain(">L<");
+    expect(html).not.toContain("Renk / Beden");
+    expect(html).not.toContain("Kırmızı / L");
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain(">·<");
+  });
 });

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { parseVariantAttributes } from "@/lib/formatting/variant";
+
 import {
   cartErrorMessage,
   isConflictProblem,
@@ -28,16 +30,29 @@ export function ProductPurchasePanel({
   variants,
   currency,
   showVariantSelection,
+  selectedId: controlledSelectedId,
+  onSelectVariant,
 }: {
   variants: PurchaseVariant[];
   currency: string;
   showVariantSelection: boolean;
+  selectedId?: string;
+  onSelectVariant?: (id: string) => void;
 }) {
   const firstAvailable = variants.find((variant) => variant.stock > 0);
-  const [selectedId, setSelectedId] = useState(firstAvailable?.id || variants[0]?.id || "");
+  const [internalSelectedId, setInternalSelectedId] = useState(firstAvailable?.id || variants[0]?.id || "");
+  const selectedId = controlledSelectedId !== undefined ? controlledSelectedId : internalSelectedId;
   const [submission, setSubmission] = useState<SubmissionState>({ kind: "idle" });
   const selectedVariant = variants.find((variant) => variant.id === selectedId);
   const canAdd = Boolean(selectedVariant && selectedVariant.stock > 0 && submission.kind !== "pending");
+
+  function handleSelect(variantId: string) {
+    if (controlledSelectedId === undefined) {
+      setInternalSelectedId(variantId);
+    }
+    onSelectVariant?.(variantId);
+    setSubmission({ kind: "idle" });
+  }
 
   async function addToCart() {
     if (!selectedVariant || selectedVariant.stock <= 0 || submission.kind === "pending") return;
@@ -94,6 +109,7 @@ export function ProductPurchasePanel({
               {variants.map((variant) => {
                 const isSelected = variant.id === selectedId;
                 const isUnavailable = variant.stock <= 0;
+                const attributes = parseVariantAttributes(variant.name, variant.value);
 
                 return (
                   <label
@@ -108,15 +124,24 @@ export function ProductPurchasePanel({
                       value={variant.id}
                       checked={isSelected}
                       disabled={isUnavailable}
-                      onChange={() => {
-                        setSelectedId(variant.id);
-                        setSubmission({ kind: "idle" });
-                      }}
-                      className="mt-0.5 size-4 shrink-0 accent-brand-700"
+                      onChange={() => handleSelect(variant.id)}
+                      className="mt-0.5 size-4 shrink-0 cursor-pointer accent-brand-700"
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-ink">
-                        {[variant.name, variant.value].filter(Boolean).join(" · ")}
+                      <span className="flex min-w-0 items-center gap-2 overflow-hidden text-sm text-ink">
+                        {attributes.map((attribute, index) => (
+                          <span key={`${attribute.name}-${attribute.value}`} className="flex min-w-0 items-center gap-2">
+                            {index > 0 ? (
+                              <span aria-hidden="true" className="shrink-0 text-ink-muted">·</span>
+                            ) : null}
+                            <span className="flex min-w-0 gap-1.5 whitespace-nowrap">
+                              <span className="shrink-0 font-semibold">{attribute.name}:</span>
+                              <span className="truncate text-ink-muted" title={attribute.value}>
+                                {attribute.value}
+                              </span>
+                            </span>
+                          </span>
+                        ))}
                       </span>
                       <span className={`mt-1 block text-xs ${isUnavailable ? "text-danger" : "text-ink-muted"}`}>
                         {isUnavailable ? "Tükendi" : "Mevcut"}
