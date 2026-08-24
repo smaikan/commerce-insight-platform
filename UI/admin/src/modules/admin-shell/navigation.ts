@@ -51,17 +51,18 @@ export const navigationSections: NavigationSection[] = [
   {
     label: "Muhasebe",
     collapsible: true,
-    status: "in-development",
+    status: "available",
     items: [
-      { label: "Genel Bakış", status: "in-development" },
-      { label: "Cari Hesaplar", status: "in-development" },
-      { label: "Alış Faturaları", status: "in-development" },
-      { label: "Muhasebe Satış Siparişleri", status: "in-development" },
-      { label: "Satış Faturaları", status: "in-development" },
-      { label: "Ödemeler ve Tahsilatlar", status: "in-development" },
-      { label: "Kasa ve Banka", status: "in-development" },
-      { label: "Giderler", status: "in-development" },
-      { label: "Raporlar", status: "in-development" },
+      { label: "Genel Bakış", href: "/accounting", status: "available" },
+      { label: "Cari Hesaplar", href: "/accounting/current-accounts", status: "available" },
+      { label: "Alış Faturaları", href: "/accounting/purchase-invoices", status: "available" },
+      { label: "Muhasebe Satışları", href: "/accounting/sales-orders", status: "available" },
+      { label: "Satış Faturaları", href: "/accounting/sales-invoices", status: "available" },
+      { label: "Ödemeler ve Tahsilatlar", href: "/accounting/payments", status: "available" },
+      { label: "Kasa ve Banka", href: "/accounting/treasury", status: "available" },
+      { label: "Giderler", href: "/accounting/expenses", status: "available" },
+      { label: "FIFO Maliyet", href: "/accounting/costing", status: "available" },
+      { label: "Raporlar", href: "/accounting/reports", status: "available" },
     ],
   },
   {
@@ -95,4 +96,17 @@ export function navigationStatusLabel(status: NavigationItem["status"]): string 
     default:
       return "";
   }
+}
+
+function isCurrentNavigationItem(pathname: string, href: string | undefined): boolean {
+  return Boolean(href && (pathname === href || pathname.startsWith(`${href}/`)));
+}
+
+// Birbirini kapsayan rotalarda yalnız en özgül menü öğesini seçili tutar.
+export function getCurrentNavigationHref(pathname: string): string | undefined {
+  return navigationSections
+    .flatMap((section) => section.items)
+    .map((item) => item.href)
+    .filter((href): href is string => isCurrentNavigationItem(pathname, href))
+    .sort((left, right) => right.length - left.length)[0];
 }

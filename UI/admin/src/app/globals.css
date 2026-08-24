@@ -63,6 +63,7 @@ html {
 
 body {
   min-height: 100vh;
+  overflow-x: clip;
   background: var(--admin-page);
   color: var(--admin-foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
@@ -99,6 +100,11 @@ select:disabled {
 :focus-visible {
   outline: 3px solid var(--admin-focus);
   outline-offset: 2px;
+}
+
+/* Geniş muhasebe tabloları komşu aksiyon rayının üstüne taşmamalı. */
+form[class*="lg:grid-cols"] > * {
+  min-width: 0;
 }
 
 ::selection {

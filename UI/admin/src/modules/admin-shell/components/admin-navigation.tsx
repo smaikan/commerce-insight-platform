@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  getCurrentNavigationHref,
   navigationSections,
   navigationStatusLabel,
   type NavigationSection,
@@ -14,11 +15,11 @@ function isCurrentItem(pathname: string, href: string | undefined): boolean {
 }
 
 // Burada etkin ve geliştirme aşamasındaki öğeleri aynı yoğunlukta, gereksiz durum tekrarları olmadan çiziyorum.
-function NavigationItems({ section, pathname, onNavigate }: { section: NavigationSection; pathname: string; onNavigate?: () => void }) {
+function NavigationItems({ section, activeHref, onNavigate }: { section: NavigationSection; activeHref?: string; onNavigate?: () => void }) {
   return (
     <ul className="mt-1 space-y-0.5">
       {section.items.map((item) => {
-        const isActive = isCurrentItem(pathname, item.href);
+        const isActive = item.href === activeHref;
 
         return (
           <li key={item.label}>
@@ -63,6 +64,7 @@ function NavigationItems({ section, pathname, onNavigate }: { section: Navigatio
 // Burada sık kullanılan modülleri doğrudan görünür, uzun gelecek bölümlerini ise kapalı birer alt ağaç olarak sunuyorum.
 export function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const activeHref = getCurrentNavigationHref(pathname);
 
   return (
     <nav aria-label="Ana navigasyon" className="space-y-3 px-3 pb-6">
@@ -86,7 +88,7 @@ export function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
                   <path d="m6 8 4 4 4-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
                 </svg>
               </summary>
-              <NavigationItems section={section} pathname={pathname} onNavigate={onNavigate} />
+              <NavigationItems section={section} activeHref={activeHref} onNavigate={onNavigate} />
             </details>
           );
         }
@@ -96,7 +98,7 @@ export function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
             <h2 id={sectionId} className="flex min-h-7 items-center px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-sidebar-muted">
               <span>{section.label}</span>
             </h2>
-            <NavigationItems section={section} pathname={pathname} onNavigate={onNavigate} />
+            <NavigationItems section={section} activeHref={activeHref} onNavigate={onNavigate} />
           </section>
         );
       })}

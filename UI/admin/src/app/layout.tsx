@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { getPublicStoreSettings } from "@/modules/settings/api";
@@ -13,6 +13,8 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 // Burada admin root metadata'sını public StoreSettings favicon'u ile tamamlayıp API hatasında yerel favicon davranışına dönüyorum.
 export async function generateMetadata(): Promise<Metadata> {

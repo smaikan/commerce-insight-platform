@@ -1,7 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { navigationSections, navigationStatusLabel } from "./navigation";
+import { getCurrentNavigationHref, navigationSections, navigationStatusLabel } from "./navigation";
 
 describe("admin navigation", () => {
+  it("selects only the most specific accounting route", () => {
+    expect(getCurrentNavigationHref("/accounting/current-accounts/a/edit")).toBe("/accounting/current-accounts");
+    expect(getCurrentNavigationHref("/accounting/purchase-invoices/a/edit")).toBe("/accounting/purchase-invoices");
+    expect(getCurrentNavigationHref("/accounting/sales-orders/a/edit")).toBe("/accounting/sales-orders");
+    expect(getCurrentNavigationHref("/accounting/sales-invoices/a/edit")).toBe("/accounting/sales-invoices");
+    expect(getCurrentNavigationHref("/accounting/payments/a")).toBe("/accounting/payments");
+    expect(getCurrentNavigationHref("/accounting/treasury/bank/a")).toBe("/accounting/treasury");
+    expect(getCurrentNavigationHref("/accounting/expenses")).toBe("/accounting/expenses");
+    expect(getCurrentNavigationHref("/accounting/costing")).toBe("/accounting/costing");
+    expect(getCurrentNavigationHref("/accounting/reports/sales")).toBe("/accounting/reports");
+    expect(getCurrentNavigationHref("/accounting")).toBe("/accounting");
+    expect(getCurrentNavigationHref("/unknown")).toBeUndefined();
+  });
+
   // Burada kullanıma açılmış operasyon rotalarının navigasyonda etkin kaldığını doğruluyorum.
   it("keeps implemented operation routes enabled", () => {
     const enabledItems = navigationSections
@@ -21,6 +35,16 @@ describe("admin navigation", () => {
       { label: "Bannerlar", href: "/banners", status: "available" },
       { label: "Google Analytics", href: "/marketing/google-analytics", status: "in-development" },
       { label: "Meta Reklam Yönetimi", href: "/marketing/meta-ads", status: "in-development" },
+      { label: "Genel Bakış", href: "/accounting", status: "available" },
+      { label: "Cari Hesaplar", href: "/accounting/current-accounts", status: "available" },
+      { label: "Alış Faturaları", href: "/accounting/purchase-invoices", status: "available" },
+      { label: "Muhasebe Satışları", href: "/accounting/sales-orders", status: "available" },
+      { label: "Satış Faturaları", href: "/accounting/sales-invoices", status: "available" },
+      { label: "Ödemeler ve Tahsilatlar", href: "/accounting/payments", status: "available" },
+      { label: "Kasa ve Banka", href: "/accounting/treasury", status: "available" },
+      { label: "Giderler", href: "/accounting/expenses", status: "available" },
+      { label: "FIFO Maliyet", href: "/accounting/costing", status: "available" },
+      { label: "Raporlar", href: "/accounting/reports", status: "available" },
       { label: "Yöneticiler", href: "/managers", status: "available" },
       { label: "Ayarlar", href: "/settings", status: "available" },
     ]);
@@ -53,7 +77,7 @@ describe("admin navigation", () => {
       "Muhasebe",
       "Pazaryeri Entegrasyonları",
     ]);
-    expect(navigationSections.find((section) => section.label === "Muhasebe")?.status).toBe("in-development");
+    expect(navigationSections.find((section) => section.label === "Muhasebe")?.status).toBe("available");
     expect(navigationSections.find((section) => section.label === "Pazaryeri Entegrasyonları")?.status).toBe("future");
   });
 
@@ -70,15 +94,6 @@ describe("admin navigation", () => {
     expect(unavailableItems.filter((item) => item.status === "in-development").map((item) => item.label)).toEqual([
       "Google Analytics",
       "Meta Reklam Yönetimi",
-      "Genel Bakış",
-      "Cari Hesaplar",
-      "Alış Faturaları",
-      "Muhasebe Satış Siparişleri",
-      "Satış Faturaları",
-      "Ödemeler ve Tahsilatlar",
-      "Kasa ve Banka",
-      "Giderler",
-      "Raporlar",
     ]);
     expect(navigationStatusLabel("in-development")).toBe("Geliştirme aşamasında");
     expect(navigationStatusLabel("next")).toBe("Sırada");

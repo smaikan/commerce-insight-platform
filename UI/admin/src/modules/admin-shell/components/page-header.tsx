@@ -5,20 +5,22 @@ export function PageHeader({
   description,
   actions,
   backHref,
+  backLabel,
 }: {
   title: string;
   description?: string;
   actions?: React.ReactNode;
   backHref?: string;
+  backLabel?: string;
 }) {
-  const backLabel = getBackLabel(backHref);
+  const resolvedBackLabel = backLabel ?? getBackLabel(backHref);
 
   return (
     <header className="mb-4 flex flex-col gap-3 border-l-4 border-primary pl-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
         {backHref ? (
           <Link href={backHref} className="mb-1 inline-flex min-h-8 items-center text-sm font-medium text-primary hover:text-primary-hover">
-            ← {backLabel}
+            ← {resolvedBackLabel}
           </Link>
         ) : null}
         <h1 className="text-xl font-semibold tracking-tight text-foreground">{title}</h1>
@@ -43,6 +45,11 @@ function getBackLabel(backHref: string | undefined): string {
   if (backHref === "/coupons") return "İndirimlere dön";
   if (backHref === "/managers") return "Yöneticilere dön";
   if (backHref === "/inventory/stock-movements") return "Stok işlemlerine dön";
+  if (backHref === "/accounting") return "Ön muhasebeye dön";
+  if (backHref === "/accounting/current-accounts") return "Cari hesaplara dön";
+  if (backHref === "/accounting/purchase-invoices") return "Alış faturalarına dön";
+  if (backHref === "/accounting/sales-orders") return "Muhasebe satışlarına dön";
+  if (backHref === "/accounting/sales-invoices") return "Satış faturalarına dön";
   if (backHref === "/settings/shipping-methods") return "Kargo yöntemlerine dön";
   if (backHref === "/settings/tax-rates") return "Vergi oranlarına dön";
   if (backHref.startsWith("/settings/catalog/")) return "Katalog tanımlarına dön";
