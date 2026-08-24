@@ -19,8 +19,18 @@ public static class DatabaseSeeder
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             
-            // Veritabanının oluşturulduğundan/güncel olduğundan emin olalım
-            await dbContext.Database.MigrateAsync();
+            // Burada SQLite test hostunu SQL Server migration metadata'sıyla karşılaştırmadan oluşturup gerçek ortamda migration uyguluyorum.
+            if (string.Equals(
+                    dbContext.Database.ProviderName,
+                    "Microsoft.EntityFrameworkCore.Sqlite",
+                    StringComparison.Ordinal))
+            {
+                await dbContext.Database.EnsureCreatedAsync();
+            }
+            else
+            {
+                await dbContext.Database.MigrateAsync();
+            }
 
             var enableSeed = configuration.GetValue<bool>("ENABLE_DEVELOPMENT_SEED");
             if (!enableSeed)
