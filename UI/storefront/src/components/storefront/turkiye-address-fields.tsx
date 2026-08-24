@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type SelectHTMLAttributes, useTransition } from "react";
+import { useEffect, useState, type SelectHTMLAttributes } from "react";
 import { fetchProvinces, fetchNeighborhoods } from "./turkiye-address-actions";
 
 interface Province { id: number; name: string; districts?: District[]; }
@@ -41,13 +41,12 @@ export function TurkiyeAddressFields({
 
   const [selectedNeighborhoodName, setSelectedNeighborhoodName] = useState(defaultNeighborhood);
 
-  const [isPending, startTransition] = useTransition();
-
-  // 1. Fetch Provinces (v1 includes districts)
+  // Burada il ve ilçeleri yüklerken unmount sonrasında state güncellenmesini engelliyorum.
   useEffect(() => {
-    startTransition(async () => {
+    let active = true;
+    void (async () => {
       const res = await fetchProvinces();
-      if (!res.data) return;
+      if (!active || !res.data) return;
       const data = sortProvinces(res.data);
       setProvinces(data);
       
@@ -63,19 +62,19 @@ export function TurkiyeAddressFields({
           }
         }
       }
-    });
+    })();
+    return () => { active = false; };
   }, [defaultCity, defaultDistrict]);
 
-  // 2. Fetch Neighborhoods when District changes
+  // Burada yalnız seçili ilçenin mahallelerini yükleyip eski async cevabın yeni seçimi ezmesini engelliyorum.
   useEffect(() => {
-    if (!selectedDistrictId) {
-      setNeighborhoods([]);
-      return;
-    }
-    startTransition(async () => {
+    if (!selectedDistrictId) return;
+    let active = true;
+    void (async () => {
       const res = await fetchNeighborhoods(selectedDistrictId as number);
-      if (res.data) setNeighborhoods(res.data);
-    });
+      if (active && res.data) setNeighborhoods(res.data);
+    })();
+    return () => { active = false; };
   }, [selectedDistrictId]);
 
   function handleProvinceChange(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -102,6 +101,7 @@ export function TurkiyeAddressFields({
     const name = e.target.options[e.target.selectedIndex]?.text || "";
     setSelectedDistrictName(id ? name : "");
     setSelectedNeighborhoodName("");
+    setNeighborhoods([]);
   }
 
   function handleNeighborhoodChange(e: React.ChangeEvent<HTMLSelectElement>) {
