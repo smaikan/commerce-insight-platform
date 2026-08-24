@@ -1,4 +1,0 @@
-interface:
-  display_name: "Performance & Core Web Vitals"
-  short_description: "Next.js performans ve CWV denetimi yapar"
-  default_prompt: "Use $performance-core-web-vitals to diagnose and improve this Next.js application's runtime performance, bundle, caching, Lighthouse results, and Core Web Vitals."

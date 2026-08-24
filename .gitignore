@@ -35,8 +35,8 @@ API/**/logs/
 API/**/*.log
 
 API/**/proje_ilerlemesi.md
-API/**/.codex
-API/**/AGENTS.md
+API/docs/
+API/**/docs/
 
 # UI (Next.js / pnpm workspaces)
 UI/node_modules/
@@ -69,20 +69,16 @@ UI/.pnpm-store/
 UI/**/.DS_Store
 UI/**/*.pem
 UI/API-IMPROVEMENT-RECOMMENDATIONS.md
-UI/**/AGENTS.md
-UI/**/.codex
 UI/**/proje_ilerlemesi.md
-UI/**/docs
-!UI/docs/
-!UI/docs/api/
-!UI/docs/api/api-project-docs/
-!UI/docs/api/api-project-docs/08-endpoint-sozlesmeleri/
-!UI/docs/api/api-project-docs/08-endpoint-sozlesmeleri/14-iletisim-mesajlari/
-!UI/docs/api/api-project-docs/08-endpoint-sozlesmeleri/14-iletisim-mesajlari/**
+UI/docs/
+UI/**/docs/
 
 
 
 # Root level
+.codex/
+AGENTS.md
+agents.md
 .env
 .env.*
 !.env.example
