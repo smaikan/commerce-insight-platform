@@ -6,11 +6,13 @@ import { OrderItemMedia } from "@/modules/account/components/order-item-media";
 import { OrderStatus } from "@/modules/account/components/orders-view";
 import type { AccountOrder } from "@/modules/account/contracts";
 import { formatAccountDate, formatAccountDateTime, safeTrackingUrl } from "@/modules/account/presentation";
+import { canCustomerCancelOrder, canOpenOrderReturnCenter } from "@/modules/orders/lifecycle";
 
 // Burada sipariş snapshot'larını ürün, toplam, adres ve gerçek kargo hareketleri hiyerarşisinde ayrıntılı olarak sunuyorum.
 export function OrderDetail({ order }: { order: AccountOrder }) {
   const trackingUrl = safeTrackingUrl(order.trackingUrl);
-  const canCancel = order.status < 4 && order.status !== 6 && order.status !== 7;
+  const canCancel = canCustomerCancelOrder(order.status);
+  const canOpenReturns = canOpenOrderReturnCenter(order.status);
 
   return (
     <article>
@@ -61,14 +63,10 @@ export function OrderDetail({ order }: { order: AccountOrder }) {
             </section>
           ) : null}
 
-          {canCancel ? <CancelOrderControl orderId={order.id} /> : null}
-          {order.status === 5 ? (
-            <Link href={`/account/orders/${order.id}/return`} className="focus-ring inline-flex min-h-11 w-full items-center justify-center border border-brand-700 px-4 text-sm font-bold text-brand-700 hover:bg-surface-subtle">
-              İade veya değişim talebi oluştur
-            </Link>
-          ) : order.status === 8 || order.status === 9 ? (
-            <Link href="/account/returns" className="focus-ring inline-flex min-h-11 w-full items-center justify-center border border-line bg-surface-subtle px-4 text-sm font-bold text-brand-700 hover:bg-surface">
-              İade talebini görüntüle →
+          {canCancel ? <CancelOrderControl orderId={order.id} orderStatus={order.status} /> : null}
+          {canOpenReturns ? (
+            <Link href={`/account/orders/${order.id}/return`} className="focus-ring inline-flex min-h-11 w-full items-center justify-center border border-brand-700 px-4 text-center text-sm font-bold text-brand-700 hover:bg-surface-subtle">
+              İade ve değişim işlemleri
             </Link>
           ) : null}
         </aside>

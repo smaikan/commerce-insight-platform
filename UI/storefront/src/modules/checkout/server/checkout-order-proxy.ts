@@ -38,6 +38,37 @@ export async function forwardIyzicoCheckoutForm(
   });
 }
 
+// Burada sipariş iptalini üyede Bearer, misafirde session ve CSRF sahiplik kanalıyla doğru upstream endpointine iletiyorum.
+export async function forwardCheckoutOrderCancellation(
+  request: Request,
+  orderId: string,
+): Promise<NextResponse> {
+  const [accessToken, refreshToken] = await Promise.all([readAccessToken(), readRefreshToken()]);
+  if (accessToken) {
+    return forwardMemberRequest(`/api/orders/${orderId}/cancel`, accessToken, { method: "POST" });
+  }
+  if (refreshToken) return refreshRequiredResponse();
+  return forwardGuestCommerceRequest(request, `/api/guest-orders/${orderId}/cancel`, {
+    method: "POST",
+    cookieNames: ["ecommerce_guest_orders", "ecommerce_guest_csrf"],
+    csrf: true,
+  });
+}
+
+// Burada devam eden iptal operasyonunu aynı üye veya guest sahiplik kanalıyla no-store olarak sorguluyorum.
+export async function forwardCheckoutOrderCancellationRead(
+  request: Request,
+  orderId: string,
+): Promise<NextResponse> {
+  const [accessToken, refreshToken] = await Promise.all([readAccessToken(), readRefreshToken()]);
+  if (accessToken) return forwardMemberRequest(`/api/orders/${orderId}/cancellation`, accessToken, { method: "GET" });
+  if (refreshToken) return refreshRequiredResponse();
+  return forwardGuestCommerceRequest(request, `/api/guest-orders/${orderId}/cancellation`, {
+    method: "GET",
+    cookieNames: ["ecommerce_guest_orders"],
+  });
+}
+
 // Burada üye ödeme ve sipariş okumalarını hassas tokenı response'a taşımadan private/no-store olarak proxy'liyorum.
 async function forwardMemberRequest(
   path: `/api/orders/${string}`,

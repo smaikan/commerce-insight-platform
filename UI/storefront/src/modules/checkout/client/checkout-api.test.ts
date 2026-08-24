@@ -1,11 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  activeCheckoutOrderId,
   checkoutProblemMessage,
+  forgetActiveCheckoutOrder,
   initializeIyzicoCheckoutForm,
   isCheckoutChallengeRequired,
   loadCheckoutOrder,
+  loadGuestCheckoutOrder,
   paymentIntentKey,
+  rememberActiveCheckoutOrder,
   redirectToPaymentPage,
 } from "./checkout-api";
 
@@ -45,6 +49,25 @@ describe("checkout challenge recovery", () => {
     }
   });
 
+  // Burada magic-link confirmation okumasının üye öncelikli proxy yerine doğrudan guest grant BFF rotasını kullandığını doğruluyorum.
+  it("loads magic-link orders through the guest grant route", async () => {
+    const fetchMock = vi.fn<(input: RequestInfo | URL) => Promise<Response>>(async () => new Response(JSON.stringify({
+      id: "bb49d4c3-9752-4116-9179-657c8d6259b0",
+      items: [],
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      await loadGuestCheckoutOrder("bb49d4c3-9752-4116-9179-657c8d6259b0");
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/guest-orders/bb49d4c3-9752-4116-9179-657c8d6259b0",
+        expect.objectContaining({ method: "GET" }),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   // Burada aynı order ve idempotency anahtarıyla eşzamanlı başlayan isteklerin tek hosted ödeme oturumuna indirgendiğini doğruluyorum.
   it("deduplicates rapid payment initialization", async () => {
     let resolveResponse!: (response: Response) => void;
@@ -77,6 +100,25 @@ describe("checkout challenge recovery", () => {
     const first = paymentIntentKey("bb49d4c3-9752-4116-9179-657c8d6259b0", false, storage);
     expect(paymentIntentKey("bb49d4c3-9752-4116-9179-657c8d6259b0", false, storage)).toBe(first);
     expect(paymentIntentKey("bb49d4c3-9752-4116-9179-657c8d6259b0", true, storage)).not.toBe(first);
+  });
+
+  // Burada ödeme ekranından geri dönüş için aktif order kimliğinin saklandığını, doğrulandığını ve terminal durumda temizlendiğini doğruluyorum.
+  it("persists only a valid active checkout order identifier", () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => { values.set(key, value); },
+      removeItem: (key: string) => { values.delete(key); },
+    };
+    const orderId = "bb49d4c3-9752-4116-9179-657c8d6259b0";
+
+    rememberActiveCheckoutOrder(orderId, storage);
+    expect(activeCheckoutOrderId(storage)).toBe(orderId);
+    forgetActiveCheckoutOrder(orderId, storage);
+    expect(activeCheckoutOrderId(storage)).toBeNull();
+
+    storage.setItem("checkout:active-order", "unsafe-order-id");
+    expect(activeCheckoutOrderId(storage)).toBeNull();
   });
 
   // Burada yalnız mutlak HTTPS hosted ödeme URL'sinin browser yönlendirmesine ulaşabildiğini doğruluyorum.

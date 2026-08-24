@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { exchangeGuestAccessToken, requestGuestAccessLink } from "@/modules/returns/client";
+import { guestOrderConfirmationHref } from "@/modules/returns/navigation";
 
 // Burada e-postadaki fragment tokenını sunucu loglarına taşımadan exchange ediyor, token yoksa eşit cevaplı erişim formunu gösteriyorum.
 export function GuestAccessView() {
@@ -16,7 +17,7 @@ export function GuestAccessView() {
     const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
     if (!token) { queueMicrotask(() => setExchangeState("form")); return; }
     window.history.replaceState(null, "", window.location.pathname);
-    void exchangeGuestAccessToken(token).then((result) => router.replace(`/guest-orders/${result.orderId}/returns`)).catch(() => setExchangeState("error"));
+    void exchangeGuestAccessToken(token).then((result) => router.replace(guestOrderConfirmationHref(result.orderId))).catch(() => setExchangeState("error"));
   }, [router]);
 
   async function submit(formData: FormData) {

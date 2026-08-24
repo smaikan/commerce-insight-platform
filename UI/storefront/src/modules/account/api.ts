@@ -69,11 +69,6 @@ export function getAccountOrder(id: string): Promise<AccountOrder> {
   return authenticatedApiRequest<AccountOrder>(`/api/orders/${encodeURIComponent(id)}`);
 }
 
-// Burada yalnız API'nin izin verdiği ödeme öncesi müşteri iptalini başlatıyorum.
-export function cancelAccountOrder(id: string): Promise<AccountOrder> {
-  return authenticatedApiRequest<AccountOrder>(`/api/orders/${encodeURIComponent(id)}/cancel`, { method: "POST" });
-}
-
 // Burada müşterinin kendi iade ve değişim taleplerini API sahiplik filtresiyle sayfalı okuyorum.
 export function getAccountReturns(pageNumber = 1, pageSize = 10): Promise<AccountReturnPage> {
   return authenticatedApiRequest<AccountReturnPage>(`/api/returns/mine?PageNumber=${pageNumber}&PageSize=${pageSize}`);

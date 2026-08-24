@@ -42,7 +42,7 @@ export function IyzicoPaymentControl({ orderId, newAttempt = false }: { orderId:
         onClick={() => void startPayment()}
         disabled={isSubmitting}
         aria-busy={isSubmitting}
-        className="focus-ring inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-brand-700 px-5 text-sm font-bold text-white hover:bg-brand-950 disabled:cursor-wait disabled:bg-line disabled:text-ink-muted"
+        className="focus-ring inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-brand-700 px-5 text-sm font-bold text-white transition-colors hover:bg-brand-950 disabled:cursor-wait disabled:bg-line disabled:text-ink-muted"
       >
         {isSubmitting ? "Güvenli ödeme hazırlanıyor…" : newAttempt ? "Ödemeyi yeniden dene" : "Ödemeye devam et"}
       </button>

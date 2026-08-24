@@ -7,21 +7,27 @@ import {
   useRef,
   useState,
   type InputHTMLAttributes,
+  type KeyboardEvent,
 } from "react";
 
 import {
   checkoutFieldErrors,
   checkoutProblemMessage,
   checkoutTraceId,
+  activeCheckoutOrderId,
+  forgetActiveCheckoutOrder,
   initializeIyzicoCheckoutForm,
   isCartConflict,
   isCheckoutChallengeRequired,
   paymentIntentKey,
+  rememberActiveCheckoutOrder,
   redirectToPaymentPage,
+  loadCheckoutOrder,
   submitGuestCheckout,
   previewCoupon,
 } from "@/modules/checkout/client/checkout-api";
 import { createMemberOrderAction } from "@/modules/checkout/actions";
+import { ActivePaymentRecoveryDialog } from "@/modules/checkout/components/active-payment-recovery-dialog";
 import { TurnstileChallenge } from "@/modules/checkout/components/turnstile-challenge";
 import type {
   GuestAddressRequest,
@@ -37,6 +43,7 @@ import {
 import type { Cart } from "@/modules/cart/types";
 import { TurkiyeAddressFields } from "@/components/storefront/turkiye-address-fields";
 import { PhoneField } from "@/components/storefront/phone-field";
+import { resolveCheckoutEnterAction } from "@/modules/checkout/enter-action";
 
 type CartState =
   | { kind: "loading" }
@@ -49,6 +56,12 @@ type Intent = {
 };
 
 type FieldErrors = Record<string, string>;
+
+type ActiveOrderRecoveryState =
+  | { kind: "checking" }
+  | { kind: "clear" }
+  | { kind: "decision"; orderId: string; orderNumber: string; orderStatus: number }
+  | { kind: "error"; orderId: string };
 
 // Burada checkout taslağını, cart snapshot'ını ve tek intent submit durumunu en yakın form sınırında tutuyorum.
 export function CheckoutForm({
@@ -86,7 +99,65 @@ export function CheckoutForm({
   const [couponPreview, setCouponPreview] = useState<{ discountTotal: number; code: string } | null>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string>();
+  const [activeOrderRecovery, setActiveOrderRecovery] = useState<ActiveOrderRecoveryState>({ kind: "checking" });
   const isMember = accountAddresses !== null;
+
+  useEffect(() => {
+    let active = true;
+
+    // Burada ilk mount veya bfcache geri dönüşünde aktif order kaydını owner-scoped API ile yeniden çözüyorum.
+    function recoverActiveOrder() {
+      const activeOrderId = activeCheckoutOrderId();
+      if (!activeOrderId) {
+        queueMicrotask(() => {
+          if (active) setActiveOrderRecovery({ kind: "clear" });
+        });
+        return;
+      }
+
+      queueMicrotask(() => {
+        if (active) setActiveOrderRecovery({ kind: "checking" });
+      });
+      // Burada ödeme ekranından geri dönüşte mevcut Pending/Confirmed siparişi karar modalına taşıyıp ikinci sipariş oluşturulmasını engelliyorum.
+      void loadCheckoutOrder(activeOrderId)
+        .then((order) => {
+          if (!active) return;
+          if (order.status === 0 || order.status === 1) {
+            setActiveOrderRecovery({ kind: "decision", orderId: order.id, orderNumber: order.orderNumber, orderStatus: order.status });
+            return;
+          }
+
+          forgetActiveCheckoutOrder(activeOrderId);
+          setActiveOrderRecovery({ kind: "clear" });
+        })
+        .catch((error) => {
+          if (!active) return;
+          const problem = error && typeof error === "object"
+            ? error as { status?: number; code?: string }
+            : undefined;
+          if (problem?.status === 404 || problem?.code === "invalid_guest_access") {
+            // Burada süresi dolmuş guest grant'inin tarayıcıyı kurtarılamayan bir order kimliğine kalıcı kilitlemesini engelliyorum.
+            forgetActiveCheckoutOrder(activeOrderId);
+            setActiveOrderRecovery({ kind: "clear" });
+            return;
+          }
+
+          setActiveOrderRecovery({ kind: "error", orderId: activeOrderId });
+        });
+    }
+
+    // Burada browser back-forward cache'ten döndüğünde mount effectine güvenmeden aktif siparişi yeniden denetliyorum.
+    function handlePageShow(event: PageTransitionEvent) {
+      if (event.persisted) recoverActiveOrder();
+    }
+
+    recoverActiveOrder();
+    window.addEventListener("pageshow", handlePageShow);
+    return () => {
+      active = false;
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, [router]);
 
   useEffect(() => {
     const unsubscribe = subscribeToCart((cart) => setCartState({ kind: "ready", cart }));
@@ -175,10 +246,12 @@ export function CheckoutForm({
       }
       createdOrderId = order.id;
       if (order.status === 2 || order.grandTotal === 0) {
+        forgetActiveCheckoutOrder(order.id);
         router.push(`/checkout/confirmation/${encodeURIComponent(order.id)}`);
         return;
       }
 
+      rememberActiveCheckoutOrder(order.id);
       const session = await initializeIyzicoCheckoutForm(order.id, paymentIntentKey(order.id));
       redirectToPaymentPage(session);
     } catch (error) {
@@ -208,7 +281,33 @@ export function CheckoutForm({
     }
   }
 
-  if (cartState.kind === "loading") return <CheckoutLoadingState />;
+  if (cartState.kind === "loading" || activeOrderRecovery.kind === "checking") return <CheckoutLoadingState />;
+
+  if (activeOrderRecovery.kind === "decision") {
+    return (
+      <>
+        <CheckoutLoadingState />
+        <ActivePaymentRecoveryDialog
+          orderId={activeOrderRecovery.orderId}
+          orderNumber={activeOrderRecovery.orderNumber}
+          orderStatus={activeOrderRecovery.orderStatus}
+          accessMode={isMember ? "member" : "guest"}
+          onCancelled={() => setActiveOrderRecovery({ kind: "clear" })}
+        />
+      </>
+    );
+  }
+
+  if (activeOrderRecovery.kind === "error") {
+    return (
+      <CheckoutMessage
+        title="Bekleyen sipariş kontrol edilemedi"
+        message="Yeni sipariş oluşturmadan önce mevcut ödeme siparişinizi açıp durumunu kontrol edin."
+        href={`/checkout/confirmation/${encodeURIComponent(activeOrderRecovery.orderId)}`}
+        action="Bekleyen siparişi aç"
+      />
+    );
+  }
 
   if (cartState.kind === "error") {
     return (
@@ -246,6 +345,26 @@ export function CheckoutForm({
     }
   }
 
+  // Burada form alanlarındaki Enter'ın implicit checkout oluşturmasını engelleyip kupon alanını kendi işlemine yönlendiriyorum.
+  function handleCheckoutKeyDown(event: KeyboardEvent<HTMLFormElement>) {
+    const target = event.target as HTMLElement;
+    const action = resolveCheckoutEnterAction({
+      key: event.key,
+      isComposing: event.nativeEvent.isComposing,
+      tagName: target.tagName,
+      name: target instanceof HTMLInputElement || target instanceof HTMLSelectElement
+        ? target.name
+        : undefined,
+      inputType: target instanceof HTMLInputElement ? target.type : undefined,
+    });
+    if (action === "allow") return;
+
+    event.preventDefault();
+    if (action === "apply-coupon" && couponCode.trim() && !isApplyingCoupon) {
+      void handleApplyCoupon();
+    }
+  }
+
   return (
     <main id="main-content" className="page-shell max-w-[80rem] flex-1 py-8 sm:py-12 lg:py-14">
       <header className="max-w-2xl border-b border-line pb-6 sm:pb-8">
@@ -260,7 +379,7 @@ export function CheckoutForm({
         </p>
       ) : null}
 
-      <form className="mt-7 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,23rem)] lg:gap-10" noValidate onSubmit={handleSubmit}>
+      <form className="mt-7 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,23rem)] lg:gap-10" noValidate onKeyDown={handleCheckoutKeyDown} onSubmit={handleSubmit}>
         <div className="space-y-6">
           {(Object.keys(fieldErrors).length > 0 || submitError) ? (
             <div ref={errorSummaryRef} tabIndex={-1} className="focus-ring rounded-xl border border-danger/30 bg-danger/5 px-4 py-4" role="alert" aria-labelledby="checkout-error-title">

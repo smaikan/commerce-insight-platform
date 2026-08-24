@@ -6,12 +6,16 @@ import { useEffect, useState } from "react";
 import { formatVariantLabel } from "@/lib/formatting/variant";
 import {
   confirmationProblemMessage,
+  forgetActiveCheckoutOrder,
   loadCheckoutOrder,
+  loadGuestCheckoutOrder,
 } from "@/modules/checkout/client/checkout-api";
 import { loadCart } from "@/modules/cart/client/cart-api";
 import { IyzicoPaymentControl } from "@/modules/checkout/components/iyzico-payment-control";
+import { OrderCancellationControl } from "@/modules/checkout/components/order-cancellation-control";
 import { authoritativePaymentState } from "@/modules/checkout/payment-state";
 import type { CheckoutOrder } from "@/modules/checkout/types";
+import { canCustomerCancelOrder, canOpenOrderReturnCenter } from "@/modules/orders/lifecycle";
 
 type ConfirmationState =
   | { kind: "loading" }
@@ -19,15 +23,17 @@ type ConfirmationState =
   | { kind: "error"; message: string };
 
 // Burada guest session grant'iyle alınan authoritative sipariş sonucunu yenilemede de kalıcı bir confirmation ekranında gösteriyorum.
-export function OrderConfirmation({ orderId, currency, isMember = false }: { orderId: string; currency: string; isMember?: boolean }) {
+export function OrderConfirmation({ orderId, currency, accessMode }: { orderId: string; currency: string; accessMode: "member" | "guest" }) {
   const [state, setState] = useState<ConfirmationState>({ kind: "loading" });
 
   useEffect(() => {
     let active = true;
-    void loadCheckoutOrder(orderId)
+    const loadOrder = accessMode === "guest" ? loadGuestCheckoutOrder : loadCheckoutOrder;
+    void loadOrder(orderId)
       .then((order) => {
         if (active) {
           setState({ kind: "ready", order });
+          if (order.status !== 0 && order.status !== 1) forgetActiveCheckoutOrder(order.id);
           // Burada ödeme sonrası backend'de temizlenmiş sepeti frontend'e yansıtarak header sayacını güncelliyorum.
           void loadCart(true).catch(() => undefined);
         }
@@ -38,7 +44,7 @@ export function OrderConfirmation({ orderId, currency, isMember = false }: { ord
     return () => {
       active = false;
     };
-  }, [orderId]);
+  }, [accessMode, orderId]);
 
   if (state.kind === "loading") return <ConfirmationLoadingState />;
 
@@ -57,14 +63,21 @@ export function OrderConfirmation({ orderId, currency, isMember = false }: { ord
 
   const order = state.order;
   const paymentState = authoritativePaymentState(order);
+  const isCancelled = order.status === 6;
+  const paidOrderWasReversed = isCancelled && Boolean(order.paidAt);
+  const canCancel = canCustomerCancelOrder(order.status);
+  const canOpenReturns = canOpenOrderReturnCenter(order.status);
+  const returnsHref = accessMode === "guest"
+    ? `/guest-orders/${order.id}/returns`
+    : `/account/orders/${order.id}/return`;
   return (
     <main id="main-content" className="page-shell max-w-[64rem] flex-1 py-10 sm:py-14 lg:py-16">
       <header className="rounded-2xl border border-line bg-surface px-5 py-8 text-center shadow-panel sm:px-8 sm:py-10">
         <span className="mx-auto inline-flex size-12 items-center justify-center rounded-full bg-surface-subtle text-brand-700" aria-hidden="true">
           <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4L19 6" /></svg>
         </span>
-        <p className="mt-5 text-xs font-bold tracking-[0.14em] text-brand-700 uppercase">Sipariş kaydı oluşturuldu</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-ink sm:text-4xl">Teşekkür ederiz</h1>
+        <p className="mt-5 text-xs font-bold tracking-[0.14em] text-brand-700 uppercase">{isCancelled ? "Sipariş iptal edildi" : "Sipariş kaydı oluşturuldu"}</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-ink sm:text-4xl">{isCancelled ? "İptal işlemi tamamlandı" : "Teşekkür ederiz"}</h1>
         <p className="mt-3 text-sm text-ink-muted">Sipariş numaranız</p>
         <p className="mt-1 break-all text-lg font-bold text-brand-950">{order.orderNumber}</p>
       </header>
@@ -102,7 +115,17 @@ export function OrderConfirmation({ orderId, currency, isMember = false }: { ord
         </aside>
       </div>
 
-      {paymentState === "paid" ? (
+      {isCancelled ? (
+        <section className="mt-7 rounded-xl border border-danger/25 bg-danger/5 px-5 py-5" aria-labelledby="confirmation-payment-title">
+          <h2 id="confirmation-payment-title" className="text-base font-bold text-danger">Sipariş iptal edildi</h2>
+          <p className="mt-2 text-sm leading-6 text-ink-muted">
+            {paidOrderWasReversed
+              ? "Ödeme iptali veya iadesi ödeme kuruluşu tarafından kabul edildi. Tutarın kartınıza yansıma süresi bankanıza göre değişebilir; stok ve kupon kayıtları güncellendi."
+              : "Ödeme tahsil edilmeden sipariş iptal edildi; stok rezervasyonu ve kupon kullanımı bırakıldı. Sepetinizdeki güncel ürünleri yeniden kontrol edebilirsiniz."}
+          </p>
+          <Link href="/checkout" className="focus-ring mt-4 inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-700 px-5 text-sm font-bold text-white hover:bg-brand-950">Sepete dön</Link>
+        </section>
+      ) : paymentState === "paid" ? (
         <section className="mt-7 rounded-xl border border-brand-700/25 bg-surface-subtle px-5 py-4 text-sm leading-6 text-ink" role="status">
           Ödemeniz doğrulandı. Siparişiniz hazırlanma sürecine geçtiğinde durum bilgisi burada ve e-posta bildirimlerinizde güncellenecek.
         </section>
@@ -119,7 +142,25 @@ export function OrderConfirmation({ orderId, currency, isMember = false }: { ord
           <div className="mt-4 max-w-sm"><IyzicoPaymentControl orderId={order.id} /></div>
         </section>
       )}
-      <div className="mt-7 flex flex-wrap justify-center gap-3"><Link href={isMember ? `/account/orders/${order.id}/return` : `/guest-orders/${order.id}/returns`} className="focus-ring inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-950 px-6 text-sm font-bold text-white hover:bg-brand-700">İade ve değişim işlemleri</Link><Link href="/products" className="focus-ring inline-flex min-h-12 items-center justify-center rounded-lg border border-brand-700 px-6 text-sm font-bold text-brand-700 hover:bg-surface-subtle">Alışverişe devam et</Link></div>
+
+      <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row">
+        {canCancel ? (
+          <div className="w-full sm:max-w-sm">
+            <OrderCancellationControl
+              orderId={order.id}
+              orderStatus={order.status}
+              accessMode={accessMode}
+              onOrderUpdated={(updatedOrder) => setState({ kind: "ready", order: updatedOrder })}
+            />
+          </div>
+        ) : null}
+        {canOpenReturns ? (
+          <Link href={returnsHref} className="focus-ring inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-950 px-6 text-sm font-bold text-white hover:bg-brand-700">
+            İade ve değişim işlemleri
+          </Link>
+        ) : null}
+        <Link href="/products" className="focus-ring inline-flex min-h-12 items-center justify-center rounded-lg border border-brand-700 px-6 text-sm font-bold text-brand-700 hover:bg-surface-subtle">Alışverişe devam et</Link>
+      </div>
     </main>
   );
 }

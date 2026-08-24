@@ -11,4 +11,12 @@ describe("hosted payment card boundary", () => {
     expect(source).not.toMatch(/autocomplete=["']cc-(?:number|csc|exp|exp-month|exp-year)["']/i);
     expect(source).toContain("Kart bilgileriniz iyzico’nun güvenli ödeme sayfasında alınır");
   });
+
+  // Burada iyzico geri dönüş kurtarmasının Pending siparişi başarı confirmation ekranına yönlendirmediğini kaynak sınırında koruyorum.
+  it("opens the payment recovery decision instead of confirmation", () => {
+    const source = readFileSync(fileURLToPath(new URL("./checkout-form.tsx", import.meta.url)), "utf8");
+    expect(source).toContain('kind: "decision"');
+    expect(source).toContain("<ActivePaymentRecoveryDialog");
+    expect(source).not.toContain("router.replace(`/checkout/confirmation/${encodeURIComponent(order.id)}`)");
+  });
 });

@@ -13,12 +13,15 @@ export const metadata: Metadata = {
 
 type ConfirmationPageProps = {
   params: Promise<{ orderId: string }>;
+  searchParams: Promise<{ access?: string | string[] }>;
 };
 
 // Burada kişisel sipariş verisini server HTML'ine veya shared cache'e taşımadan yalnız rota kimliğini client confirmation sınırına veriyorum.
-export default async function ConfirmationPage({ params }: ConfirmationPageProps) {
+export default async function ConfirmationPage({ params, searchParams }: ConfirmationPageProps) {
   const { orderId } = await params;
   if (!isUuid(orderId)) notFound();
-  const isMember = await hasAuthSessionCookie();
-  return <OrderConfirmation orderId={orderId} currency={siteConfig.currency} isMember={isMember} />;
+  const query = await searchParams;
+  const guestAccess = query.access === "guest";
+  const accessMode = !guestAccess && await hasAuthSessionCookie() ? "member" : "guest";
+  return <OrderConfirmation orderId={orderId} currency={siteConfig.currency} accessMode={accessMode} />;
 }

@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { clearAuthCookies } from "@/lib/auth/cookies";
 import { ApiError } from "@/lib/api/problem";
 import {
-  cancelAccountOrder,
   createAccountReturn,
   changeAccountPassword,
   createAccountAddress,
@@ -97,20 +96,6 @@ export async function deleteAddressAction(id: string): Promise<AccountActionStat
     return { status: "success", revision: 1, message: "Adres silindi." };
   } catch (error) {
     return accountErrorState(error, 1, "Adres silinemedi.");
-  }
-}
-
-// Burada müşteri iptalini yalnız geçerli sipariş kimliğiyle API'nin yaşam döngüsü kurallarına iletiyorum.
-export async function cancelOrderAction(id: string): Promise<AccountActionState> {
-  if (!UUID_PATTERN.test(id)) return { status: "error", revision: 1, message: "Sipariş kaydı geçersiz." };
-  try {
-    await cancelAccountOrder(id);
-    revalidatePath("/account");
-    revalidatePath("/account/orders");
-    revalidatePath(`/account/orders/${id}`);
-    return { status: "success", revision: 1, message: "Siparişiniz iptal edildi." };
-  } catch (error) {
-    return accountErrorState(error, 1, "Sipariş iptal edilemedi.");
   }
 }
 

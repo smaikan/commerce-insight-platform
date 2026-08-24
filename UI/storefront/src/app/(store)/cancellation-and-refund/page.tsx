@@ -14,7 +14,7 @@ const sections: LegalSection[] = [
   {
     id: "cancellation",
     title: "Sipariş iptali",
-    content: <><p>Ödeme öncesi veya sipariş henüz hazırlanma sürecine geçmeden iptal seçeneği sipariş durumuna göre sunulabilir. Mevcut sistemde müşteri iptali yalnız sipariş kargoya verilmeden önce ve uzlaştırma bekleyen ödeme bulunmadığında gerçekleştirilebilir.</p><p>Ödenmiş, hazırlanan veya kargoya verilmiş siparişlerde doğrudan iptal yerine teslimat ve kanuni iade süreci uygulanabilir. İptal sonucu stok, kupon ve rezervasyon durumu mağaza sistemi tarafından yeniden hesaplanır.</p></>,
+    content: <><p>Sipariş kargoya verilmeden önce Beklemede, Onaylandı, Ödendi veya Hazırlanıyor durumunda iptal talebi oluşturulabilir. Ödeme henüz tahsil edilmediyse sipariş güvenli ödeme kontrolünden sonra iptal edilir; ödemesi alınmış ya da hazırlanan siparişte ise iyzico üzerinden aynı gün ödeme iptali veya standart iade işlemi uygulanır.</p><p>Ödeme kuruluşu sonucu hemen kesinleştiremezse sipariş, ödeme, stok ve kupon kaydı değiştirilmeden işlem sonucu beklenir ve ekranda güncel durum gösterilir. Sipariş kargoya verildikten sonra iptal yerine teslimat ve kanuni iade süreci uygulanır. Bankanın iade tutarını karta yansıtma süresi ödeme kuruluşundaki işlemin tamamlanma zamanından farklı olabilir.</p></>,
   },
   {
     id: "withdrawal-period",

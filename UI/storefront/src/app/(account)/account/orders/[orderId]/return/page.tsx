@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api/problem";
 import { getAccountOrder, getProductVariants } from "@/modules/account/api";
 import { withAccountSession } from "@/modules/account/session";
+import { canCreateOrderReturnRequest, canOpenOrderReturnCenter } from "@/modules/orders/lifecycle";
 import { ReturnRequestForm } from "@/modules/returns/components/return-request-form";
 
 export const metadata: Metadata = { title: "İade veya Değişim Talebi" };
@@ -19,7 +20,29 @@ export default async function AccountReturnCreatePage({ params }: { params: Prom
     if (error instanceof ApiError && error.problem.status === 404) notFound();
     throw error;
   }
-  if (![5, 8, 9].includes(order.status)) notFound();
+  if (!canOpenOrderReturnCenter(order.status)) notFound();
+
+  // Burada Shipped aşamasında satış sonrası sayfasını açıyor fakat API teslimatı doğrulayana kadar talep formunu göstermiyorum.
+  if (!canCreateOrderReturnRequest(order.status)) {
+    return (
+      <section>
+        <Link href={`/account/orders/${order.id}`} className="focus-ring inline-flex min-h-10 items-center text-sm font-bold text-brand-700">← Siparişe dön</Link>
+        <header className="mt-3 border-b border-line pb-6">
+          <p className="text-xs font-bold tracking-[0.14em] text-brand-700 uppercase">Satış sonrası</p>
+          <h1 className="mt-3 text-2xl font-black text-brand-950 sm:text-3xl">İade ve değişim işlemleri</h1>
+          <p className="mt-2 text-sm leading-6 text-ink-muted">#{order.orderNumber} numaralı siparişiniz</p>
+        </header>
+        <section className="mt-6 border border-line bg-surface-subtle p-5" aria-labelledby="return-availability-title">
+          <h2 id="return-availability-title" className="text-base font-black text-ink">
+            Siparişiniz teslimat yolunda
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-ink-muted">
+            İade veya değişim talebi, kargo teslim edildi olarak güncellendiğinde bu sayfada açılır.
+          </p>
+        </section>
+      </section>
+    );
+  }
 
   const productIds = [...new Set(order.items.map((item) => item.productId))];
   const pages = await Promise.all(productIds.map((productId) => getProductVariants(productId)));

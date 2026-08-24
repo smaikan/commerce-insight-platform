@@ -44,6 +44,7 @@ function refreshCheckoutSession(): void {
 }
 
 const pendingPaymentInitializations = new Map<string, Promise<CheckoutFormSession>>();
+const ACTIVE_CHECKOUT_ORDER_KEY = "checkout:active-order";
 
 // Burada aynı checkout intent'inin body ve idempotency anahtarını değiştirmeden same-origin BFF'e gönderiyorum.
 export function submitGuestCheckout(
@@ -74,6 +75,42 @@ export function previewCoupon(couponCode: string): Promise<{ code: string; disco
 // Burada confirmation sayfasında yalnız session grant'inin izin verdiği guest siparişi no-store olarak okuyorum.
 export function loadCheckoutOrder(orderId: string): Promise<CheckoutOrder> {
   return requestCheckout<CheckoutOrder>(`/api/checkout/orders/${encodeURIComponent(orderId)}`, { method: "GET" });
+}
+
+// Burada magic-link ile açılan confirmation ekranını olası üye oturumundan bağımsız olarak guest grant endpointinden okuyorum.
+export function loadGuestCheckoutOrder(orderId: string): Promise<CheckoutOrder> {
+  return requestCheckout<CheckoutOrder>(`/api/guest-orders/${encodeURIComponent(orderId)}`, { method: "GET" });
+}
+
+// Burada ödeme sağlayıcısına yönlenmeden önce yalnız yetki sağlamayan order kimliğini geri dönüş kurtarması için saklıyorum.
+export function rememberActiveCheckoutOrder(
+  orderId: string,
+  storage: Pick<Storage, "setItem"> = window.localStorage,
+): void {
+  storage.setItem(ACTIVE_CHECKOUT_ORDER_KEY, orderId);
+}
+
+// Burada checkout'a geri dönüldüğünde yinelenen sipariş açmamak için bekleyen order kimliğini okuyorum.
+export function activeCheckoutOrderId(
+  storage: Pick<Storage, "getItem" | "removeItem"> = window.localStorage,
+): string | null {
+  const orderId = storage.getItem(ACTIVE_CHECKOUT_ORDER_KEY);
+  if (!orderId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) {
+    storage.removeItem(ACTIVE_CHECKOUT_ORDER_KEY);
+    return null;
+  }
+
+  return orderId;
+}
+
+// Burada yalnız tamamlanan veya kullanıcıca iptal edilen order işaretini temizleyip aynı order için ödeme intent anahtarını da kaldırıyorum.
+export function forgetActiveCheckoutOrder(
+  orderId?: string,
+  storage: Pick<Storage, "getItem" | "removeItem"> = window.localStorage,
+): void {
+  const activeOrderId = storage.getItem(ACTIVE_CHECKOUT_ORDER_KEY);
+  if (!orderId || activeOrderId === orderId) storage.removeItem(ACTIVE_CHECKOUT_ORDER_KEY);
+  if (orderId) storage.removeItem(`checkout:iyzico:${orderId}`);
 }
 
 // Burada hosted ödeme oturumunu kart verisi göndermeden yalnız stable idempotency anahtarıyla başlatıyorum.

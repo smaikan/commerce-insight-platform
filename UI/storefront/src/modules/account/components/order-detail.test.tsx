@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { AccountOrder } from "@/modules/account/contracts";
 import { OrderDetail } from "@/modules/account/components/order-detail";
 
-vi.mock("@/modules/account/actions", () => ({ cancelOrderAction: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 const order: AccountOrder = {
   id: "bb49d4c3-9752-4116-9179-657c8d6259b0",
@@ -69,6 +69,15 @@ describe("account order detail", () => {
     expect(html).toContain('href="https://cargo.example/track/TRK123"');
     expect(html).toContain('rel="noreferrer"');
     expect(html.indexOf("Kargoya verildi")).toBeLessThan(html.indexOf("Teslim edildi"));
+    expect(html).toContain("İade ve değişim işlemleri");
+    expect(html).not.toContain("Siparişi iptal et");
+  });
+
+  // Burada ödemesi alınmış fakat henüz kargoya verilmemiş siparişte iptal aksiyonunun görünür kaldığını doğruluyorum.
+  it("offers cancellation for a paid pre-shipment order", () => {
+    const html = renderToStaticMarkup(<OrderDetail order={{ ...order, status: 2, shippedAt: null, deliveredAt: null }} />);
+    expect(html).toContain("Siparişi iptal et");
+    expect(html).not.toContain("İade ve değişim işlemleri");
   });
 
   // Burada URL bulunmadığında takip numarasını gösterip harici takip aksiyonu üretmediğimi doğruluyorum.

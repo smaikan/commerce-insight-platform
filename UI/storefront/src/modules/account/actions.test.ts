@@ -9,7 +9,6 @@ const accountApiMocks = vi.hoisted(() => ({
   updateAccountUser: vi.fn(),
   setDefaultAccountAddress: vi.fn(),
   deleteAccountAddress: vi.fn(),
-  cancelAccountOrder: vi.fn(),
   changeAccountPassword: vi.fn(),
   revokeAccountSession: vi.fn(),
   logoutAllAccountSessions: vi.fn(),
@@ -40,11 +39,12 @@ describe("account actions", () => {
     formData.set("firstName", "Test");
     formData.set("lastName", "Müşteri");
     formData.set("phoneNumber", "05000000000");
-    formData.set("city", "İstanbul");
-    formData.set("district", "Kadıköy");
+    formData.set("City", "İstanbul");
+    formData.set("District", "Kadıköy");
     formData.set("fullAddress", "Test adresi");
 
     const state = await saveAddressAction(null, INITIAL_ACCOUNT_ACTION_STATE, formData);
+    expect(accountApiMocks.createAccountAddress).toHaveBeenCalledOnce();
     expect(state.status).toBe("error");
     expect(state.fieldErrors?.title).toBe("Adres başlığı çok uzun.");
     expect(state.message).toMatch(/işaretli alanları/i);
@@ -74,4 +74,5 @@ describe("account actions", () => {
     expect(state.message).toMatch(/yeni varyant/i);
     expect(accountApiMocks.createAccountReturn).not.toHaveBeenCalled();
   });
+
 });
