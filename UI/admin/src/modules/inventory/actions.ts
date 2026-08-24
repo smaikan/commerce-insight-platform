@@ -1,7 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
-import { revalidatePath } from "next/cache";
 import { ApiError } from "@/lib/api/problem";
 import { requireAdminActionSession } from "@/lib/auth/session";
 import { createBulkStockMovements } from "@/modules/inventory/api";
@@ -56,13 +54,10 @@ async function createStockMovements(
       }
     }
     const result = await createBulkStockMovements(parsed.movements, session);
-    revalidatePath("/inventory/stock-movements");
-    if (productId) revalidatePath(`/products/${encodeURIComponent(productId)}`);
     return {
       status: "success",
       message: `${result.movementCount} stok hareketi atomik olarak kaydedildi.`,
       movementCount: result.movementCount,
-      completionToken: randomUUID(),
     };
   } catch (error) {
     if (error instanceof ApiError) {

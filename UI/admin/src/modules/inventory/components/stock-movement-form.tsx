@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   createBulkStockMovementsAction,
   createProductStockMovementsAction,
 } from "@/modules/inventory/actions";
+import { runStockMovementAction } from "@/modules/inventory/stock-movement-action-state";
 import { getMovementFieldError } from "@/modules/inventory/stock-movement-form-data";
 import {
   manualStockMovementTypeOptions,
@@ -229,29 +230,31 @@ export function StockMovementForm({
     [productId],
   );
   const [rows, setRows] = useState<DraftMovement[]>([initialRow(1, initialSku)]);
-  const [state, formAction, isPending] = useActionState(
-    action,
-    initialStockMovementActionState,
-  );
-  const handledCompletionTokenRef = useRef<string | undefined>(undefined);
+  const [state, setState] = useState(initialStockMovementActionState);
+  const [isPending, setPending] = useState(false);
+  const submittingRef = useRef(false);
   const embedded = Boolean(productId);
   const productDraftLockId = "product-stock-movement-draft-lock";
 
-  // Burada başarılı API sonucundan sonra güncel deftere geri dönerek yetkili kaydı gösteriyorum.
-  useEffect(() => {
-    if (
-      state.status !== "success"
-      || !state.movementCount
-      || !state.completionToken
-      || handledCompletionTokenRef.current === state.completionToken
-    ) return;
-    handledCompletionTokenRef.current = state.completionToken;
-    if (embedded) {
-      router.refresh();
-      return;
-    }
-    router.push(`/inventory/stock-movements?created=${state.movementCount}`);
-  }, [embedded, initialSku, router, state.completionToken, state.movementCount, state.status]);
+  // Burada API sonucu gelir gelmez beklemeyi kapatıp başarıyı gösteriyor, authoritative görünümü arka planda yeniliyorum.
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (disabled || submittingRef.current) return;
+    submittingRef.current = true;
+    setState(initialStockMovementActionState);
+    const formData = new FormData(event.currentTarget);
+
+    void runStockMovementAction(action, formData, setPending)
+      .then((result) => {
+        setState(result);
+        if (result.status !== "success" || !result.movementCount) return;
+        if (embedded) router.refresh();
+        else router.push(`/inventory/stock-movements?created=${result.movementCount}`);
+      })
+      .finally(() => {
+        submittingRef.current = false;
+      });
+  }
 
   // Burada yalnız hedef satırın taslağını değiştirerek diğer satırları koruyorum.
   function updateRow(key: number, patch: Partial<DraftMovement>) {
@@ -271,7 +274,7 @@ export function StockMovementForm({
   }
 
   return (
-    <form action={formAction} aria-busy={isPending} className={embedded ? "mt-4 space-y-4" : "space-y-5"}>
+    <form onSubmit={handleSubmit} aria-busy={isPending} className={embedded ? "mt-4 space-y-4" : "space-y-5"}>
       <input type="hidden" name="movements" value={JSON.stringify(rows)} />
 
       {state.status === "error" ? (

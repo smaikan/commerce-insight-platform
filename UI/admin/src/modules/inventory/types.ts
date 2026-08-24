@@ -31,7 +31,6 @@ export type StockMovementActionState = {
   message?: string;
   traceId?: string;
   movementCount?: number;
-  completionToken?: string;
   fieldErrors?: Record<string, string[]>;
 };
 

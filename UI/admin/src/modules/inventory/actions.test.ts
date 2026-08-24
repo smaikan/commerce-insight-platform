@@ -5,16 +5,13 @@ const {
   parseBulkMovementsMock,
   getProductMock,
   requireAdminActionSessionMock,
-  revalidatePathMock,
 } = vi.hoisted(() => ({
   createBulkStockMovementsMock: vi.fn(),
   parseBulkMovementsMock: vi.fn(),
   getProductMock: vi.fn(),
   requireAdminActionSessionMock: vi.fn(),
-  revalidatePathMock: vi.fn(),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath: revalidatePathMock }));
 vi.mock("@/lib/api/problem", () => ({ ApiError: class ApiError extends Error {} }));
 vi.mock("@/lib/auth/session", () => ({ requireAdminActionSession: requireAdminActionSessionMock }));
 vi.mock("@/modules/inventory/api", () => ({ createBulkStockMovements: createBulkStockMovementsMock }));
@@ -42,7 +39,7 @@ describe("inventory actions", () => {
     createBulkStockMovementsMock.mockResolvedValue({ movementCount: 1 });
   });
 
-  it("refreshes the product detail after an embedded stock movement", async () => {
+  it("returns the completed result for immediate embedded-form reconciliation", async () => {
     const result = await createProductStockMovementsAction(
       "P00042",
       { status: "idle" },
@@ -53,17 +50,12 @@ describe("inventory actions", () => {
       [movement],
       expect.objectContaining({ accessToken: "test-admin-token" }),
     );
-    expect(revalidatePathMock).toHaveBeenCalledWith("/inventory/stock-movements");
-    expect(revalidatePathMock).toHaveBeenCalledWith("/products/P00042");
     expect(result).toMatchObject({ status: "success", movementCount: 1 });
-    expect(result.completionToken).toEqual(expect.any(String));
   });
 
-  it("keeps the standalone movement action scoped to the inventory ledger", async () => {
+  it("keeps the standalone movement action independent from product validation", async () => {
     await createBulkStockMovementsAction({ status: "idle" }, new FormData());
 
-    expect(revalidatePathMock).toHaveBeenCalledTimes(1);
-    expect(revalidatePathMock).toHaveBeenCalledWith("/inventory/stock-movements");
     expect(getProductMock).not.toHaveBeenCalled();
   });
 
