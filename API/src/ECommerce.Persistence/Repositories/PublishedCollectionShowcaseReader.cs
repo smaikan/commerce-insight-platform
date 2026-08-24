@@ -51,7 +51,7 @@ public sealed class PublishedCollectionShowcaseReader : IPublishedCollectionShow
                 collection.IsFeatured,
                 collection.DisplayOrder,
                 collection.ImageUrl ?? publishedRelations
-                    .Where(relation => relation.CollectionId == collection.Id)
+                    .Where(relation => relation.CollectionId == collection.Id && relation.Product.Images.Any())
                     .OrderByDescending(relation => relation.Product.PopularityScore)
                     .ThenBy(relation => relation.Product.Id)
                     .Select(relation => relation.Product.Images

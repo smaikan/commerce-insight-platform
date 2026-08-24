@@ -15,12 +15,16 @@ const redirects: NonNullable<NextConfig["redirects"]> = async () => [
   },
 ];
 
-// Burada medya allowlist'ini, kalıcı yönlendirmeyi ve gereksiz framework başlığını tek Next.js yapılandırmasında tutuyorum.
+// Burada medya allowlist'ini, kalıcı yönlendirmeyi ve modern AVIF/WebP görsel pipeline'ını yapılandırıyorum.
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   redirects,
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 2592000, // 30 gün önbellek (sunucu ve CDN yükünü hafifletir)
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: imageHosts.map((hostname) => ({
       protocol: "https" as const,
       hostname,
