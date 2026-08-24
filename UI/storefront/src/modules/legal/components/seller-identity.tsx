@@ -1,17 +1,28 @@
 import { siteConfig } from "@/lib/site-config";
 import { legalConfig } from "@/modules/legal/legal-config";
+import type { PublicStoreSettings } from "@/modules/store-settings/types";
 
-// Burada yalnız yapılandırılmış işletme bilgilerini gösterip eksik yasal kimlik alanlarının doldurulması gerektiğini açıkça belirtiyorum.
-export function SellerIdentity() {
+type SellerIdentityProps = {
+  settings?: PublicStoreSettings | null;
+};
+
+// Burada mağaza ayarlarından gelen güncel bilgileri ve tanımlı yasal işletme kimliğini gösteriyorum.
+export function SellerIdentity({ settings }: SellerIdentityProps = {}) {
+  const storeName = settings?.displayName?.trim() || siteConfig.name;
+  const legalName = legalConfig.businessName || "Siparişe özel ön bilgilendirme formunda gösterilecektir.";
+  const address = legalConfig.address || "Siparişe özel ön bilgilendirme formunda gösterilecektir.";
+  const email = legalConfig.email || settings?.supportEmail?.trim() || "Yayın öncesinde yasal iletişim adresi tanımlanmalıdır.";
+  const phone = legalConfig.phone || settings?.supportPhone?.trim() || "Yayın öncesinde yasal iletişim numarası tanımlanmalıdır.";
+  const mersisOrTax = legalConfig.mersisNumber || legalConfig.taxNumber || null;
+
   return (
     <dl>
-      <dt>Mağaza adı</dt><dd>{siteConfig.name}</dd>
-      <dt>Yasal unvan</dt><dd>{legalConfig.businessName || "Siparişe özel ön bilgilendirme formunda gösterilecektir."}</dd>
-      <dt>Adres</dt><dd>{legalConfig.address || "Siparişe özel ön bilgilendirme formunda gösterilecektir."}</dd>
-      <dt>E-posta</dt><dd>{legalConfig.email || "Yayın öncesinde yasal iletişim adresi tanımlanmalıdır."}</dd>
-      <dt>Telefon</dt><dd>{legalConfig.phone || "Yayın öncesinde yasal iletişim numarası tanımlanmalıdır."}</dd>
-      <dt>MERSİS / VKN</dt>
-      <dd>{legalConfig.mersisNumber || legalConfig.taxNumber || "Yayın öncesinde işletme kimliği tanımlanmalıdır."}</dd>
+      <dt>Mağaza adı</dt><dd>{storeName}</dd>
+      <dt>Yasal unvan</dt><dd>{legalName}</dd>
+      <dt>Adres</dt><dd>{address}</dd>
+      <dt>E-posta</dt><dd>{email}</dd>
+      <dt>Telefon</dt><dd>{phone}</dd>
+      {mersisOrTax ? <><dt>MERSİS / VKN</dt><dd>{mersisOrTax}</dd></> : null}
       {legalConfig.taxOffice ? <><dt>Vergi dairesi</dt><dd>{legalConfig.taxOffice}</dd></> : null}
     </dl>
   );
