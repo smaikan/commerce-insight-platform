@@ -39,6 +39,8 @@ describe("storefront banner sections", () => {
     };
     const html = renderToStaticMarkup(<MainBannerSection section={section} />);
     expect(html.indexOf("primary.webp")).toBeLessThan(html.indexOf("secondary.webp"));
+    expect(html).toContain('class="w-full"');
+    expect(html).toContain('sizes="100vw"');
     expect(html).toContain('loading="eager"');
     expect(html).toContain('fetchPriority="high"');
   });

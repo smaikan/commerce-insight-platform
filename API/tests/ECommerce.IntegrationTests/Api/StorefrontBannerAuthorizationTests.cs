@@ -5,6 +5,7 @@ using ECommerce.API.Controllers.Storefront.AltBanner4;
 using ECommerce.API.Controllers.Storefront.AltBanner5;
 using ECommerce.API.Controllers.Storefront.BannerSections;
 using ECommerce.API.Controllers.Storefront.MainBanners;
+using ECommerce.API.Controllers.Storefront.MainMobileBanner;
 using ECommerce.API.Security;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authorization;
@@ -14,9 +15,10 @@ namespace ECommerce.IntegrationTests.Api;
 
 public sealed class StorefrontBannerAuthorizationTests
 {
-    // Burada altı banner bölümünün ayrı route kullandığını, public okuma ve Admin yazma sınırını doğruluyorum.
+    // Burada tüm banner bölümlerinin ayrı route kullandığını, public okuma ve Admin yazma sınırını doğruluyorum.
     [Theory]
     [InlineData(typeof(MainBannersController), "api/main-banners")]
+    [InlineData(typeof(MainMobileBannerController), "api/main-banner-mobile")]
     [InlineData(typeof(AltBanner1Controller), "api/alt-banner-1")]
     [InlineData(typeof(AltBanner2Controller), "api/alt-banner-2")]
     [InlineData(typeof(AltBanner3Controller), "api/alt-banner-3")]

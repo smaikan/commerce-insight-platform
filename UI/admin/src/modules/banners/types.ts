@@ -20,7 +20,7 @@ export type BannerSectionCommitInput = {
   items: BannerSectionCommitItem[];
 };
 
-// Burada altı bağımsız bölümün paralel yükleme sonucunu serileştirilebilir bir union olarak tutuyorum.
+// Burada yedi bağımsız bölümün paralel yükleme sonucunu serileştirilebilir bir union olarak tutuyorum.
 export type BannerSectionLoadResult =
   | { key: BannerSectionKey; status: "success"; section: BannerSection }
   | { key: BannerSectionKey; status: "error"; message: string; traceId?: string };

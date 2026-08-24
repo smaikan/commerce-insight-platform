@@ -4,7 +4,13 @@ import { useEffect, useState, useRef } from "react";
 import type { BannerSectionItem } from "@/modules/banners/types";
 import { BannerMedia } from "./banner-sections";
 
-export function HeroBannerCarousel({ items }: { items: BannerSectionItem[] }) {
+export function HeroBannerCarousel({
+  items,
+  variant = "desktop",
+}: {
+  items: BannerSectionItem[];
+  variant?: "desktop" | "mobile";
+}) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollTimeout = useRef<NodeJS.Timeout>(null);
@@ -18,18 +24,18 @@ export function HeroBannerCarousel({ items }: { items: BannerSectionItem[] }) {
     if (items.length <= 1) return;
     const interval = setInterval(() => {
       if (!isDragging.current) {
-        setCurrentIndex((currentIndex + 1) % items.length);
+        setCurrentIndex((prev) => (prev + 1) % items.length);
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [items.length, currentIndex]);
+  }, [items.length]);
 
   useEffect(() => {
     if (containerRef.current) {
       const container = containerRef.current;
       container.scrollTo({
         left: container.clientWidth * currentIndex,
-        behavior: "smooth"
+        behavior: "smooth",
       });
     }
   }, [currentIndex]);
@@ -42,7 +48,9 @@ export function HeroBannerCarousel({ items }: { items: BannerSectionItem[] }) {
     if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
     scrollTimeout.current = setTimeout(() => {
       if (containerRef.current && !isDragging.current) {
-        const index = Math.round(containerRef.current.scrollLeft / containerRef.current.clientWidth);
+        const index = Math.round(
+          containerRef.current.scrollLeft / containerRef.current.clientWidth,
+        );
         if (index !== currentIndex) {
           setCurrentIndex(index);
         }
@@ -77,13 +85,15 @@ export function HeroBannerCarousel({ items }: { items: BannerSectionItem[] }) {
 
   const snapToClosest = () => {
     if (containerRef.current) {
-      const index = Math.round(containerRef.current.scrollLeft / containerRef.current.clientWidth);
+      const index = Math.round(
+        containerRef.current.scrollLeft / containerRef.current.clientWidth,
+      );
       setCurrentIndex(index);
       containerRef.current.style.scrollBehavior = "smooth";
       containerRef.current.style.scrollSnapType = "x mandatory";
       containerRef.current.scrollTo({
         left: containerRef.current.clientWidth * index,
-        behavior: "smooth"
+        behavior: "smooth",
       });
     }
   };
@@ -92,7 +102,7 @@ export function HeroBannerCarousel({ items }: { items: BannerSectionItem[] }) {
     if (!isDragging.current || !containerRef.current) return;
     e.preventDefault();
     const x = e.pageX - containerRef.current.offsetLeft;
-    const walk = (x - startX.current);
+    const walk = x - startX.current;
     if (Math.abs(walk) > 5) dragged.current = true;
     containerRef.current.scrollLeft = scrollLeft.current - walk;
   };
@@ -105,11 +115,13 @@ export function HeroBannerCarousel({ items }: { items: BannerSectionItem[] }) {
   };
 
   const onDragStart = (e: React.DragEvent) => {
-    e.preventDefault(); // Prevent native HTML ghost image dragging
+    e.preventDefault();
   };
 
+  const heightClass = variant === "mobile" ? "aspect-square w-full" : "h-[75vh] w-full";
+
   return (
-    <div className="relative w-full h-[75vh] overflow-hidden group">
+    <div className={`relative w-full ${heightClass} overflow-hidden group`}>
       <div
         ref={containerRef}
         onScroll={handleScroll}
@@ -120,23 +132,28 @@ export function HeroBannerCarousel({ items }: { items: BannerSectionItem[] }) {
         onClickCapture={onClickCapture}
         onDragStart={onDragStart}
         className="flex h-full w-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {items.map((item, index) => (
           <div key={item.id} className="w-full h-full flex-shrink-0 snap-start">
-            <BannerMedia item={item} priority={index === 0} variant="main" />
+            <BannerMedia
+              item={item}
+              priority={index === 0}
+              variant={variant === "mobile" ? "mobile-main" : "main"}
+            />
           </div>
         ))}
       </div>
 
       {items.length > 1 && (
-        <div className="absolute bottom-5 left-0 right-0 flex justify-center gap-3 z-10">
+        <div className="absolute bottom-4 sm:bottom-5 left-0 right-0 flex justify-center gap-2 sm:gap-3 z-10">
           {items.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`w-3 h-3 rounded-full transition-colors ${index === currentIndex ? "bg-zinc-950" : "bg-zinc-400 hover:bg-zinc-600"
-                }`}
+              className={`size-2.5 sm:size-3 rounded-full transition-colors ${
+                index === currentIndex ? "bg-zinc-950" : "bg-zinc-400 hover:bg-zinc-600"
+              }`}
               aria-label={`Slayt ${index + 1}'e git`}
             />
           ))}

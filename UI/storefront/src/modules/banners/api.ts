@@ -18,7 +18,7 @@ export async function getPublicBannerSection(key: BannerSectionKey): Promise<Ban
     headers: { Accept: "application/json" },
     next: {
       revalidate: PUBLIC_BANNER_REVALIDATE_SECONDS,
-      tags: ["banner-sections", `banner-section:${key}`],
+      tags: ["banners", "banner-sections", `banner-section:${key}`],
     },
   });
 

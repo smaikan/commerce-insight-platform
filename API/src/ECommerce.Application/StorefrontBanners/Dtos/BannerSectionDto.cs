@@ -54,6 +54,7 @@ public static class BannerSectionDtoMapping
     private static (string Name, string Key) GetMetadata(StorefrontBannerSection section) => section switch
     {
         StorefrontBannerSection.Main => ("Main Banner", "main-banner"),
+        StorefrontBannerSection.MainMobile => ("Main Banner Mobil", "main-banner-mobile"),
         StorefrontBannerSection.AltBanner1 => ("Alt Banner 1", "alt-banner-1"),
         StorefrontBannerSection.AltBanner2 => ("Alt Banner 2", "alt-banner-2"),
         StorefrontBannerSection.AltBanner3 => ("Alt Banner 3", "alt-banner-3"),

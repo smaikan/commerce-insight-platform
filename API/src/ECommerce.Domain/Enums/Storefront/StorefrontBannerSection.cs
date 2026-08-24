@@ -7,5 +7,6 @@ public enum StorefrontBannerSection
     AltBanner2 = 2,
     AltBanner3 = 3,
     AltBanner4 = 4,
-    AltBanner5 = 5
+    AltBanner5 = 5,
+    MainMobile = 6
 }

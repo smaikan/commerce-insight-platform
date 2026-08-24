@@ -28,13 +28,14 @@ describe("banner API istemcisi", () => {
     apiRequestMock.mockImplementation((path: string) => Promise.resolve(section(path)));
   });
 
-  // Burada altı yönetim GET isteğinin birbirine karışmadan kendi /admin yoluna gönderildiğini doğruluyorum.
-  it("altı bağımsız admin endpointini çağırır", async () => {
+  // Burada yedi yönetim GET isteğinin birbirine karışmadan kendi /admin yoluna gönderildiğini doğruluyorum.
+  it("yedi bağımsız admin endpointini çağırır", async () => {
     const result = await getAdminBannerSections(session);
 
-    expect(result).toHaveLength(6);
+    expect(result).toHaveLength(7);
     expect(apiRequestMock.mock.calls.map(([path]) => path)).toEqual([
       "/api/main-banners/admin",
+      "/api/main-banner-mobile/admin",
       "/api/alt-banner-1/admin",
       "/api/alt-banner-2/admin",
       "/api/alt-banner-3/admin",
@@ -44,7 +45,7 @@ describe("banner API istemcisi", () => {
     expect(apiRequestMock.mock.calls.every(([, options]) => options.accessToken === session.accessToken)).toBe(true);
   });
 
-  // Burada tek endpoint hatasının diğer beş bölümün başarılı yükleme sonucunu düşürmediğini doğruluyorum.
+  // Burada tek endpoint hatasının diğer altı bölümün başarılı yükleme sonucunu düşürmediğini doğruluyorum.
   it("bölüm yükleme hatalarını birbirinden yalıtır", async () => {
     apiRequestMock.mockImplementation((path: string) => path === "/api/alt-banner-2/admin"
       ? Promise.reject(new Error("network"))
@@ -52,7 +53,7 @@ describe("banner API istemcisi", () => {
 
     const result = await getAdminBannerSections(session);
 
-    expect(result.filter((item) => item.status === "success")).toHaveLength(5);
+    expect(result.filter((item) => item.status === "success")).toHaveLength(6);
     expect(result.find((item) => item.key === "alt-banner-2")).toMatchObject({
       key: "alt-banner-2",
       status: "error",

@@ -356,7 +356,7 @@ function BannerSectionEditor({
 
           <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs leading-5 text-muted">Yalnız {config.label} kayıtları kaydedilir.</p>
-            <button type="button" disabled={isBusy || !dirty} onClick={() => void saveSection()} className="inline-flex min-h-11 min-w-40 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-muted disabled:text-white/80">
+            <button type="button" disabled={isBusy || !dirty} onClick={() => void saveSection()} className="inline-flex min-h-11 min-w-40 cursor-pointer items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-muted disabled:text-white/80">
               {isBusy ? "İşleniyor…" : "Bölümü kaydet"}
             </button>
           </div>
@@ -407,21 +407,21 @@ function BannerItemEditor({
         </div>
         <div className="flex flex-wrap gap-1.5">
           {isMainSection && !draft.isMain ? (
-            <button type="button" disabled={disabled} onClick={onSelectMain} className="min-h-9 rounded-md border border-primary/40 bg-primary-soft px-2.5 text-xs font-semibold text-primary hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50">
+            <button type="button" disabled={disabled} onClick={onSelectMain} className="min-h-9 cursor-pointer rounded-md border border-primary/40 bg-primary-soft px-2.5 text-xs font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50">
               Ana banner yap
             </button>
           ) : null}
           {isMainSection && draft.isMain ? <span className="inline-flex min-h-9 items-center rounded-md bg-primary-soft px-2.5 text-xs font-semibold text-primary">Ana banner</span> : null}
-          <button type="button" disabled={disabled || index === 0 || (isMainSection && (draft.isMain || index === 1))} onClick={() => onMove(-1)} aria-label={`${draft.name || `Kayıt ${index + 1}`} yukarı taşı`} className="min-h-9 rounded-md border border-border-strong bg-surface px-2.5 text-xs font-semibold text-foreground hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-40">Yukarı</button>
-          <button type="button" disabled={disabled || index === count - 1 || (isMainSection && draft.isMain)} onClick={() => onMove(1)} aria-label={`${draft.name || `Kayıt ${index + 1}`} aşağı taşı`} className="min-h-9 rounded-md border border-border-strong bg-surface px-2.5 text-xs font-semibold text-foreground hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-40">Aşağı</button>
-          <button type="button" disabled={disabled} onClick={onRemove} className="min-h-9 rounded-md border border-red-200 bg-surface px-2.5 text-xs font-semibold text-danger hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50">Kaldır</button>
+          <button type="button" disabled={disabled || index === 0 || (isMainSection && (draft.isMain || index === 1))} onClick={() => onMove(-1)} aria-label={`${draft.name || `Kayıt ${index + 1}`} yukarı taşı`} className="min-h-9 cursor-pointer rounded-md border border-border-strong bg-surface px-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40">Yukarı</button>
+          <button type="button" disabled={disabled || index === count - 1 || (isMainSection && draft.isMain)} onClick={() => onMove(1)} aria-label={`${draft.name || `Kayıt ${index + 1}`} aşağı taşı`} className="min-h-9 cursor-pointer rounded-md border border-border-strong bg-surface px-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40">Aşağı</button>
+          <button type="button" disabled={disabled} onClick={onRemove} className="min-h-9 cursor-pointer rounded-md border border-red-200 bg-surface px-2.5 text-xs font-semibold text-danger transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50">Kaldır</button>
         </div>
       </div>
 
       <div className="grid gap-4 p-3 lg:grid-cols-[minmax(14rem,0.8fr)_minmax(0,2fr)] lg:p-4">
         <div className="space-y-3">
           <BannerMediaPreview draft={draft} />
-          <label className={`flex min-h-10 cursor-pointer items-center justify-center rounded-lg border border-border-strong bg-surface px-3 text-sm font-semibold text-foreground hover:bg-surface-subtle focus-within:ring-2 focus-within:ring-focus ${disabled ? "pointer-events-none opacity-50" : ""}`}>
+          <label className={`flex min-h-10 cursor-pointer items-center justify-center rounded-lg border border-border-strong bg-surface px-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-subtle focus-within:ring-2 focus-within:ring-focus ${disabled ? "pointer-events-none opacity-50" : ""}`}>
             Medya yükle veya değiştir
             <input type="file" className="sr-only" accept={BANNER_ACCEPT} disabled={disabled} aria-label={`${draft.name || `Kayıt ${index + 1}`} için medya seç`} onChange={(event) => {
               onFileSelect(event.target.files?.[0]);
@@ -436,7 +436,7 @@ function BannerItemEditor({
             <input id={`${baseId}-name`} value={draft.name} maxLength={150} disabled={disabled} onChange={(event) => onChange({ name: event.target.value })} className={inputClass(Boolean(fieldError(fieldErrors, index, "name")))} />
           </Field>
           <Field label="Anahtar" id={`${baseId}-key`} error={fieldError(fieldErrors, index, "key")} action={draft.name && !draft.key ? (
-            <button type="button" disabled={disabled} onClick={() => onChange({ key: suggestBannerKey(draft.name) })} className="text-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">Anahtar öner</button>
+            <button type="button" disabled={disabled} onClick={() => onChange({ key: suggestBannerKey(draft.name) })} className="cursor-pointer text-xs font-semibold text-primary transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed">Anahtar öner</button>
           ) : undefined}>
             <input id={`${baseId}-key`} value={draft.key} maxLength={100} disabled={disabled} spellCheck={false} onChange={(event) => onChange({ key: event.target.value })} className={inputClass(Boolean(fieldError(fieldErrors, index, "key")))} />
           </Field>

@@ -3,14 +3,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import { getPublicBannerSection, publicBannerSectionUrl } from "./api";
-import { BANNER_SECTION_KEYS } from "./section-config";
+import { BANNER_SECTION_CONFIGS, BANNER_SECTION_KEYS } from "./section-config";
 
 describe("storefront banner API istemcisi", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  // Burada storefront'un altı bölümü yalnız anonim public endpointlerinden okuduğunu doğruluyorum.
+  // Burada storefront'un yedi bölümü yalnız anonim public endpointlerinden okuduğunu doğruluyorum.
   it.each(BANNER_SECTION_KEYS)("%s için doğru public GET yolunu kullanır", async (key) => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       name: key,
@@ -24,7 +24,7 @@ describe("storefront banner API istemcisi", () => {
 
     await getPublicBannerSection(key);
 
-    const expectedPath = key === "main-banner" ? "/api/main-banners" : `/api/${key}`;
+    const expectedPath = BANNER_SECTION_CONFIGS[key].publicPath;
     expect(new URL(fetchMock.mock.calls[0][0]).pathname).toBe(expectedPath);
     expect(fetchMock.mock.calls[0][1]).not.toHaveProperty("headers.Authorization");
   });

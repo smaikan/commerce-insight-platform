@@ -1,8 +1,9 @@
 import type { BannerSectionConfig, BannerSectionKey } from "./types";
 
-// Burada vitrindeki bölüm sırasını API sözleşmesindeki altı bağımsız alanla sabitliyorum.
+// Burada vitrindeki bölüm sırasını API sözleşmesindeki yedi bağımsız alanla sabitliyorum.
 export const BANNER_SECTION_KEYS = [
   "main-banner",
+  "main-banner-mobile",
   "alt-banner-1",
   "alt-banner-2",
   "alt-banner-3",
@@ -14,11 +15,19 @@ export const BANNER_SECTION_KEYS = [
 export const BANNER_SECTION_CONFIGS: Record<BannerSectionKey, BannerSectionConfig> = {
   "main-banner": {
     key: "main-banner",
-    label: "Ana banner",
+    label: "Ana banner (Masaüstü)",
     publicPath: "/api/main-banners",
     adminPath: "/api/main-banners/admin",
     folder: "banners/main-banner",
     isMain: true,
+  },
+  "main-banner-mobile": {
+    key: "main-banner-mobile",
+    label: "Ana banner (Mobil)",
+    publicPath: "/api/main-banner-mobile",
+    adminPath: "/api/main-banner-mobile/admin",
+    folder: "banners/main-banner-mobile",
+    isMain: false,
   },
   "alt-banner-1": {
     key: "alt-banner-1",

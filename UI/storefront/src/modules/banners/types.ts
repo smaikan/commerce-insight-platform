@@ -7,6 +7,7 @@ export type BannerMediaType = components["schemas"]["BannerMediaType"];
 
 export type BannerSectionKey =
   | "main-banner"
+  | "main-banner-mobile"
   | "alt-banner-1"
   | "alt-banner-2"
   | "alt-banner-3"
