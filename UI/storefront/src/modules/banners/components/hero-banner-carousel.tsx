@@ -2,15 +2,26 @@
 
 import { useEffect, useState, useRef } from "react";
 import type { BannerSectionItem } from "@/modules/banners/types";
-import { BannerMedia } from "./banner-sections";
+import { ResponsiveBannerSlideView, type ResponsiveBannerSlide } from "./banner-sections";
 
 export function HeroBannerCarousel({
+  slides,
   items,
   variant = "desktop",
 }: {
-  items: BannerSectionItem[];
+  slides?: ResponsiveBannerSlide[];
+  items?: BannerSectionItem[];
   variant?: "desktop" | "mobile";
 }) {
+  const effectiveSlides: ResponsiveBannerSlide[] =
+    slides && slides.length > 0
+      ? slides
+      : (items || []).map((item, idx) => ({
+          id: item.id || `slide-${idx}`,
+          desktopItem: item,
+          mobileItem: item,
+        }));
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollTimeout = useRef<NodeJS.Timeout>(null);
@@ -21,14 +32,14 @@ export function HeroBannerCarousel({
   const dragged = useRef(false);
 
   useEffect(() => {
-    if (items.length <= 1) return;
+    if (effectiveSlides.length <= 1) return;
     const interval = setInterval(() => {
       if (!isDragging.current) {
-        setCurrentIndex((prev) => (prev + 1) % items.length);
+        setCurrentIndex((prev) => (prev + 1) % effectiveSlides.length);
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [items.length]);
+  }, [effectiveSlides.length]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -118,10 +129,10 @@ export function HeroBannerCarousel({
     e.preventDefault();
   };
 
-  const heightClass = variant === "mobile" ? "aspect-square w-full" : "h-[75vh] w-full";
+  if (effectiveSlides.length === 0) return null;
 
   return (
-    <div className={`relative w-full ${heightClass} overflow-hidden group`}>
+    <div className="relative w-full aspect-square md:aspect-auto md:h-[75vh] overflow-hidden group">
       <div
         ref={containerRef}
         onScroll={handleScroll}
@@ -134,24 +145,23 @@ export function HeroBannerCarousel({
         className="flex h-full w-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        {items.map((item, index) => (
-          <div key={item.id} className="w-full h-full flex-shrink-0 snap-start">
-            <BannerMedia
-              item={item}
+        {effectiveSlides.map((slide, index) => (
+          <div key={slide.id} className="w-full h-full flex-shrink-0 snap-start">
+            <ResponsiveBannerSlideView
+              slide={slide}
               priority={index === 0}
-              variant={variant === "mobile" ? "mobile-main" : "main"}
             />
           </div>
         ))}
       </div>
 
-      {items.length > 1 && (
+      {effectiveSlides.length > 1 && (
         <div className="absolute bottom-4 sm:bottom-5 left-0 right-0 flex justify-center gap-2 sm:gap-3 z-10">
-          {items.map((_, index) => (
+          {effectiveSlides.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`size-2.5 sm:size-3 rounded-full transition-colors ${
+              className={`size-2.5 sm:size-3 rounded-full cursor-pointer transition-colors ${
                 index === currentIndex ? "bg-zinc-950" : "bg-zinc-400 hover:bg-zinc-600"
               }`}
               aria-label={`Slayt ${index + 1}'e git`}

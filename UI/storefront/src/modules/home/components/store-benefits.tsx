@@ -29,7 +29,7 @@ const STORE_BENEFITS: Array<{
     },
     {
       title: "GÜVENLİ ÖDEME",
-      description: "Iyzco Altyapısıyla Güvenli Alışveriş.",
+      description: "Iyzico Altyapısıyla Güvenli Alışveriş.",
       href: "/payment-and-delivery",
       icon: "payment",
     },

@@ -75,10 +75,10 @@ export function FeaturedProductsTabs({
         </div>
       </div>
 
-      {/* Ürün Izgarası */}
+      {/* Ürün Izgarası: Ana sayfada hero banner LCP önceliğini korumak için ürün kartları lazy olarak yüklenir */}
       <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 lg:gap-x-8">
-        {currentProducts.slice(0, 8).map((product, index) => (
-          <ProductCard key={product.id} product={product} isLcpCandidate={index < 4} />
+        {currentProducts.slice(0, 8).map((product) => (
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
 

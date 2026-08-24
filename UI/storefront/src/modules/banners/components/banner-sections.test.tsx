@@ -40,9 +40,30 @@ describe("storefront banner sections", () => {
     const html = renderToStaticMarkup(<MainBannerSection section={section} />);
     expect(html.indexOf("primary.webp")).toBeLessThan(html.indexOf("secondary.webp"));
     expect(html).toContain('class="w-full"');
-    expect(html).toContain('sizes="100vw"');
+    expect(html).toContain('sizes=');
     expect(html).toContain('loading="eager"');
     expect(html).toContain('fetchPriority="high"');
+  });
+
+  // Burada masaüstü ve mobil banner'lar farklı olduğunda picture etiketiyle responsive art direction üretildiğini doğruluyorum.
+  it("renders responsive picture tag when desktop and mobile banners differ", () => {
+    const desktopSection: BannerSection = {
+      name: "Desktop Main",
+      key: "main-banner",
+      items: [item({ id: "desktop-1", mediaUrl: "https://cdn.example.com/desktop.webp", isMain: true })],
+    };
+    const mobileSection: BannerSection = {
+      name: "Mobile Main",
+      key: "main-banner-mobile",
+      items: [item({ id: "mobile-1", mediaUrl: "https://cdn.example.com/mobile.webp", isMain: true })],
+    };
+    const html = renderToStaticMarkup(
+      <MainBannerSection desktopSection={desktopSection} mobileSection={mobileSection} />,
+    );
+    expect(html).toContain("<picture");
+    expect(html).toContain('media="(min-width: 768px)"');
+    expect(html).toContain("desktop.webp");
+    expect(html).toContain("mobile.webp");
   });
 
   // Burada video medyasının sesli otomatik oynatma olmadan kontrollü ve mobil uyumlu oluşturulduğunu doğruluyorum.

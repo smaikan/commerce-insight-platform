@@ -2,6 +2,12 @@ import Image from "next/image";
 import type { BannerSection, BannerSectionItem } from "@/modules/banners/types";
 import { HeroBannerCarousel } from "./hero-banner-carousel";
 
+export type ResponsiveBannerSlide = {
+  id: string;
+  desktopItem: BannerSectionItem;
+  mobileItem?: BannerSectionItem;
+};
+
 type BannerMediaProps = {
   item: BannerSectionItem;
   priority?: boolean;
@@ -14,7 +20,7 @@ type MainBannerSectionProps = {
   section?: BannerSection | null;
 };
 
-// Burada masaüstü ve mobil banner bölümlerini ayrıştırıp mobilde 1:1 kare, masaüstünde mevcut tasarımı sunuyorum.
+// Burada masaüstü ve mobil banner bölümlerini tek bir responsive karuselde birleştirip HTML içinde picture etiketiyle yalnız aktif ekran görselinin indirilmesini sağlıyorum (LCP optimizasyonu).
 export function MainBannerSection({
   desktopSection,
   mobileSection,
@@ -23,35 +29,133 @@ export function MainBannerSection({
   const desktop = desktopSection ?? section;
   const mobile = mobileSection ?? desktop;
 
-  const hasDesktop = Boolean(desktop?.items?.length);
-  const hasMobile = Boolean(mobile?.items?.length);
-
-  if (!hasDesktop && !hasMobile) return null;
-
   const desktopItems = desktop?.items?.length ? orderMainItems(desktop.items) : [];
-  const mobileItems = mobile?.items?.length ? orderMainItems(mobile.items) : desktopItems;
+  const mobileItems = mobile?.items?.length ? orderMainItems(mobile.items) : [];
+
+  if (desktopItems.length === 0 && mobileItems.length === 0) return null;
+
+  const maxLen = Math.max(desktopItems.length, mobileItems.length);
+  const slides: ResponsiveBannerSlide[] = [];
+
+  for (let i = 0; i < maxLen; i++) {
+    const desktopItem = desktopItems[i] || desktopItems[0] || mobileItems[i];
+    const mobileItem = mobileItems[i] || mobileItems[0] || desktopItem;
+    if (desktopItem || mobileItem) {
+      slides.push({
+        id: `slide-${i}-${desktopItem?.id || mobileItem?.id}`,
+        desktopItem: desktopItem || mobileItem!,
+        mobileItem: mobileItem || desktopItem,
+      });
+    }
+  }
 
   return (
     <section aria-labelledby="main-banner-heading" className="w-full">
       <h2 id="main-banner-heading" className="sr-only">
         {desktop?.name || mobile?.name || "Main Banner"}
       </h2>
-
-      {/* Masaüstü Banner: >= 768px (md) ekranlarda gösterilir, mobilde gizlenir */}
-      {desktopItems.length > 0 ? (
-        <div className="hidden md:block w-full">
-          <HeroBannerCarousel items={desktopItems} variant="desktop" />
-        </div>
-      ) : null}
-
-      {/* Mobil Banner: < 768px (md) ekranlarda 1:1 tam kare olarak gösterilir, masaüstünde gizlenir */}
-      {mobileItems.length > 0 ? (
-        <div className="block md:hidden w-full">
-          <HeroBannerCarousel items={mobileItems} variant="mobile" />
-        </div>
-      ) : null}
+      <HeroBannerCarousel slides={slides} />
     </section>
   );
+}
+
+// Burada duyarlı banner slaydını render edip picture ve media query ile mobilde yalnız mobil görseli, masaüstünde yalnız masaüstü görseli indiriyorum.
+export function ResponsiveBannerSlideView({
+  slide,
+  priority = false,
+}: {
+  slide: ResponsiveBannerSlide;
+  priority?: boolean;
+}) {
+  const desktopItem = slide.desktopItem;
+  const mobileItem = slide.mobileItem || desktopItem;
+  const href = safeTargetUrl(mobileItem.targetUrl || desktopItem.targetUrl);
+
+  const isVideo = desktopItem.mediaType === 2 || mobileItem.mediaType === 2;
+
+  if (isVideo) {
+    return (
+      <div className="relative aspect-square md:aspect-auto md:h-[75vh] w-full overflow-hidden bg-surface-subtle">
+        <video
+          className="size-full object-cover"
+          src={mobileItem.mediaUrl || desktopItem.mediaUrl}
+          aria-label={mobileItem.altText || desktopItem.altText || mobileItem.name}
+          controls
+          muted
+          playsInline
+          preload={priority ? "metadata" : "none"}
+        />
+        {href ? (
+          <a
+            draggable={false}
+            href={href}
+            className="absolute right-3 top-3 inline-flex min-h-10 items-center rounded-lg bg-white/95 px-3 text-sm font-semibold text-zinc-950 shadow-sm outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 cursor-pointer"
+            aria-label={`${mobileItem.altText || mobileItem.name}: içeriğe git`}
+          >
+            İçeriğe git
+          </a>
+        ) : null}
+      </div>
+    );
+  }
+
+  const desktopUrl = desktopItem.mediaUrl;
+  const mobileUrl = mobileItem.mediaUrl;
+  const altText = mobileItem.altText || desktopItem.altText || mobileItem.name || "";
+
+  const isDifferent = desktopUrl && mobileUrl && desktopUrl !== mobileUrl;
+
+  const content = (
+    <div className="relative aspect-square md:aspect-auto md:h-[75vh] w-full overflow-hidden bg-surface-subtle">
+      {isDifferent ? (
+        <picture className="block size-full">
+          <source
+            media="(min-width: 768px)"
+            srcSet={`/_next/image?url=${encodeURIComponent(desktopUrl)}&w=1200&q=75 1200w, /_next/image?url=${encodeURIComponent(desktopUrl)}&w=1920&q=75 1920w, /_next/image?url=${encodeURIComponent(desktopUrl)}&w=2048&q=75 2048w`}
+            sizes="100vw"
+          />
+          <img
+            src={`/_next/image?url=${encodeURIComponent(mobileUrl)}&w=750&q=75`}
+            srcSet={`/_next/image?url=${encodeURIComponent(mobileUrl)}&w=640&q=75 640w, /_next/image?url=${encodeURIComponent(mobileUrl)}&w=750&q=75 750w, /_next/image?url=${encodeURIComponent(mobileUrl)}&w=828&q=75 828w`}
+            sizes="100vw"
+            alt={altText}
+            className="size-full object-cover select-none"
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : undefined}
+            decoding="async"
+            draggable={false}
+          />
+        </picture>
+      ) : (
+        <Image
+          className="object-cover select-none"
+          src={mobileUrl || desktopUrl}
+          alt={altText}
+          fill
+          draggable={false}
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : undefined}
+          sizes="(min-width: 768px) 100vw, 100vw"
+          quality={75}
+        />
+      )}
+    </div>
+  );
+
+  if (href) {
+    return (
+      <a
+        draggable={false}
+        href={href}
+        className="relative block size-full overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 cursor-pointer"
+        aria-label={altText}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return content;
 }
 
 // Burada her alt banner bölümünü kendi semantik ve görsel sınırında tutup boş bölümler için container oluşturmuyorum.
@@ -132,7 +236,7 @@ export function BannerMedia({ item, priority = false, variant }: BannerMediaProp
           <a
             draggable={false}
             href={href}
-            className="absolute right-3 top-3 inline-flex min-h-10 items-center rounded-lg bg-white/95 px-3 text-sm font-semibold text-zinc-950 shadow-sm outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2"
+            className="absolute right-3 top-3 inline-flex min-h-10 items-center rounded-lg bg-white/95 px-3 text-sm font-semibold text-zinc-950 shadow-sm outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 cursor-pointer"
             aria-label={`${item.altText || item.name}: içeriğe git`}
           >
             İçeriğe git
@@ -146,7 +250,7 @@ export function BannerMedia({ item, priority = false, variant }: BannerMediaProp
     <a
       draggable={false}
       href={href}
-      className={`relative block overflow-hidden ${roundedClass} bg-surface-subtle outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 ${frameClass}`}
+      className={`relative block overflow-hidden ${roundedClass} bg-surface-subtle outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 cursor-pointer ${frameClass}`}
       aria-label={item.altText || item.name}
     >
       {media}
