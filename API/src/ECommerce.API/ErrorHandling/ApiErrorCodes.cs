@@ -7,6 +7,7 @@ public static class ApiErrorCodes
     public const string NotFound = "resource_not_found";
     public const string Conflict = "conflict";
     public const string Concurrency = "concurrency_conflict";
+    public const string ReturnStatusTransitionInvalid = "return_status_transition_invalid";
     public const string Unauthorized = "unauthorized";
     public const string AuthenticationRequired = "authentication_required";
     public const string InvalidAccessToken = "invalid_access_token";

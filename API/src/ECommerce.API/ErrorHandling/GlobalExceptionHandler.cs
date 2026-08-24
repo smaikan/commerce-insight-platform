@@ -30,6 +30,10 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         {
             ApiContractException apiContractException => (apiContractException.StatusCode, apiContractException.Title, apiContractException.ErrorCode),
             ValidationException => (StatusCodes.Status400BadRequest, "Validation failed", ApiErrorCodes.Validation),
+            ReturnStatusTransitionException => (
+                StatusCodes.Status409Conflict,
+                "Invalid return status transition",
+                ApiErrorCodes.ReturnStatusTransitionInvalid),
             DomainException => (StatusCodes.Status400BadRequest, "Business rule violation", ApiErrorCodes.BusinessRule),
             NotFoundException => (StatusCodes.Status404NotFound, "Resource not found", ApiErrorCodes.NotFound),
             ConcurrencyException => (StatusCodes.Status409Conflict, "Concurrency conflict", ApiErrorCodes.Concurrency),
@@ -93,6 +97,21 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
                 Status = statusCode,
                 Title = title,
                 Detail = "One or more validation errors occurred.",
+                Instance = httpContext.Request.Path
+            };
+            ApiProblemDetailsResponse.Enrich(problemDetails, httpContext, errorCode);
+        }
+        else if (exception is ProductVariantSkuConflictException skuConflictException)
+        {
+            problemDetails = new ValidationProblemDetails(
+                skuConflictException.Errors.ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value))
+            {
+                Type = $"urn:ecommerce:error:{errorCode}",
+                Status = statusCode,
+                Title = title,
+                Detail = detail,
                 Instance = httpContext.Request.Path
             };
             ApiProblemDetailsResponse.Enrich(problemDetails, httpContext, errorCode);
