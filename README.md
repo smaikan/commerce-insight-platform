@@ -1,363 +1,187 @@
-# E-Commerce Analytics
+# ELEVEN — E-Ticaret, Analitik ve Ön Muhasebe Platformu
 
-E-ticaret sektöründe edindiğim saha deneyimlerini yazılım mimarisiyle birleştirerek geliştirdiğim, kendi analiz altyapısına sahip profesyonel bir e-ticaret projesidir.
+ELEVEN; e-ticaret operasyonlarında karşılaşılan gerçek ihtiyaçlar, stok maliyet yönetimi ve veri analitiği gereksinimleri doğrultusunda geliştirdiğim uçtan uca bir e-ticaret platformudur.
 
-Projenin amacı yalnızca ürün, sepet ve sipariş kayıtlarını yöneten bir CRUD API oluşturmak değildir. Ürünlerin ve varyantların görüntülenme, sepete eklenme, satın alınma, favorilenme, puanlanma ve yorumlanma davranışlarını takip ederek işletmeye anlamlı veriler sunabilecek gerçekçi bir e-ticaret altyapısı geliştirmektir.
+Projenin temel amacı; yalnızca standart ürün ve sipariş CRUD işlemlerini yöneten klasik bir web sitesi oluşturmak değil; **kullanıcı etkileşimlerini veritabanı seviyesinde analiz edebilen, FIFO maliyet katmanlarıyla stok maliyetini izleyen ve hedefli cache geçersiz kılma kullanan** kurumsal bir altyapı inşa etmektir.
 
-> Proje aktif geliştirme aşamasındadır. Domain, katalog CQRS akışları, Persistence ve güvenli kullanıcı/auth temelleri oluşturulmuştur. HTTP controllerları ve dışarı açılan iş endpointleri henüz eklenmemiştir.
+---
 
-## Projenin çıkış noktası
+## Yapılandırılmış Production Adresleri
 
-E-ticaret sistemlerinde yalnızca ürün ve sipariş kaydı tutmak yeterli değildir. Bir işletmenin şu sorulara da cevap verebilmesi gerekir:
+Deployment yapılandırması aşağıdaki adresleri kullanır; erişilebilirlik dağıtım ortamına bağlıdır:
 
-- Hangi ürünler çok görüntüleniyor fakat satın alınmıyor?
-- Hangi varyantlar sepete eklenmesine rağmen siparişe dönüşmüyor?
-- Hangi ürün tipi, marka veya koleksiyon daha iyi performans gösteriyor?
-- Favori sayısı yüksek ancak satış oranı düşük ürünler hangileri?
-- Ürün ve varyant satışları günlere göre nasıl değişiyor?
-- Stok hareketleri hangi işlem veya sipariş nedeniyle oluştu?
-- Puan, yorum ve satış verileri birlikte değerlendirildiğinde hangi ürünler öne çıkıyor?
+- **Mağaza (Storefront):** [https://www.serhateleven.com.tr](https://www.serhateleven.com.tr)
+- **Yönetim Paneli (Admin):** [https://admin.serhateleven.com.tr](https://admin.serhateleven.com.tr)
+- **Backend API:** [https://api.serhateleven.com.tr](https://api.serhateleven.com.tr)
 
-Bu proje, operasyonel e-ticaret verisini analiz edilebilir bir modele dönüştürmek üzere tasarlanıyor.
+---
 
-## Analiz yaklaşımı
+## Projenin Teknik Yaklaşımı
 
-Sistem her tıklama için ayrı bir event satırı oluşturmak yerine iki seviyeli bir metrik modeli kullanır.
+ELEVEN, e-ticaret işlemleriyle analitik ve ön muhasebe yeteneklerini aynı uygulama sınırları içinde ele alır:
 
-### Ömür boyu özet sayaçları
+| Alan | Uygulanan yaklaşım |
+| :--- | :--- |
+| **Analitik ve metrik modeli** | Ürün/varyant üzerindeki ömür boyu sayaçlar ile `ProductDailyMetric` günlük agregaları birlikte kullanılır. |
+| **Ön muhasebe ve FIFO** | Satış, alış, cari hesap, kasa/banka ve FIFO maliyet katmanı akışları ayrı muhasebe modüllerinde yönetilir. |
+| **Stok yönetimi** | İmzalı stok hareketleri sipariş, iade, sayım veya alış kaynaklarıyla ilişkilendirilebilir ve denetlenebilir. |
+| **Cache güncelliği** | API mutasyonları, güvenli server-to-server on-demand revalidation ile ilgili Next.js tag/path hedeflerini geçersiz kılar. |
+| **Görsel dağıtımı** | Next.js Image Optimization üzerinden AVIF/WebP formatları ve responsive boyutlar yapılandırılmıştır. |
+| **Public kimlikler** | Dahili `bigint` kullanıcı ve ürün kimlikleri, dış sözleşmede `P00001` ve `U00001` biçimindeki Base36 kodlamayla sunulur. |
+| **Ödeme ve taksit** | Kart verisini uygulamaya almayan iyzico CheckoutForm akışı ile ürün fiyatına bağlı bilgilendirici taksit tablosu kullanılır. |
 
-Sık kullanılan toplam değerler hızlı okunabilmeleri için doğrudan ürün ve varyant üzerinde tutulur.
+---
 
-`Product` üzerinde:
+## Mimari ve Teknoloji Yığını
 
-- Tıklanma sayısı
-- Toplam sepete eklenme sayısı
-- Toplam satın alınma sayısı
-- Favori sayısı
-- Ortalama puan
-- Puan sayısı
-- Yorum sayısı
+Proje, **Clean Architecture** prensiplerine uygun olarak ayrıştırılmış bir .NET Backend ve iki bağımsız Next.js uygulamasından (Admin & Storefront) oluşan monorepo yapısına sahiptir:
 
-`ProductVariant` üzerinde:
+### Backend (.NET Core)
+- **.NET 10 ve ASP.NET Core Web API:** İnce controller (Thin Controller) yapısı, merkezi middleware ve filter zincirleri.
+- **Clean Architecture Katmanları:**
+  - `ECommerce.Domain`: Saf domain entity'leri, aggregate root'lar, değişmezler (invariants), enum'lar ve domain exception'ları.
+  - `ECommerce.Application`: CQRS mimarisi (MediatR), FluentValidation iş kuralları ve DTO sözleşmeleri.
+  - `ECommerce.Persistence`: Entity Framework Core, SQL Server 2022, Fluent API konfigürasyonları ve migration yönetimi.
+  - `ECommerce.Infrastructure`: Redis, JWT servisleri, PBKDF2 parola hashleme, e-posta ve İyzico entegrasyonları.
+  - `ECommerce.API`: Endpoint yönlendirmeleri, çıktı önbellekleme (Output Caching) ve Swagger/OpenAPI dokümantasyonu.
+- **Test:** xUnit, FluentAssertions, Moq ve WebApplicationFactory tabanlı kapsamlı entegrasyon testleri.
 
-- Sepete eklenme sayısı
-- Satın alınma sayısı
-- Güncel stok
+### Frontend (Next.js & React)
+- **Next.js 16 (App Router) & React 19:** Server Components ve Server Actions odaklı, standalone çıktı üreten yapı.
+- **Storefront (`UI/storefront`):** Yüksek performanslı müşteri deneyimi, dinamik filtreleme, varyant bazlı anlık fiyat/taksit senkronizasyonu, SEO uyumu (JSON-LD, Open Graph, Canonical) ve Core Web Vitals optimizasyonları.
+- **Admin Panel (`UI/admin`):** Sipariş yönetimi, toplu ürün ve varyant düzenleme matrisi, doğrudan tarayıcıdan Cloudinary asenkron görsel yükleme, kupon/kampanya yönetimi, banner yönetimi ve ön muhasebe arayüzü.
+- **Styling & Test:** Tailwind CSS v4 (CSS-first token mimarisi), Vitest ve Playwright E2E testleri.
 
-### Günlük agregalar
+---
 
-Tarih bazlı raporlama için `ProductDailyMetric` ve `ProductVariantDailyMetric` tabloları kullanılır. Böylece her etkileşim için sınırsız event kaydı üretmeden günlük performans analizi yapılabilir.
+## Temel Modüller
 
-Bu model ilerleyen aşamalarda şu analizleri destekleyecek şekilde geliştirilecektir:
+### 1. Katalog ve Varyant Matrisi
+- Çok boyutlu varyant yapısı (beden, renk, materyal vb.), her varyanta özel SKU, barkod, stok ve net/brüt fiyat takibi.
+- Ürün detay sayfasında (PDP) seçilen varyantın fiyatına göre başlık altındaki fiyatın ve İyzico taksit seçenekleri tablosunun anlık olarak güncellenmesi.
+- Toplu varyant oluşturma, fiyat ve stok düzenleme matrisi.
 
-- Görüntülenmeden sepete eklemeye dönüşüm oranı
-- Sepetten satın almaya dönüşüm oranı
-- Ürün ve varyant bazlı satış eğilimleri
-- Marka, ürün tipi, koleksiyon ve etiket performansı
-- Favori, puan, yorum ve satış ilişkisi
-- Stok tükenme eğilimi ve stok hareket analizi
-- Belirli tarih aralıklarında karşılaştırmalı performans
+### 2. Çift Seviyeli Analitik Motoru
+- **Anlık Metrikler:** Ürün ve varyant bazında tıklanma, sepete ekleme, satın alma, favorileme, puanlama ve yorum sayaçları.
+- **Günlük Agregalar:** `ProductDailyMetric` ve `ProductVariantDailyMetric` tabloları sayesinde her tıklama için sınırsız event satırı biriktirmeden tarih bazlı performans ve dönüşüm hunisi (Conversion Rate) takibi.
 
-## Temel iş alanları
+### 3. Dahili Ön Muhasebe ve Stok Maliyet Yönetimi
+- Tamamlanan siparişlerin otomatik olarak `AccountingSalesOrder` kaydına dönüştürülmesi.
+- Alış faturaları, KDV ayrıştırması ve navlun/ek maliyetlerin dağıtılması.
+- **FIFO Maliyet Katmanları:** Satılan ürünlerin maliyetini (SMM) partilere göre gerçek giriş fiyatından hesaplama ve anlık stok değerlemesi.
+- Cari hesap ekstreleri, tahsilat/ödeme kayıtları ve kasa/banka hareketleri.
 
-Domain modeli gerçek bir e-ticaret sisteminin ana kavramlarını içerir:
+### 4. Sepet, Sipariş ve İyzico Ödeme Akışı
+- Misafir (Guest) ve üye sepetlerinin yönetimi, üye girişi yapıldığında sepetlerin otomatik birleştirilmesi.
+- İyzico CheckoutForm ödeme oturumu başlatma, imzalı callback/retrieve doğrulaması ve sipariş durum geçişleri.
+- Yüzdesel veya sabit tutarlı, sepet alt limitli ve kullanım kotalı kupon motoru.
+- Müşteri panelinden iade/değişim talebi başlatma, admin teslim alma ve karar süreci ile stok etkilerinin yönetilmesi.
 
-- Ürün, ürün tipi ve marka
-- Ürün varyantları ve varyant bazlı stok
-- Ürün görselleri
-- Koleksiyonlar ve etiketler
-- Günlük ürün ve varyant metrikleri
-- Puanlar, yorumlar ve favoriler
-- Paket ürünler
-- Kullanıcı ve misafir sepetleri
-- Sipariş ve sipariş kalemleri
-- Ödeme kayıtları
-- Teslimat ve fatura adresleri
-- Kuponlar ve kupon kullanım geçmişi
-- Stok hareketleri
-- Kullanıcı, rol, hesap durumu ve güvenlik tokenları
+### 5. Dinamik Mağaza ve Yasal Sayfalar
+- Ana sayfa masaüstü/mobil hero bannerları, duyuru bandı, lookbook ve koleksiyon vitrinlerinin panelden yönetimi.
+- Mağaza kimlik ve iletişim bilgilerinin (logo, çalışma saatleri, destek e-postası/telefonu, adres, harita) tek merkezden yönetilmesi.
+- KVKK ve Gizlilik Politikası, Mesafeli Satış Sözleşmesi ve Üyelik Sözleşmesi gibi yasal metinlerin veritabanındaki mağaza ayarlarından dinamik olarak beslenmesi.
 
-Ana kategori kavramı olarak klasik `Category` yerine `ProductType` kullanılmaktadır. Her ürün bir ürün tipine bağlıdır; marka, koleksiyon ve etiket ilişkileri isteğe bağlıdır. Stok hiçbir zaman ürün üzerinde tutulmaz, satılabilir birim olan `ProductVariant` üzerinde yönetilir.
+---
 
-## Mimari
+## Eklenen İleri Düzey Yetenekler
 
-Proje Clean Architecture ve modüler monolith yaklaşımıyla geliştirilmektedir.
+- **Hedefli On-Demand Revalidation:** Panelden yapılan ilgili değişikliklerden sonra .NET API, Next.js `/api/revalidate` endpoint'ini güçlü bir ortak anahtarla ve allowlist kapsamındaki tag/path değerleriyle tetikler.
+- **AVIF ve WebP Görsel Pipeline:** Next.js görsel optimizasyonu, istemcinin desteklediği modern formatları ve responsive boyutları kullanacak şekilde yapılandırılmıştır.
+- **Cloudflare Turnstile ve Misafir Güvenliği:** İletişim formu ve misafir sipariş takibi gibi açık uçlarda bot koruması ve Redis tabanlı IP rate-limiting.
+- **Mikro Etkileşimler ve UI Detayları:** Yatay kaydırılabilir kategori barları, yumuşak geçişli karuseller, sepet bildirimleri ve erişilebilir modal pencereleri.
 
-```text
-HTTP Request
-     |
-     v
-ECommerce.API
-     |
-     v
-ECommerce.Application
-     |
-     v
-ECommerce.Domain
+---
 
-ECommerce.Persistence ------> Application + Domain
-ECommerce.Infrastructure ---> Application
-```
+## Geliştirilmeye Devam Eden Özellikler (Yol Haritası)
 
-Katman sorumlulukları:
+1. **Pazaryeri Entegrasyonları (Trendyol, Hepsiburada, Amazon):**
+   - Ürün kataloğu, stok ve fiyatların pazaryerlerine otomatik senkronizasyonu; siparişlerin tek havuzda toplanması.
+2. **Gelişmiş Analitik Raporlama ve Isı Haritaları:**
+   - Günlük metrik tablolarından saatlik/haftalık satış eğilimleri, kategori performans karşılaştırmaları ve kohort analiz grafikleri.
+3. **E-Fatura / E-Arşiv Entegrasyonu:**
+   - Ön muhasebe faturalarının GİB onaylı özel entegratörler (Paraşüt, KolayBi, Uyumsoft vb.) üzerinden doğrudan e-fatura/e-arşiv olarak kesilmesi.
+4. **Kargo Firması Entegrasyonları (Yurtiçi, Aras, MNG, Kolay Gelsin):**
+   - Sipariş onaylandığında otomatik kargo barkodu ve takip numarası üretilmesi, kargo durumunun webhook ile güncellenmesi.
+5. **Yapay Zekâ Destekli Öneri Motoru:**
+   - Müşterinin sepet, favori ve gezinme geçmişine dayalı dinamik ürün öneri algoritmaları.
 
-| Katman | Sorumluluk |
-|---|---|
-| `ECommerce.Domain` | Entityler, enumlar, iş kuralları ve değişmezler |
-| `ECommerce.Application` | CQRS command/query akışları, handlerlar, validatorlar, DTO'lar ve arayüzler |
-| `ECommerce.Persistence` | EF Core, SQL Server, DbContext, configuration, migration ve repository implementasyonları |
-| `ECommerce.Infrastructure` | JWT, parola hashleme, token üretme ve diğer dış teknik servisler |
-| `ECommerce.API` | Controllerlar, middleware, authentication, authorization, Swagger ve DI bağlantıları |
+---
 
-Bağımlılıklar içeriye doğru ilerler. Domain hiçbir üst katmana bağlı değildir. Application, EF Core veya `AppDbContext` kullanmaz. API katmanında iş kuralı tutulmaz.
+## Güvenlik Standartları
 
-## Kullanılan teknolojiler
+- **Parola Güvenliği:** PBKDF2-SHA256, 210.000 iterasyon ve kriptografik rastgele salt.
+- **Token Güvenliği:** Refresh token'ların ham halleri veritabanında tutulmaz; SHA-256 hash'leri saklanır.
+- **BFF (Backend-for-Frontend):** JWT token'ları tarayıcı JavaScript ortamına sızdırılmaz; `HttpOnly`, `SameSite=Lax` cookie'ler üzerinden yönetilir.
+- **Brute-Force Koruması:** Hatalı girişlerde `AccessFailedCount` sayacı ve geçici hesap kilitleme (`LockoutEndAt`).
+- **Eşzamanlılık (Concurrency):** Kritik stok hareketleri ve mağaza ayarlarında `concurrencyToken` ile çift işlem engeli.
 
-- .NET 10
-- ASP.NET Core Web API
-- Controller-based API
-- Clean Architecture
-- Modular Monolith
-- Entity Framework Core
-- SQL Server
-- CQRS ve MediatR
-- FluentValidation
-- JWT Bearer Authentication
-- Role-based Authorization
-- Serilog
-- Swagger / OpenAPI
-- xUnit
-- FluentAssertions
-- Moq
-- WebApplicationFactory
+---
 
-## Mevcut geliştirme durumu
-
-| Alan | Durum |
-|---|---|
-| Clean Architecture çözüm yapısı | Hazır |
-| Domain e-ticaret modeli | Büyük ölçüde hazır |
-| EF Core configuration ve DbContext | Hazır |
-| İlk migration ve User/Auth migrationı | Hazır |
-| Ürün, varyant ve görsel CQRS akışları | Hazır |
-| ProductType, Brand, Collection ve Tag CQRS akışları | Hazır |
-| JWT, parola hashleme ve güvenlik token altyapısı | Hazır |
-| Auth command akışları | Controller dışı katmanlarda hazır |
-| API controllerları ve HTTP endpointleri | Henüz eklenmedi |
-| Sepet, sipariş, ödeme ve kupon use-case'leri | Planlandı |
-| Analiz sorguları ve raporlama algoritmaları | Planlandı |
-| Production operasyon özellikleri | Planlandı |
-
-Katalog tarafında tekli ve toplu ürün oluşturma, güncelleme, durum/aktiflik/öne çıkarma yönetimi, ürün sorguları, varyant fiyat ve stok yönetimi ile görsel işlemleri bulunmaktadır.
-
-Auth tarafında kullanıcı kaydı, giriş, refresh token rotasyonu, çıkış, e-posta doğrulama ve parola sıfırlama command akışları oluşturulmuştur.
-
-Ayrıntılı geliştirme ve inceleme notları için [proje ilerlemesi notlarım.md](<proje ilerlemesi notlarım.md>) dosyasına bakabilirsiniz.
-
-## Güvenlik yaklaşımı
-
-- Parolalar Domain içinde işlenmez; hazırlanmış hash Domain'e verilir.
-- Parola hashleme PBKDF2-SHA256 ve rastgele salt ile yapılır.
-- JWT access token üretimi Infrastructure katmanında tutulur.
-- Refresh token ve güvenlik tokenlarının ham değerleri veritabanında saklanmaz.
-- Token hashleri saklanır; ham token yalnızca üretildiği anda kullanılır.
-- E-posta doğrulama ve parola sıfırlama tokenları tek kullanımlık ve sürelidir.
-- Geçici giriş kilidi `AccessFailedCount` ve `LockoutEndAt` ile yönetilir.
-- Kullanıcı yaşam döngüsü durumu geçici lockout durumundan ayrı tutulur.
-- Rol bilgisi JWT claimlerine eklenir.
-- JWT secret kaynak kodda tutulmaz ve en az 32 byte olmalıdır.
-
-## Proje yapısı
+## Proje Dizin Yapısı
 
 ```text
-ECommerce.sln
-src/
-  ECommerce.API/
-  ECommerce.Application/
-  ECommerce.Domain/
-  ECommerce.Persistence/
-  ECommerce.Infrastructure/
-tests/
-  ECommerce.UnitTests/
-  ECommerce.IntegrationTests/
+/opt/eleven
+├── API/                               # ASP.NET Core Web API Çözümü
+│   ├── src/
+│   │   ├── ECommerce.Domain/          # Entity'ler, Değişmezler, Enum'lar
+│   │   ├── ECommerce.Application/     # CQRS Handlers, DTO'lar, Validation kuralları
+│   │   ├── ECommerce.Persistence/     # EF Core DbContext, Migrations, Mapping
+│   │   ├── ECommerce.Infrastructure/  # Redis, JWT, Email, İyzico Servisleri
+│   │   └── ECommerce.API/             # Controllers, Filters, Middleware
+│   └── tests/
+│       ├── ECommerce.UnitTests/       # Domain ve Application birim testleri
+│       └── ECommerce.IntegrationTests/# WebApplicationFactory uçtan uca API testleri
+│
+├── UI/                                # Frontend Workspace (pnpm monorepo)
+│   ├── storefront/                    # Müşteri Mağazası (Next.js 16 - Port 3000)
+│   ├── admin/                         # Yönetim Paneli (Next.js 16 - Port 3001)
+│   └── docs/                          # API sözleşmeleri, mimari rehberler ve dökümantasyon
+│
+├── docker-compose.yml                 # SQL Server, Redis, API ve UI konteyner orkestrasyonu
+└── README.md                          # Proje Ana Dökümanı
 ```
 
-Application katmanı özellik bazlı klasörlenir:
+---
 
-```text
-Feature/
-  Commands/
-    UseCase/
-      Command.cs
-      CommandHandler.cs
-      CommandValidator.cs
-  Queries/
-    UseCase/
-      Query.cs
-      QueryHandler.cs
-      QueryValidator.cs
-  Dtos/
+## Yerel Kurulum ve Çalıştırma
+
+Tüm sistemi (SQL Server, Redis, API, Storefront ve Admin Panel) Docker üzerinden tek komutla ayağa kaldırabilirsiniz:
+
+### 1. Depoyu Klonlayın ve Ortam Dosyalarını Hazırlayın
+```bash
+git clone <repo-url>
+cd eleven
+cp .env.example .env
+cp API/.env.example API/.env
+cp UI/admin/.env.example UI/admin/.env
+cp UI/storefront/.env.example UI/storefront/.env
 ```
 
-## Gereksinimler
+`.env` dosyalarındaki boş değerleri yerel ortamınıza göre doldurun. Root `.env` içindeki `STOREFRONT_REVALIDATE_SECRET` en az 32 baytlık kriptografik rastgele bir değer olmalıdır.
 
-- .NET 10 SDK
-- SQL Server veya geliştirme için SQL Server LocalDB
-- EF Core CLI aracı
-
-Kurulu SDK'yı kontrol etmek için:
-
-```powershell
-dotnet --version
+### 2. Konteynerleri Başlatın
+```bash
+docker compose up -d --build
 ```
 
-EF Core aracını kurmak veya güncellemek için:
+### 3. Yerel Servis Portları
+- **Mağaza (Storefront):** `http://localhost:3000`
+- **Yönetim Paneli (Admin):** `http://localhost:3001`
+- **Backend API (Swagger):** `http://localhost:3300/swagger`
+- **SQL Server:** `localhost:1433` (Veritabanı: `ECommerceDb`)
+- **Redis:** `localhost:6379`
 
-```powershell
-dotnet tool install --global dotnet-ef
+### 4. Testleri Çalıştırma
+```bash
+# Backend Testleri
+cd API && dotnet test
+
+# Storefront Birim Testleri
+cd UI/storefront && pnpm test
+
+# Admin Panel Birim Testleri
+cd UI/admin && pnpm test
 ```
 
-Araç zaten kuruluysa:
-
-```powershell
-dotnet tool update --global dotnet-ef
-```
-
-## Yerel geliştirme kurulumu
-
-### 1. Projeyi geri yükleyin
-
-```powershell
-dotnet restore ECommerce.sln
-```
-
-### 2. Yapılandırmayı hazırlayın
-
-Development ortamında varsayılan bağlantı SQL Server LocalDB üzerindeki `ECommerceDb` veritabanını kullanır.
-
-JWT secret değerini kaynak koda veya `appsettings.json` dosyasına yazmayın. Development için Secret Manager kullanabilirsiniz:
-
-```powershell
-dotnet user-secrets init --project src\ECommerce.API\ECommerce.API.csproj
-dotnet user-secrets set "Jwt:SecretKey" "en-az-32-byte-uzunlugunda-guvenli-bir-secret" --project src\ECommerce.API\ECommerce.API.csproj
-```
-
-Farklı bir SQL Server bağlantısı kullanılacaksa:
-
-```powershell
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=...;Database=ECommerceDb;..." --project src\ECommerce.API\ECommerce.API.csproj
-```
-
-Production ortamında secret ve bağlantı bilgilerini güvenli bir secret store üzerinden sağlayın.
-
-### 3. Migrationları uygulayın
-
-```powershell
-dotnet ef database update --project src\ECommerce.Persistence\ECommerce.Persistence.csproj --startup-project src\ECommerce.API\ECommerce.API.csproj
-```
-
-### 4. Projeyi derleyin
-
-```powershell
-dotnet build ECommerce.sln
-```
-
-### 5. API'yi çalıştırın
-
-```powershell
-dotnet run --project src\ECommerce.API\ECommerce.API.csproj
-```
-
-Development ortamında Swagger arayüzü uygulamanın yayınladığı adresin `/swagger` yolunda açılır.
-
-> Henüz controller eklenmediği için Swagger arayüzünde iş endpointleri görünmeyecektir.
-
-## Testler
-
-Tüm testleri çalıştırmak için:
-
-```powershell
-dotnet test ECommerce.sln
-```
-
-Yalnızca unit testleri çalıştırmak için:
-
-```powershell
-dotnet test tests\ECommerce.UnitTests\ECommerce.UnitTests.csproj
-```
-
-Yalnızca integration testlerini çalıştırmak için:
-
-```powershell
-dotnet test tests\ECommerce.IntegrationTests\ECommerce.IntegrationTests.csproj
-```
-
-Proje aktif geliştirme aşamasında olduğu için test durumu her zaman tamamen yeşil olmayabilir. Bilinen sorunlar ve öncelikler ilerleme notlarında tutulur.
-
-## Migration işlemleri
-
-Yeni migration oluşturmak için:
-
-```powershell
-dotnet ef migrations add MigrationName --project src\ECommerce.Persistence\ECommerce.Persistence.csproj --startup-project src\ECommerce.API\ECommerce.API.csproj --output-dir Migrations
-```
-
-Migration listesini görmek için:
-
-```powershell
-dotnet ef migrations list --project src\ECommerce.Persistence\ECommerce.Persistence.csproj --startup-project src\ECommerce.API\ECommerce.API.csproj
-```
-
-## API geliştirme kuralları
-
-- İş endpointleri Minimal API ile yazılmaz.
-- Controllerlar `[ApiController]` ve `[Route("api/[controller]")]` kullanır.
-- Controllerlar yalnızca HTTP isteğini alır, Application katmanını çağırır ve HTTP cevabı döner.
-- Business logic controller içine yazılmaz.
-- Request/response modelleri persistence entitylerinden ayrılır.
-- Validation Application katmanında FluentValidation ile yürütülür.
-- Hatalar merkezi `ProblemDetails` sözleşmesine dönüştürülecektir.
-- Authorization controller veya action sınırında açıkça uygulanacaktır.
-
-## Yol haritası
-
-Kısa vadeli teknik hedefler:
-
-1. Auth zaman yönetimi ve mevcut test sorunlarının düzeltilmesi
-2. Parola değişiminde aktif refresh tokenların iptal edilmesi
-3. Paket güvenlik uyarılarının kapatılması
-4. Stok ve token işlemlerine concurrency koruması eklenmesi
-5. Stok güncellemelerinin `InventoryTransaction` ile atomik hale getirilmesi
-6. Merkezi exception handling ve `ProblemDetails`
-7. Auth ve katalog controllerlarının eklenmesi
-8. Pagination, filtreleme ve sıralama desteği
-9. Gerçek HTTP integration testleri
-
-İş özelliği hedefleri:
-
-1. Sepet yönetimi
-2. Sipariş oluşturma ve transaction içinde stok azaltma
-3. Ödeme akışları
-4. Adres ve kupon yönetimi
-5. Favori, puan ve yorum akışları
-6. Günlük metrik güncelleme servisleri
-7. Ürün ve varyant dönüşüm analizleri
-8. Tarih aralığı, ürün tipi, marka, koleksiyon ve etiket bazlı raporlar
-9. Yönetim paneli ve raporlama ekranlarını destekleyen API sözleşmeleri
-
-## Projenin hedefi
-
-Bu proje tamamlandığında:
-
-- Gerçek e-ticaret iş kurallarını koruyan,
-- Güvenli kullanıcı ve yetkilendirme altyapısına sahip,
-- Sipariş, ödeme ve stok işlemlerini tutarlı yöneten,
-- Ürün performansını yalnızca satış üzerinden değil bütün müşteri davranışlarıyla değerlendiren,
-- Günlük ve ömür boyu metriklerden anlamlı analizler çıkarabilen,
-- Test edilebilir, sürdürülebilir ve genişletilebilir
-
-bir e-ticaret platformu altyapısı sunmayı hedeflemektedir.
-
-## Lisans
-
-Bu proje kişisel geliştirme ve portföy çalışması olarak hazırlanmaktadır. Lisanslama koşulları proje olgunlaştığında ayrıca belirtilecektir.
+Playwright senaryoları, ilgili `playwright.*.config.ts` dosyası açıkça seçilerek ayrı çalıştırılır.
