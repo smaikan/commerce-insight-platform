@@ -1,0 +1,12 @@
+import { describe, expect, it } from "vitest";
+import { parseInvoiceFromOrderForm, parseSalesOrderForm } from "./form-data";
+
+const customer = "11111111-1111-4111-8111-111111111111";
+const variant = "22222222-2222-4222-8222-222222222222";
+function form(line: Record<string, unknown> = {}, patch: Record<string, string> = {}): FormData { const data = new FormData(); const fields = { idempotencyKey: "intent_1", currentAccountId: customer, orderNumber: "SAT-001", orderDate: "2026-08-24", dueDate: "", shippingTotal: "0", shippingPayer: "0", description: "", ...patch }; Object.entries(fields).forEach(([key, value]) => data.set(key, value)); data.set("linesJson", JSON.stringify([{ key: "new-1", lineNumber: "1", productVariantId: variant, quantity: "2", unitOfMeasure: "Koli", unitsPerSaleUnit: "5", priceEntryMode: "1", vatRate: "20", enteredUnitPrice: "100", lineDiscountType: "", lineDiscountValue: "", lineDiscountTaxBasis: "", lineDiscountUnitBasis: "", isInvoiceDiscountEligible: true, ...line }])); return data; }
+
+describe("sales form wire contract", () => {
+  it("builds an explicit TRY/1 order without implicit discounts", () => { const result = parseSalesOrderForm(form()); expect(result.ok).toBe(true); if (!result.ok) return; expect(result.header).toMatchObject({ currentAccountId: customer, currencyCode: "TRY", exchangeRate: 1, shippingTotal: 0, shippingPayer: 0 }); expect(result.lines[0]).toMatchObject({ productVariantId: variant, quantity: 2, unitsPerSaleUnit: 5, isInvoiceDiscountEligible: true }); expect(result.invoice).toBeNull(); });
+  it("rejects invalid idempotency, shipping pairing, fractional and overflowing stock quantity", () => { const invalid = parseSalesOrderForm(form({ quantity: "1.25", unitsPerSaleUnit: "1" }, { idempotencyKey: "bad key", shippingTotal: "20", shippingPayer: "0" })); expect(invalid).toMatchObject({ ok: false, state: { fieldErrors: { idempotencyKey: expect.any(Array), shippingPayer: expect.any(Array), "lines.0.unitsPerSaleUnit": expect.any(Array) } } }); const overflow = parseSalesOrderForm(form({ quantity: "2147483648", unitsPerSaleUnit: "1" })); expect(overflow).toMatchObject({ ok: false, state: { fieldErrors: { "lines.0.unitsPerSaleUnit": expect.any(Array) } } }); });
+  it("requires a complete from-order invoice header", () => { const data = new FormData(); data.set("invoiceDate", "2026-08-24"); expect(parseInvoiceFromOrderForm(data)).toMatchObject({ ok: false, state: { fieldErrors: { invoiceNumber: expect.any(Array) } } }); });
+});

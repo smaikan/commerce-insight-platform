@@ -1,0 +1,12 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ApiError } from "@/lib/api/problem";
+import { requireAdminPageSession } from "@/lib/auth/session";
+import { PageHeader } from "@/modules/admin-shell/components/page-header";
+import { getSalesOrder } from "@/modules/accounting/sales/api";
+import { SalesOrderDetail } from "@/modules/accounting/sales/components/sales-document-detail";
+import { documentStatusClass, documentStatusLabel } from "@/modules/accounting/sales/presentation";
+
+export const metadata: Metadata = { title: "Muhasebe Satışı Detayı" };
+export default async function SalesOrderDetailPage({ params, searchParams }: { params: Promise<{ salesOrderId: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) { const [{ salesOrderId }, query] = await Promise.all([params, searchParams]); const session = await requireAdminPageSession(`/accounting/sales-orders/${encodeURIComponent(salesOrderId)}`); let order; try { order = await getSalesOrder(salesOrderId, session); } catch (error) { if (error instanceof ApiError && error.problem.status === 404) notFound(); throw error; } const notice = query.created === "1" ? "Muhasebe satışı taslak olarak oluşturuldu." : query.updated === "1" ? "Muhasebe satışı taslağı güncellendi." : null; return <div className="mx-auto w-full max-w-screen-2xl"><PageHeader title={order.orderNumber} description={order.currentAccountName} backHref="/accounting/sales-orders" actions={<>{order.status === 1 ? <Link href={`/accounting/sales-orders/${encodeURIComponent(order.id)}/edit`} className="inline-flex min-h-10 items-center rounded-lg border border-border-strong bg-surface px-3.5 text-sm font-semibold hover:bg-surface-subtle">Taslağı düzenle</Link> : null}<span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-bold ${documentStatusClass(order.status)}`}>{documentStatusLabel(order.status)}</span></>} />{notice ? <p role="status" className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">{notice}</p> : null}<SalesOrderDetail order={order} /></div>; }
