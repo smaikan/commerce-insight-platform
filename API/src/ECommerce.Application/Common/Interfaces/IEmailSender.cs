@@ -39,6 +39,15 @@ public interface IEmailSender
         decimal amount,
         CancellationToken cancellationToken = default);
 
+    // Burada provider tarafından tamamlanan ödeme geri alımının müşteri e-postası sözleşmesini tanımlıyorum.
+    Task SendPaymentReversalCompletedAsync(
+        string email,
+        string recipientName,
+        string orderNumber,
+        decimal amount,
+        string reversalType,
+        CancellationToken cancellationToken = default);
+
     // Burada sipariş durum ve opsiyonel kargo takip e-postasının gönderim sözleşmesini tanımlıyorum.
     Task SendOrderStatusChangedAsync(
         string email,

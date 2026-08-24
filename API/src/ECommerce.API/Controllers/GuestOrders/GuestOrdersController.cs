@@ -142,15 +142,37 @@ public sealed class GuestOrdersController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, result);
     }
 
-    // Burada guest müşterinin ödeme öncesi siparişini CSRF ve origin korumasıyla iptal ediyorum.
+    // Burada guest müşterinin Shipped öncesi siparişini CSRF, origin ve provider reversal korumasıyla iptal ediyorum.
     [HttpPost("{id:guid}/cancel")]
     [AllowAnonymous]
-    public async Task<ActionResult<OrderDto>> Cancel(Guid id, CancellationToken cancellationToken)
+    [ProducesResponseType<OrderDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<OrderCancellationOperationDto>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
         EnsureTrustedOrigin();
-        return Ok(await _operations.CancelAsync(
-            RequireSession(), RequireCsrf(), id, cancellationToken));
+        var result = await _operations.CancelAsync(
+            RequireSession(), RequireCsrf(), id, cancellationToken);
+        return result.IsCompleted
+            ? Ok(result.Order)
+            : Accepted(result.Operation);
     }
+
+    // Burada guest session'ın yalnız kendi siparişindeki cancellation operasyonunu no-store polling cevabı olarak getiriyorum.
+    [HttpGet("{id:guid}/cancellation")]
+    [AllowAnonymous]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    [ProducesResponseType<OrderCancellationOperationDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<OrderCancellationOperationDto>> GetCancellation(
+        Guid id,
+        CancellationToken cancellationToken) =>
+        Ok(await _operations.GetCancellationAsync(RequireSession(), id, cancellationToken));
 
     // Burada guest siparişin iade taleplerini session grant'i altında sayfalıyorum.
     [HttpGet("{id:guid}/returns")]

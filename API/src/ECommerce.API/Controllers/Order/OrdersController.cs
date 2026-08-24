@@ -8,6 +8,7 @@ using ECommerce.Application.Orders.Queries.GetMyOrders;
 using ECommerce.Application.Orders.Queries.GetOrderById;
 using ECommerce.Application.Orders.Queries.GetOrderByIdForAdmin;
 using ECommerce.Application.Orders.Queries.GetOrders;
+using ECommerce.Application.Orders.Queries.GetOrderCancellation;
 using ECommerce.API.Security;
 using ECommerce.API.Routing;
 using ECommerce.Application.Common.Models;
@@ -127,10 +128,31 @@ public sealed class OrdersController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, result);
     }
 
-    // Burada kullanıcının yalnız ödeme öncesi kendi siparişini iptal etmesini sağlıyorum.
+    // Burada kullanıcının Shipped öncesi siparişini doğrudan veya provider reversal sagasıyla iptal etmesini sağlıyorum.
     [HttpPost("{id:guid}/cancel")]
-    public async Task<ActionResult<OrderDto>> Cancel(Guid id, CancellationToken cancellationToken) =>
-        Ok(await _sender.Send(new CancelOrderCommand(id), cancellationToken));
+    [ProducesResponseType<OrderDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<OrderCancellationOperationDto>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new CancelOrderCommand(id), cancellationToken);
+        return result.IsCompleted
+            ? Ok(result.Order)
+            : Accepted(result.Operation);
+    }
+
+    // Burada üyenin yalnız kendi siparişindeki devam eden cancellation operasyonunu polling için getiriyorum.
+    [HttpGet("{id:guid}/cancellation")]
+    [ProducesResponseType<OrderCancellationOperationDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<OrderCancellationOperationDto>> GetCancellation(
+        Guid id,
+        CancellationToken cancellationToken) =>
+        Ok(await _sender.Send(new GetOrderCancellationQuery(id), cancellationToken));
 
     // Burada yöneticinin tüm siparişleri güvenli filtrelerle sayfalı olarak görmesini sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]

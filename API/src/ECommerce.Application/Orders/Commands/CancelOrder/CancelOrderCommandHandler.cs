@@ -8,67 +8,35 @@ using MediatR;
 
 namespace ECommerce.Application.Orders.Commands.CancelOrder;
 
-public sealed class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, OrderDto>
+public sealed class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, OrderCancellationResult>
 {
     private readonly IOrderRepository _orderRepository;
-    private readonly OrderInventoryService _inventoryService;
-    private readonly OrderCouponService _couponService;
     private readonly ICurrentUserService _currentUser;
-    private readonly IDateTimeProvider _clock;
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IOrderNotificationService? _notificationService;
+    private readonly OrderCancellationService _cancellations;
 
-    // Burada kullanıcının sipariş iptali için gereken sipariş, stok, kimlik, saat ve transaction bağımlılıklarını hazırlıyorum.
+    // Burada member sahiplik kontrolü ile ortak cancellation sagasını hazırlıyorum.
     public CancelOrderCommandHandler(
         IOrderRepository orderRepository,
-        OrderInventoryService inventoryService,
-        OrderCouponService couponService,
         ICurrentUserService currentUser,
-        IDateTimeProvider clock,
-        IUnitOfWork unitOfWork,
-        IOrderNotificationService? notificationService = null)
+        OrderCancellationService cancellations)
     {
         _orderRepository = orderRepository;
-        _inventoryService = inventoryService;
-        _couponService = couponService;
         _currentUser = currentUser;
-        _clock = clock;
-        _unitOfWork = unitOfWork;
-        _notificationService = notificationService;
+        _cancellations = cancellations;
     }
 
-    // Burada yalnız sahibinin ödeme öncesi siparişini stokları geri ekleyerek iptal ediyorum.
-    public Task<OrderDto> Handle(CancelOrderCommand request, CancellationToken cancellationToken)
+    // Burada üye sahipliğini doğrulayıp ortak cancellation sagasını member polling sözleşmesiyle çalıştırıyorum.
+    public async Task<OrderCancellationResult> Handle(
+        CancelOrderCommand request,
+        CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetRequiredUserId();
-        return _unitOfWork.ExecuteInSerializableTransactionAsync(
-            transactionCancellationToken => CancelInTransactionAsync(request.OrderId, userId, transactionCancellationToken),
-            cancellationToken);
-    }
-
-    // Burada iptalin geçerli durumda yapıldığını, stokların bir kez geri geldiğini ve ödemelerin iptal edildiğini doğruluyorum.
-    private async Task<OrderDto> CancelInTransactionAsync(Guid orderId, long userId, CancellationToken cancellationToken)
-    {
-        var order = await _orderRepository.GetByIdForUserForUpdateAsync(orderId, userId, cancellationToken)
+        var snapshot = await _orderRepository.GetByIdForUserAsync(request.OrderId, userId, cancellationToken)
             ?? throw new NotFoundException("Order was not found.");
-        if (order.Status is not (OrderStatus.Pending or OrderStatus.Confirmed or OrderStatus.Paid or OrderStatus.Preparing))
-        {
-            throw new ConflictException("Only orders that have not been shipped can be cancelled by the customer.");
-        }
-
-        if (order.Payments.Any(payment => payment.Status == PaymentStatus.Pending))
-        {
-            throw new ConflictException("A payment attempt is still being processed and requires reconciliation before cancellation.");
-        }
-
-        await _inventoryService.RestoreCancelledOrderStockAsync(order, cancellationToken);
-        await _couponService.ReleaseForCancellationAsync(order, cancellationToken);
-        order.ChangeStatus(OrderStatus.Cancelled, _clock.UtcNow);
-        if (_notificationService is not null)
-        {
-            await _notificationService.QueueOrderStatusChangedAsync(order, cancellationToken);
-        }
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return order.ToDto();
+        return await _cancellations.RequestAsync(
+            snapshot,
+            OrderCancellationInitiatorType.Member,
+            "/api/orders",
+            cancellationToken);
     }
 }

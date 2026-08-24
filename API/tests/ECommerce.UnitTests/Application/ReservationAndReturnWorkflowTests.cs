@@ -3,6 +3,7 @@ using ECommerce.Application.Common.Payments;
 using ECommerce.Application.Common.Security;
 using ECommerce.Application.Orders.Commands.ExpireStockReservations;
 using ECommerce.Application.Orders.Services;
+using ECommerce.Application.Payments;
 using ECommerce.Application.Returns.Commands.CreateReturnRequest;
 using ECommerce.Application.Returns.Dtos;
 using ECommerce.Application.Returns.Services;
@@ -36,12 +37,15 @@ public sealed class ReservationAndReturnWorkflowTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([variant]);
         var unitOfWork = new ImmediateUnitOfWork();
+        var inventory = new OrderInventoryService(variants.Object);
+        var coupons = new OrderCouponService(Mock.Of<ICouponRepository>(), clock);
         var handler = new ExpireStockReservationsCommandHandler(
             orders.Object,
-            new OrderInventoryService(variants.Object),
-            new OrderCouponService(Mock.Of<ICouponRepository>(), clock),
+            inventory,
+            coupons,
             clock,
-            unitOfWork);
+            unitOfWork,
+            CreateDefinitivePaymentFailureService(inventory, coupons, clock));
 
         var result = await handler.Handle(new ExpireStockReservationsCommand(), CancellationToken.None);
 
@@ -74,12 +78,15 @@ public sealed class ReservationAndReturnWorkflowTests
             .ReturnsAsync([order]);
         var variants = new Mock<IProductVariantRepository>();
         var unitOfWork = new ImmediateUnitOfWork();
+        var inventory = new OrderInventoryService(variants.Object);
+        var coupons = new OrderCouponService(Mock.Of<ICouponRepository>(), clock);
         var handler = new ExpireStockReservationsCommandHandler(
             orders.Object,
-            new OrderInventoryService(variants.Object),
-            new OrderCouponService(Mock.Of<ICouponRepository>(), clock),
+            inventory,
+            coupons,
             clock,
-            unitOfWork);
+            unitOfWork,
+            CreateDefinitivePaymentFailureService(inventory, coupons, clock));
 
         var result = await handler.Handle(new ExpireStockReservationsCommand(), CancellationToken.None);
 
@@ -116,12 +123,15 @@ public sealed class ReservationAndReturnWorkflowTests
             .ReturnsAsync([variant]);
         var reconciler = new CancelledPaymentReconciler(PaymentProvider.Fake);
         var unitOfWork = new ImmediateUnitOfWork();
+        var inventory = new OrderInventoryService(variants.Object);
+        var coupons = new OrderCouponService(Mock.Of<ICouponRepository>(), clock);
         var handler = new ExpireStockReservationsCommandHandler(
             orders.Object,
-            new OrderInventoryService(variants.Object),
-            new OrderCouponService(Mock.Of<ICouponRepository>(), clock),
+            inventory,
+            coupons,
             clock,
             unitOfWork,
+            CreateDefinitivePaymentFailureService(inventory, coupons, clock),
             [reconciler]);
 
         var result = await handler.Handle(new ExpireStockReservationsCommand(), CancellationToken.None);
@@ -133,6 +143,57 @@ public sealed class ReservationAndReturnWorkflowTests
         variant.Stock.Should().Be(3);
         reconciler.CallCount.Should().Be(1);
         unitOfWork.SaveChangesCallCount.Should().Be(1);
+    }
+
+    // Burada callback iptali yarışı kazandığında rezervasyon worker'ının ikinci stok veya sipariş mutasyonu üretmediğini doğruluyorum.
+    [Fact]
+    public async Task ExpireStockReservations_Should_Be_Idempotent_When_Callback_Already_Cancelled_Order()
+    {
+        var clock = new FixedClock();
+        var (order, variant) = CreateReservedOrder(clock.UtcNow.AddMinutes(-16), stock: 2);
+        var payment = new Payment(order.Id, PaymentProvider.Fake, order.GrandTotal, "reservation_callback_race_01");
+        order.AddPayment(payment);
+        var orders = new Mock<IOrderRepository>();
+        orders.Setup(repository => repository.GetExpiredStockReservationsAsync(
+                clock.UtcNow,
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([order]);
+        orders.Setup(repository => repository.GetByIdForUpdateAsync(order.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        var variants = new Mock<IProductVariantRepository>();
+        variants.Setup(repository => repository.GetByIdsForUpdateAsync(
+                It.IsAny<IEnumerable<Guid>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([variant]);
+        var inventory = new OrderInventoryService(variants.Object);
+        var coupons = new OrderCouponService(Mock.Of<ICouponRepository>(), clock);
+        var failureService = CreateDefinitivePaymentFailureService(inventory, coupons, clock);
+        var callbackApplied = await failureService.ApplyAsync(
+            order,
+            payment,
+            "Signed callback failure.",
+            "provider-failure-race-01",
+            CancellationToken.None);
+        var unitOfWork = new ImmediateUnitOfWork();
+        var handler = new ExpireStockReservationsCommandHandler(
+            orders.Object,
+            inventory,
+            coupons,
+            clock,
+            unitOfWork,
+            failureService,
+            [new CancelledPaymentReconciler(PaymentProvider.Fake)]);
+
+        var result = await handler.Handle(new ExpireStockReservationsCommand(), CancellationToken.None);
+
+        callbackApplied.Should().BeTrue();
+        result.CancelledOrderCount.Should().Be(0);
+        order.Status.Should().Be(OrderStatus.Cancelled);
+        payment.Status.Should().Be(PaymentStatus.Failed);
+        variant.Stock.Should().Be(3);
+        variant.StockMovements.Should().ContainSingle(movement => movement.Type == StockMovementType.Cancellation);
+        unitOfWork.SaveChangesCallCount.Should().Be(0);
     }
 
     // Burada sağlayıcı ödemeyi başarılı doğrularsa rezervasyonun iptal edilmediğini ve siparişin paid durumuna geçtiğini doğruluyorum.
@@ -153,12 +214,15 @@ public sealed class ReservationAndReturnWorkflowTests
             .ReturnsAsync(order);
         var reconciler = new PaidPaymentReconciler(PaymentProvider.Fake);
         var unitOfWork = new ImmediateUnitOfWork();
+        var inventory = new OrderInventoryService(Mock.Of<IProductVariantRepository>());
+        var coupons = new OrderCouponService(Mock.Of<ICouponRepository>(), clock);
         var handler = new ExpireStockReservationsCommandHandler(
             orders.Object,
-            new OrderInventoryService(Mock.Of<IProductVariantRepository>()),
-            new OrderCouponService(Mock.Of<ICouponRepository>(), clock),
+            inventory,
+            coupons,
             clock,
             unitOfWork,
+            CreateDefinitivePaymentFailureService(inventory, coupons, clock),
             [reconciler]);
 
         var result = await handler.Handle(new ExpireStockReservationsCommand(), CancellationToken.None);
@@ -270,16 +334,16 @@ public sealed class ReservationAndReturnWorkflowTests
         (previousRequest.RefundTotal + result.RefundTotal).Should().BeLessThanOrEqualTo(orderItem.RefundTotal);
     }
 
-    // Burada teslim alınan para iadesinin satış iadesi türünde pozitif stok hareketi yazdığını doğruluyorum.
+    // Burada teslim sonrası onaylanan para iadesinin satış iadesi türünde pozitif stok hareketi yazdığını doğruluyorum.
     [Fact]
-    public async Task RestockReceivedReturn_Should_Record_An_Incoming_Sale_Return_Movement()
+    public async Task RestockApprovedRefund_Should_Record_An_Incoming_Sale_Return_Movement()
     {
         var clock = new FixedClock();
         var (order, variant) = CreateDeliveredOrder(clock);
         var returnRequest = new ReturnRequest(order.Id, 7, "RET-REFUND-RESTOCK", ReturnType.Refund);
         returnRequest.AddItem(order.Items.Single(), 1);
-        returnRequest.Approve(clock.UtcNow);
-        returnRequest.Receive(clock.UtcNow.AddMinutes(1));
+        returnRequest.Receive(clock.UtcNow);
+        returnRequest.Approve(clock.UtcNow.AddMinutes(1));
         var variants = new Mock<IProductVariantRepository>();
         variants.Setup(repository => repository.GetByIdsForUpdateAsync(
                 It.IsAny<IEnumerable<Guid>>(),
@@ -287,7 +351,7 @@ public sealed class ReservationAndReturnWorkflowTests
             .ReturnsAsync([variant]);
         var service = new ReturnInventoryService(variants.Object);
 
-        await service.RestockReceivedReturnAsync(returnRequest, CancellationToken.None);
+        await service.RestockRefundAsync(returnRequest, CancellationToken.None);
 
         variant.Stock.Should().Be(3);
         variant.StockMovements.Should().ContainSingle(movement =>
@@ -314,8 +378,8 @@ public sealed class ReservationAndReturnWorkflowTests
             4);
         var returnRequest = new ReturnRequest(order.Id, 7, "RET-EXCHANGE-FULFILL", ReturnType.Exchange);
         returnRequest.AddItem(order.Items.Single(), 1, replacementVariant.Id);
-        returnRequest.Approve(clock.UtcNow);
-        returnRequest.Receive(clock.UtcNow.AddMinutes(1));
+        returnRequest.Receive(clock.UtcNow);
+        returnRequest.Approve(clock.UtcNow.AddMinutes(1));
         var variants = new Mock<IProductVariantRepository>();
         variants.Setup(repository => repository.GetByIdsForUpdateAsync(
                 It.IsAny<IEnumerable<Guid>>(),
@@ -395,8 +459,8 @@ public sealed class ReservationAndReturnWorkflowTests
             returnRequest.AddItem(orderItem, 1, replacement.Id);
         }
 
-        returnRequest.Approve(clock.UtcNow);
-        returnRequest.Receive(clock.UtcNow.AddMinutes(1));
+        returnRequest.Receive(clock.UtcNow);
+        returnRequest.Approve(clock.UtcNow.AddMinutes(1));
         var variants = new Mock<IProductVariantRepository>();
         variants.Setup(repository => repository.GetByIdsForUpdateAsync(
                 It.IsAny<IEnumerable<Guid>>(),
@@ -491,6 +555,25 @@ public sealed class ReservationAndReturnWorkflowTests
             .Returns<Func<CancellationToken, Task<TResponse>>, CancellationToken>((operation, token) => operation(token));
         unitOfWork.Setup(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         return unitOfWork;
+    }
+
+    // Burada rezervasyon worker testlerinin ortak kesin başarısızlık servisini zararsız bildirim mockuyla hazırlıyorum.
+    private static DefinitivePaymentFailureService CreateDefinitivePaymentFailureService(
+        OrderInventoryService inventory,
+        OrderCouponService coupons,
+        IDateTimeProvider clock)
+    {
+        var notifications = new Mock<IOrderNotificationService>();
+        notifications.Setup(service => service.QueuePaymentResultAsync(
+                It.IsAny<Order>(),
+                It.IsAny<Payment>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        notifications.Setup(service => service.QueueOrderStatusChangedAsync(
+                It.IsAny<Order>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return new DefinitivePaymentFailureService(inventory, coupons, notifications.Object, clock);
     }
 
     private sealed class ImmediateUnitOfWork : IUnitOfWork

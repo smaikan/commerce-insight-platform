@@ -67,7 +67,7 @@ public sealed class GuestCheckoutReplayTests
     // Burada üretimdeki PII saklamayan istek parmak iziyle aynı sıralı metni hazırlıyorum.
     private static string CreateFingerprint() => string.Join('|',
         "5f9c71b835354768b67c9036b194fcea", "Ada", "Lovelace", "ada@example.com", "+905551112233",
-        "0~Ev~Ada~Lovelace~+905551112233~Istanbul~Kadikoy~Mahalle~Sokak~Ornek Sokak 1~34000", "billing=fallback",
+        "0~Ev~Ada~Lovelace~+905551112233~Istanbul~Kadikoy~Ornek Sokak 1~34000", "billing=fallback",
         "8d4d2a3d853542fa8528896536562a5b", "WELCOME");
 
     // Burada testin kullandığı hash değerini token servisinin güvenli üretim kuralıyla uyumlu hazırlıyorum.
@@ -97,6 +97,5 @@ public sealed class GuestCheckoutReplayTests
         public DateTime UtcNow => _now;
     }
 }
-
 
 

@@ -4,6 +4,8 @@ using ECommerce.Application.Common.Payments;
 using ECommerce.Application.Common.Security;
 using ECommerce.Application.Orders.Commands.CreatePayment;
 using ECommerce.Application.Orders.Dtos;
+using ECommerce.Application.Orders.Services;
+using ECommerce.Application.Payments;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using ECommerce.Persistence.Context;
@@ -49,6 +51,44 @@ public sealed class OrderPaymentWorkflowPersistenceTests
         var act = () => context.SaveChangesAsync();
 
         await act.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    // Burada terk edilmiş CheckoutForm denetim alanlarının kalıcı olduğunu ve repository'nin yalnız zamanı gelen tokenı seçtiğini doğruluyorum.
+    [Fact]
+    public async Task Repository_Should_Persist_And_Query_Due_Abandoned_Checkout_Form()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        await using var context = new AppDbContext(CreateOptions(connection));
+        await context.Database.EnsureCreatedAsync();
+        var clock = new FixedClock();
+        var user = await SeedUserAsync(context, "abandoned-checkout@example.com");
+        var order = CreateOrder(user.Id);
+        var payment = new Payment(order.Id, PaymentProvider.Iyzico, order.GrandTotal, "abandoned_persistence_01");
+        order.AddPayment(payment);
+        payment.InitializeCheckoutForm(
+            "abandoned-persistence-token",
+            payment.Id.ToString("N"),
+            "https://sandbox-cpp.iyzipay.com?token=abandoned-persistence-token",
+            DateTime.UtcNow.AddMinutes(30));
+        payment.AbandonCheckoutForm(clock.UtcNow);
+        order.ChangeStatus(OrderStatus.Cancelled, clock.UtcNow);
+        context.Orders.Add(order);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var repository = new OrderRepository(context);
+
+        var dueTokens = await repository.GetDueAbandonedPaymentTokensAsync(clock.UtcNow, 10);
+
+        dueTokens.Should().ContainSingle().Which.Should().Be("abandoned-persistence-token");
+        var savedOrder = await repository.GetByPaymentProviderTokenAsync(
+            "abandoned-persistence-token",
+            true);
+        var savedPayment = savedOrder!.Payments.Single();
+        savedPayment.CustomerAbandonedAt.Should().Be(clock.UtcNow);
+        savedPayment.CompleteAbandonmentReconciliation(clock.UtcNow.AddMinutes(1));
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        (await repository.GetDueAbandonedPaymentTokensAsync(clock.UtcNow.AddMinutes(2), 10)).Should().BeEmpty();
     }
 
     // Burada varsayılan adresin birinden diğerine geçişinin filtered unique indeks altında güvenle tamamlandığını doğruluyorum.
@@ -133,6 +173,135 @@ public sealed class OrderPaymentWorkflowPersistenceTests
         result.Status.Should().Be(PaymentStatus.Paid);
         savedOrder.Status.Should().Be(OrderStatus.Paid);
         savedOrder.Payments.Should().ContainSingle(payment => payment.Status == PaymentStatus.Paid);
+    }
+
+    // Burada kesin ödeme başarısızlığının stok, kupon, sipariş, ödeme ve outbox kayıtlarını tek transaction'da kalıcılaştırdığını doğruluyorum.
+    [Fact]
+    public async Task DefinitivePaymentFailure_Should_Persist_Atomic_Cancellation_And_Be_Idempotent()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        var options = CreateOptions(connection);
+        var clock = new FixedClock();
+        Guid orderId;
+        Guid paymentId;
+        Guid variantId;
+        await using (var seedContext = new AppDbContext(options))
+        {
+            await seedContext.Database.EnsureCreatedAsync();
+            var user = await SeedUserAsync(seedContext, "definitive-failure@example.com");
+            var catalog = await SeedCatalogAsync(seedContext, "definitive-failure");
+            var coupon = new Coupon("FAIL10", CouponDiscountType.FixedAmount, 1m);
+            coupon.IncreaseUsedCount(clock.UtcNow);
+            var order = new Order(
+                user.Id,
+                $"ORD-{Guid.NewGuid():N}"[..24],
+                10m,
+                1m,
+                0m,
+                0m,
+                9m,
+                couponCode: coupon.Code);
+            order.SetCustomerSnapshot("Ada", "Lovelace", user.Email, "+905551112233");
+            order.AddItem(
+                catalog.Product.Id,
+                catalog.Variant.Id,
+                catalog.Product.Title,
+                catalog.Variant.Sku,
+                10m,
+                1,
+                discountTotal: 1m);
+            order.EnsureItemsMatchSubTotal();
+            order.StartStockReservation(clock.UtcNow, TimeSpan.FromMinutes(15));
+            catalog.Variant.ApplyStockMovement(
+                -1,
+                StockMovementType.Sale,
+                "Checkout reservation.",
+                order.Id);
+            var payment = new Payment(
+                order.Id,
+                PaymentProvider.Iyzico,
+                order.GrandTotal,
+                "definitive_failure_persistence_01");
+            order.AddPayment(payment);
+            payment.InitializeCheckoutForm(
+                "definitive-failure-token",
+                payment.Id.ToString("N"),
+                "https://sandbox-api.iyzipay.com/checkoutform/definitive-failure-token",
+                DateTime.UtcNow.AddMinutes(30));
+            seedContext.AddRange(coupon, order, new CouponUsage(coupon.Id, user.Id, order.Id, clock.UtcNow));
+            await seedContext.SaveChangesAsync();
+            orderId = order.Id;
+            paymentId = payment.Id;
+            variantId = catalog.Variant.Id;
+        }
+
+        await using (var mutationContext = new AppDbContext(options))
+        {
+            var orders = new OrderRepository(mutationContext);
+            var inventory = new OrderInventoryService(new ProductVariantRepository(mutationContext));
+            var coupons = new OrderCouponService(new CouponRepository(mutationContext), clock);
+            var notifications = new OrderNotificationService(
+                new UserRepository(mutationContext),
+                new EmailOutboxRepository(mutationContext),
+                clock);
+            var failureService = new DefinitivePaymentFailureService(inventory, coupons, notifications, clock);
+            var unitOfWork = new UnitOfWork(mutationContext);
+
+            var firstApplied = await unitOfWork.ExecuteInSerializableTransactionAsync(async token =>
+            {
+                var order = await orders.GetByIdForUpdateAsync(orderId, token);
+                var payment = order!.Payments.Single(candidate => candidate.Id == paymentId);
+                var applied = await failureService.ApplyAsync(
+                    order,
+                    payment,
+                    "Signed provider failure.",
+                    "provider-failure-001",
+                    token);
+                await unitOfWork.SaveChangesAsync(token);
+                return applied;
+            });
+            mutationContext.ChangeTracker.Clear();
+            var replayApplied = await unitOfWork.ExecuteInSerializableTransactionAsync(async token =>
+            {
+                var order = await orders.GetByIdForUpdateAsync(orderId, token);
+                var payment = order!.Payments.Single(candidate => candidate.Id == paymentId);
+                return await failureService.ApplyAsync(
+                    order,
+                    payment,
+                    "Signed provider failure.",
+                    "provider-failure-001",
+                    token);
+            });
+
+            firstApplied.Should().BeTrue();
+            replayApplied.Should().BeFalse();
+        }
+
+        await using var readContext = new AppDbContext(options);
+        var savedOrder = await readContext.Orders
+            .AsNoTracking()
+            .Include(order => order.Payments)
+            .SingleAsync(order => order.Id == orderId);
+        var savedVariant = await readContext.ProductVariants
+            .AsNoTracking()
+            .Include(variant => variant.StockMovements)
+            .SingleAsync(variant => variant.Id == variantId);
+        var savedCoupon = await readContext.Coupons.AsNoTracking().SingleAsync(coupon => coupon.Code == "FAIL10");
+        savedOrder.Status.Should().Be(OrderStatus.Cancelled);
+        savedOrder.ReservationExpiresAt.Should().BeNull();
+        savedOrder.Payments.Should().ContainSingle(payment =>
+            payment.Id == paymentId && payment.Status == PaymentStatus.Failed);
+        savedVariant.Stock.Should().Be(5);
+        savedVariant.StockMovements.Should().ContainSingle(movement =>
+            movement.Type == StockMovementType.Cancellation && movement.OrderId == orderId);
+        savedCoupon.UsedCount.Should().Be(0);
+        (await readContext.CouponUsages.AnyAsync(usage => usage.OrderId == orderId)).Should().BeFalse();
+        var outboxTypes = await readContext.EmailOutbox
+            .AsNoTracking()
+            .Select(message => message.Type)
+            .ToListAsync();
+        outboxTypes.Should().ContainSingle(type => type == EmailOutboxMessageType.PaymentFailed);
+        outboxTypes.Should().ContainSingle(type => type == EmailOutboxMessageType.OrderStatusChanged);
     }
 
     // Burada siparişe bağlı adres snapshot'ının kaynak adres sonradan değişse bile ayrı kayıtta tutulduğunu doğruluyorum.

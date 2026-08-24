@@ -14,6 +14,13 @@ public interface IOrderNotificationService
         Payment payment,
         CancellationToken cancellationToken = default);
 
+    // Burada doğrulanmış provider geri alımını aynı transactiondaki tekilleştirilmiş müşteri bildirimine dönüştürmeyi tanımlıyorum.
+    Task QueuePaymentReversalCompletedAsync(
+        Order order,
+        Payment payment,
+        OrderCancellationOperation operation,
+        CancellationToken cancellationToken = default);
+
     // Burada sipariş yaşam döngüsü değişikliğinin müşteriye bildirilecek outbox kaydına dönüştürülmesini tanımlıyorum.
     Task QueueOrderStatusChangedAsync(Order order, CancellationToken cancellationToken = default);
 

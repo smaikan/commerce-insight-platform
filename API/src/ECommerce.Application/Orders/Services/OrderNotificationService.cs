@@ -52,7 +52,7 @@ public sealed class OrderNotificationService : IOrderNotificationService
                 recipient.FullName,
                 payment.Id,
                 order.OrderNumber,
-                payment.Amount,
+                payment.ProviderPaidAmount ?? payment.Amount,
                 _clock.UtcNow),
             PaymentStatus.Failed => EmailOutboxMessage.CreatePaymentFailed(
                 recipient.Email,
@@ -67,10 +67,39 @@ public sealed class OrderNotificationService : IOrderNotificationService
         await _emailOutboxRepository.AddAsync(message, cancellationToken);
     }
 
-    // Burada kesinleşmiş sipariş durumunu müşteri için tekilleştirilmiş durum bildirimi olarak kuyruğa ekliyorum.
+    // Burada yalnız tamamlanmış provider geri alımını gerçek tahsilat tutarıyla tekilleştirilmiş outbox kaydına ekliyorum.
+    public async Task QueuePaymentReversalCompletedAsync(
+        Order order,
+        Payment payment,
+        OrderCancellationOperation operation,
+        CancellationToken cancellationToken = default)
+    {
+        if (operation.OrderId != order.Id || operation.PaymentId != payment.Id ||
+            operation.Status != OrderCancellationOperationStatus.Completed ||
+            payment.Status is not PaymentStatus.Cancelled and not PaymentStatus.Refunded ||
+            !payment.ProviderPaidAmount.HasValue)
+        {
+            throw new InvalidOperationException("Only a completed provider payment reversal can be notified.");
+        }
+
+        var recipient = await GetRecipientAsync(order, cancellationToken);
+        await _emailOutboxRepository.AddAsync(
+            EmailOutboxMessage.CreatePaymentReversalCompleted(
+                recipient.Email,
+                recipient.FullName,
+                operation.Id,
+                order.OrderNumber,
+                payment.ProviderPaidAmount.Value,
+                operation.ReversalType,
+                _clock.UtcNow),
+            cancellationToken);
+    }
+
+    // Burada kargo ayrıntılarını yalnız kargoya verildi bildirimiyle taşıyarak kesinleşmiş sipariş durumunu kuyruğa ekliyorum.
     public async Task QueueOrderStatusChangedAsync(Order order, CancellationToken cancellationToken = default)
     {
         var recipient = await GetRecipientAsync(order, cancellationToken);
+        var includeShipmentDetails = order.Status == OrderStatus.Shipped;
         await _emailOutboxRepository.AddAsync(
             EmailOutboxMessage.CreateOrderStatusChanged(
                 recipient.Email,
@@ -79,9 +108,9 @@ public sealed class OrderNotificationService : IOrderNotificationService
                 order.OrderNumber,
                 order.Status,
                 _clock.UtcNow,
-                order.ShippingCarrier,
-                order.TrackingNumber,
-                order.TrackingUrl),
+                includeShipmentDetails ? order.ShippingCarrier : null,
+                includeShipmentDetails ? order.TrackingNumber : null,
+                includeShipmentDetails ? order.TrackingUrl : null),
             cancellationToken);
     }
 

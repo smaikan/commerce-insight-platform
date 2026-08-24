@@ -2,12 +2,17 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using ECommerce.API.ErrorHandling;
+using ECommerce.Domain.Common;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace ECommerce.IntegrationTests.Api;
 
@@ -45,7 +50,7 @@ public sealed class ApiPipelineTests
         swagger.Should().Contain("/api/coupons");
         swagger.Should().Contain("/api/stock-movements");
         swagger.Should().Contain("/api/stock-movements/bulk");
-        swagger.Should().Contain("/api/product-variants/{id}/stock-movements");
+        swagger.Should().Contain("/api/product-variants/stock-movements");
         foreach (var bannerPath in new[]
         {
             "/api/main-banners",
@@ -223,10 +228,19 @@ public sealed class ApiPipelineTests
 
         var adjustStockSchema = schemas.GetProperty("AdjustStockRequest");
         var adjustStockProperties = adjustStockSchema.GetProperty("properties");
+        adjustStockProperties.TryGetProperty("productVariantSku", out _).Should().BeTrue();
+        adjustStockProperties.GetProperty("productVariantSku").GetProperty("maxLength").GetInt32().Should().Be(100);
         adjustStockProperties.TryGetProperty("quantityDelta", out _).Should().BeTrue();
         adjustStockProperties.TryGetProperty("type", out _).Should().BeTrue();
         adjustStockProperties.TryGetProperty("reason", out _).Should().BeTrue();
         AssertOptionalProperty(adjustStockSchema, "reason");
+        var adjustStockResponses = paths.GetProperty("/api/product-variants/stock-movements")
+            .GetProperty("post")
+            .GetProperty("responses");
+        foreach (var status in new[] { "200", "400", "401", "403", "404", "409", "500" })
+        {
+            adjustStockResponses.TryGetProperty(status, out _).Should().BeTrue();
+        }
 
         var stockMovementProperties = schemas
             .GetProperty("StockMovementDto")
@@ -247,11 +261,20 @@ public sealed class ApiPipelineTests
 
         var bulkStockMovementSchema = schemas.GetProperty("BulkStockMovementRequest");
         var bulkStockMovementProperties = bulkStockMovementSchema.GetProperty("properties");
-        bulkStockMovementProperties.TryGetProperty("productVariantId", out _).Should().BeTrue();
+        bulkStockMovementProperties.TryGetProperty("productVariantSku", out _).Should().BeTrue();
+        bulkStockMovementProperties.TryGetProperty("productVariantId", out _).Should().BeFalse();
+        bulkStockMovementProperties.GetProperty("productVariantSku").GetProperty("maxLength").GetInt32().Should().Be(100);
         bulkStockMovementProperties.TryGetProperty("quantityDelta", out _).Should().BeTrue();
         bulkStockMovementProperties.TryGetProperty("type", out _).Should().BeTrue();
         bulkStockMovementProperties.TryGetProperty("reason", out _).Should().BeTrue();
         AssertOptionalProperty(bulkStockMovementSchema, "reason");
+        var bulkStockMovementResponses = paths.GetProperty("/api/stock-movements/bulk")
+            .GetProperty("post")
+            .GetProperty("responses");
+        foreach (var status in new[] { "201", "400", "401", "403", "404", "409", "500" })
+        {
+            bulkStockMovementResponses.TryGetProperty(status, out _).Should().BeTrue();
+        }
     }
 
     // Burada AdminOnly ürün detayının anonim isteği kimlik doğrulamadan önce 401 ile reddettiğini doğruluyorum.
@@ -280,7 +303,7 @@ public sealed class ApiPipelineTests
     [InlineData("/api/coupons", false)]
     [InlineData("/api/stock-movements", false)]
     [InlineData("/api/stock-movements/bulk", true)]
-    [InlineData("/api/product-variants/11111111-1111-1111-1111-111111111111/stock-movements", true)]
+    [InlineData("/api/product-variants/stock-movements", true)]
     public async Task Protected_Endpoint_Should_Return_Problem_Details_For_Anonymous_Request(
         string path,
         bool usePost)
@@ -631,6 +654,149 @@ public sealed class ApiPipelineTests
             .GetString().Should().Contain("createdAt ASC").And.Contain("id ASC");
         detailProperties.GetProperty("replies").GetProperty("description")
             .GetString().Should().Contain("createdAt ASC").And.Contain("id ASC");
+    }
+
+    // Burada iade mutasyonlarının yeni yaşam döngüsü, stok etkisi ve kararlı 409 kodunu Swagger'da yayımladığını doğruluyorum.
+    [Fact]
+    public async Task OpenApi_Should_Document_Return_Receipt_Before_Decision_Contract()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var response = await client.GetAsync("/swagger/v1/swagger.json");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = document.RootElement;
+        var paths = root.GetProperty("paths");
+
+        var receive = paths.GetProperty("/api/returns/{id}/receive").GetProperty("post");
+        receive.GetProperty("description").GetString()
+            .Should().Contain("Requested (0) → Received (3)")
+            .And.Contain("stok değişmez");
+        var approve = paths.GetProperty("/api/returns/{id}/approve").GetProperty("post");
+        approve.GetProperty("description").GetString()
+            .Should().Contain("Refunded (7)")
+            .And.Contain("ReturnApproved (9)")
+            .And.Contain("Payment kaydı değiştirilmez");
+        var reject = paths.GetProperty("/api/returns/{id}/reject").GetProperty("post");
+        reject.GetProperty("description").GetString().Should().Contain("stok hareketi oluşmaz");
+        var complete = paths.GetProperty("/api/returns/{id}/complete").GetProperty("post");
+        complete.GetProperty("description").GetString().Should().Contain("Yeni kayıtlarda kullanılmaz");
+
+        foreach (var operation in new[] { receive, approve, reject, complete })
+        {
+            foreach (var status in new[] { "200", "400", "401", "403", "404", "409" })
+            {
+                operation.GetProperty("responses").TryGetProperty(status, out _).Should().BeTrue();
+            }
+
+            operation.GetProperty("responses").GetProperty("409").GetProperty("description")
+                .GetString().Should().Contain("return_status_transition_invalid")
+                .And.Contain("concurrency_conflict");
+        }
+
+        root.GetProperty("components").GetProperty("schemas").GetProperty("ReturnRequestStatus")
+            .GetProperty("description").GetString()
+            .Should().Contain("0 Requested")
+            .And.Contain("4 Completed")
+            .And.Contain("legacy");
+    }
+
+    // Burada geçersiz iade geçişinin gerçek exception handler üzerinden kararlı 409 ProblemDetails koduna dönüştüğünü doğruluyorum.
+    [Fact]
+    public async Task GlobalExceptionHandler_Should_Map_Return_Transition_To_Stable_Conflict_Code()
+    {
+        var environment = new Mock<Microsoft.Extensions.Hosting.IHostEnvironment>();
+        environment.Setup(candidate => candidate.EnvironmentName).Returns("Production");
+        var handler = new GlobalExceptionHandler(environment.Object, NullLogger<GlobalExceptionHandler>.Instance);
+        using var requestServices = new ServiceCollection()
+            .AddLogging()
+            .AddProblemDetails()
+            .BuildServiceProvider();
+        var context = new DefaultHttpContext();
+        context.RequestServices = requestServices;
+        context.Request.Path = "/api/returns/00000000-0000-0000-0000-000000000001/approve";
+        context.Response.Body = new MemoryStream();
+
+        var handled = await handler.TryHandleAsync(
+            context,
+            new ReturnStatusTransitionException("Only received return requests awaiting a decision can be approved."),
+            CancellationToken.None);
+
+        handled.Should().BeTrue();
+        context.Response.StatusCode.Should().Be(StatusCodes.Status409Conflict);
+        context.Response.Body.Position = 0;
+        using var body = await JsonDocument.ParseAsync(context.Response.Body);
+        body.RootElement.GetProperty("code").GetString().Should().Be("return_status_transition_invalid");
+    }
+
+    // Burada atomik varyant batch endpointinin auth, concurrency, response ve typed hata sözleşmesini Swagger'da doğruluyorum.
+    [Fact]
+    public async Task OpenApi_Should_Document_Product_Variant_Bulk_Update_Contract()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var swaggerResponse = await client.GetAsync("/swagger/v1/swagger.json");
+        swaggerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var document = JsonDocument.Parse(await swaggerResponse.Content.ReadAsStringAsync());
+        var root = document.RootElement;
+        var operation = root.GetProperty("paths")
+            .GetProperty("/api/product-variants/by-product/{productId}/bulk")
+            .GetProperty("put");
+
+        operation.TryGetProperty("security", out _).Should().BeFalse();
+        operation.GetProperty("description").GetString()
+            .Should().Contain("expectedConcurrencyToken")
+            .And.Contain("concurrency_conflict");
+        foreach (var status in new[] { "200", "400", "401", "403", "404", "409", "500" })
+        {
+            operation.GetProperty("responses").TryGetProperty(status, out _).Should().BeTrue();
+        }
+
+        operation.GetProperty("responses").GetProperty("409").GetProperty("description")
+            .GetString().Should().Contain("product_variant_sku_conflict")
+            .And.Contain("concurrency_conflict");
+        var schemas = root.GetProperty("components").GetProperty("schemas");
+        var requestReference = operation.GetProperty("requestBody")
+            .GetProperty("content").GetProperty("application/json")
+            .GetProperty("schema").GetProperty("$ref").GetString()!;
+        var requestSchema = schemas.GetProperty(requestReference.Split('/')[^1]);
+        requestSchema.GetProperty("required").EnumerateArray()
+            .Select(value => value.GetString()).Should().Contain("variants");
+        var itemSchema = schemas.GetProperty("BulkUpdateProductVariantRequestItem");
+        itemSchema.GetProperty("required").EnumerateArray()
+            .Select(value => value.GetString()).Should().Contain([
+                "id",
+                "name",
+                "value",
+                "sku",
+                "price",
+                "stock",
+                "expectedConcurrencyToken"
+            ]);
+        itemSchema.GetProperty("properties").GetProperty("expectedConcurrencyToken")
+            .GetProperty("description").GetString().Should().Contain("concurrency_conflict");
+        itemSchema.GetProperty("properties").GetProperty("sku")
+            .GetProperty("maxLength").GetInt32().Should().Be(100);
+        schemas.GetProperty("ProductVariantDto").GetProperty("required").EnumerateArray()
+            .Select(value => value.GetString()).Should().Contain("concurrencyToken");
+        var conflictReference = operation.GetProperty("responses").GetProperty("409")
+            .GetProperty("content").GetProperty("application/json")
+            .GetProperty("schema").GetProperty("$ref").GetString()!;
+        var conflictSchema = schemas.GetProperty(conflictReference.Split('/')[^1]);
+        conflictSchema.GetProperty("properties").TryGetProperty("errors", out _).Should().BeTrue();
+        var requiredConflictFields = conflictSchema.TryGetProperty("required", out var requiredConflict)
+            ? requiredConflict.EnumerateArray().Select(value => value.GetString()).ToList()
+            : [];
+        requiredConflictFields.Should().NotContain("errors");
+
+        using var unauthorizedRequest = new HttpRequestMessage(
+            HttpMethod.Put,
+            "/api/product-variants/by-product/P00001/bulk")
+        {
+            Content = new StringContent("{\"variants\":[]}", Encoding.UTF8, "application/json")
+        };
+        using var unauthorizedResponse = await client.SendAsync(unauthorizedRequest);
+        unauthorizedResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     // Burada controller attribute'larından her HTTP route ve AllowAnonymous kararını çıkarıyorum.

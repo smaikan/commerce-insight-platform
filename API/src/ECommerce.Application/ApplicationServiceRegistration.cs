@@ -1,6 +1,7 @@
 using ECommerce.Application.Common.Behaviors;
 using ECommerce.Application.Accounting;
 using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.Common.Payments;
 using ECommerce.Application.Common.Services;
 using ECommerce.Application.Carts.Services;
 using ECommerce.Application.Orders.Services;
@@ -44,11 +45,15 @@ public static class ApplicationServiceRegistration
         services.AddScoped<ImportedOrderProcessor>();
         services.AddScoped<OrderInventoryService>();
         services.AddScoped<OrderCouponService>();
+        services.AddScoped<OrderCancellationService>();
         services.AddScoped<OrderPricingService>();
         services.AddScoped<OrderCheckoutOrchestrator>();
         services.AddScoped<GuestOrderAccessService>();
         services.AddScoped<GuestOrderOperationsService>();
         services.AddScoped<CheckoutFormPaymentService>();
+        services.AddScoped<IPendingPaymentCancellationReconciler>(provider =>
+            provider.GetRequiredService<CheckoutFormPaymentService>());
+        services.AddScoped<DefinitivePaymentFailureService>();
         services.AddScoped<IOrderNotificationService, OrderNotificationService>();
         services.AddScoped<ReturnInventoryService>();
 

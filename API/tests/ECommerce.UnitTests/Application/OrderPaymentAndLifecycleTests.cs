@@ -23,6 +23,7 @@ public sealed class OrderPaymentAndLifecycleTests
     public async Task CreatePayment_Should_Be_Idempotent_For_The_Same_Order_And_Key()
     {
         var order = CreateOrder();
+        order.ChangeStatus(OrderStatus.Confirmed, new FixedClock().UtcNow);
         var orders = new Mock<IOrderRepository>();
         orders.Setup(repository => repository.GetByIdForUserForUpdateAsync(
                 order.Id,
@@ -55,6 +56,7 @@ public sealed class OrderPaymentAndLifecycleTests
     public async Task CreatePayment_Should_Return_Existing_Pending_Attempt_While_The_Gateway_Is_Processing()
     {
         var order = CreateOrder();
+        order.ChangeStatus(OrderStatus.Confirmed, new FixedClock().UtcNow);
         var orders = new Mock<IOrderRepository>();
         orders.Setup(repository => repository.GetByIdForUserForUpdateAsync(
                 order.Id,
@@ -84,15 +86,26 @@ public sealed class OrderPaymentAndLifecycleTests
         gateway.CallCount.Should().Be(1);
     }
 
-    // Burada sağlayıcı sonucu belirsiz bekleyen ödeme varken sipariş iptalinin stok veya ödeme durumunu değiştirmediğini doğruluyorum.
+    // Burada müşteri açık ödeme formunu iptal ettiğinde Pending sonucun sipariş, ödeme ve stok rezervasyonunu birlikte kapattığını doğruluyorum.
     [Fact]
-    public async Task CancelOrder_Should_Reject_A_Pending_Payment_Attempt()
+    public async Task CancelOrder_Should_Abandon_Pending_Checkout_Form_And_Release_Stock()
     {
         var (order, variant) = CreateOrderWithItem(stock: 3);
-        var payment = new Payment(order.Id, PaymentProvider.Fake, order.GrandTotal, "pending_payment_key_001");
+        variant.ApplyStockMovement(-1, StockMovementType.Sale, "Checkout reservation.", order.Id);
+        order.StartStockReservation(new FixedClock().UtcNow, TimeSpan.FromMinutes(15));
+        var payment = new Payment(order.Id, PaymentProvider.Iyzico, order.GrandTotal, "pending_payment_key_001");
         order.AddPayment(payment);
+        payment.InitializeCheckoutForm(
+            "pending-checkout-token-001",
+            payment.Id.ToString("N"),
+            "https://sandbox-cpp.iyzipay.com?token=pending-checkout-token-001",
+            DateTime.UtcNow.AddMinutes(30));
         var orders = new Mock<IOrderRepository>();
+        orders.Setup(repository => repository.GetByIdForUserAsync(order.Id, 7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
         orders.Setup(repository => repository.GetByIdForUserForUpdateAsync(order.Id, 7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        orders.Setup(repository => repository.GetByIdForUpdateAsync(order.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
         var variants = new Mock<IProductVariantRepository>();
         variants.Setup(repository => repository.GetByIdsForUpdateAsync(
@@ -100,26 +113,116 @@ public sealed class OrderPaymentAndLifecycleTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([variant]);
         var unitOfWork = CreateTransactionalUnitOfWork<OrderDto>();
+        var reconciler = new Mock<IPendingPaymentCancellationReconciler>();
+        reconciler.Setup(service => service.ReconcileForCancellationAsync(
+                order,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PaymentStatus.Pending);
         var handler = new CancelOrderCommandHandler(
             orders.Object,
-            new OrderInventoryService(variants.Object),
-            new OrderCouponService(Mock.Of<ICouponRepository>(), new FixedClock()),
             new StubCurrentUser(7),
-            new FixedClock(),
-            unitOfWork.Object);
+            CreateCancellationService(
+                orders.Object,
+                variants.Object,
+                unitOfWork.Object,
+                reconciler.Object));
 
-        Func<Task> act = () => handler.Handle(new CancelOrderCommand(order.Id), CancellationToken.None);
+        var result = await handler.Handle(new CancelOrderCommand(order.Id), CancellationToken.None);
 
-        await act.Should().ThrowAsync<ConflictException>();
-        order.Status.Should().Be(OrderStatus.Pending);
+        result.Status.Should().Be(OrderStatus.Cancelled);
+        order.Status.Should().Be(OrderStatus.Cancelled);
+        order.ReservationExpiresAt.Should().BeNull();
         variant.Stock.Should().Be(3);
         variant.StockMovements.Should().ContainSingle(movement =>
-            movement.Type == StockMovementType.OpeningBalance &&
-            movement.QuantityDelta == 3);
-        variant.StockMovements.Should().NotContain(movement =>
-            movement.Type == StockMovementType.Cancellation);
-        payment.Status.Should().Be(PaymentStatus.Pending);
+            movement.Type == StockMovementType.Cancellation &&
+            movement.QuantityDelta == 1 &&
+            movement.OrderId == order.Id);
+        payment.Status.Should().Be(PaymentStatus.Cancelled);
+        payment.CustomerAbandonedAt.Should().Be(new FixedClock().UtcNow);
+        payment.AbandonmentReconciledAt.Should().BeNull();
+        unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // Burada sağlayıcının kesin başarısız saydığı ödeme iptal akışını zaten tamamladıysa müşteri tekrar iptalinde stok hareketinin yinelenmediğini doğruluyorum.
+    [Fact]
+    public async Task CancelOrder_Should_Return_Already_Cancelled_Order_After_Definitive_Reconciliation()
+    {
+        var (order, variant) = CreateOrderWithItem(stock: 3);
+        var payment = new Payment(order.Id, PaymentProvider.Iyzico, order.GrandTotal, "pending_iyzico_cancel_key_001");
+        order.AddPayment(payment);
+        var orders = new Mock<IOrderRepository>();
+        orders.Setup(repository => repository.GetByIdForUserAsync(order.Id, 7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        orders.Setup(repository => repository.GetByIdForUserForUpdateAsync(order.Id, 7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        orders.Setup(repository => repository.GetByIdForUpdateAsync(order.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        var reconciler = new Mock<IPendingPaymentCancellationReconciler>();
+        reconciler.Setup(service => service.ReconcileForCancellationAsync(order, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                payment.MarkAsFailed("Provider rejected payment.");
+                variant.ApplyStockMovement(1, StockMovementType.Cancellation, "Provider failure release.", order.Id);
+                order.ChangeStatus(OrderStatus.Cancelled, new FixedClock().UtcNow);
+                return PaymentStatus.Failed;
+            });
+        var unitOfWork = CreateTransactionalUnitOfWork<OrderDto>();
+        var handler = new CancelOrderCommandHandler(
+            orders.Object,
+            new StubCurrentUser(7),
+            CreateCancellationService(
+                orders.Object,
+                Mock.Of<IProductVariantRepository>(),
+                unitOfWork.Object,
+                reconciler.Object));
+
+        var result = await handler.Handle(new CancelOrderCommand(order.Id), CancellationToken.None);
+
+        result.Status.Should().Be(OrderStatus.Cancelled);
+        payment.Status.Should().Be(PaymentStatus.Failed);
+        variant.StockMovements.Should().ContainSingle(movement => movement.Type == StockMovementType.Cancellation);
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // Burada provider uzlaştırması ödemeyi Paid sonuçlandırdığında müşteri iptalinin stok veya sipariş durumunu geri çevirmediğini doğruluyorum.
+    [Fact]
+    public async Task CancelOrder_Should_Reject_When_Reconciliation_Completes_The_Payment()
+    {
+        var (order, variant) = CreateOrderWithItem(stock: 3);
+        var payment = new Payment(order.Id, PaymentProvider.Iyzico, order.GrandTotal, "paid_iyzico_cancel_key_001");
+        order.AddPayment(payment);
+        var orders = new Mock<IOrderRepository>();
+        orders.Setup(repository => repository.GetByIdForUserAsync(order.Id, 7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        orders.Setup(repository => repository.GetByIdForUpdateAsync(order.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        var reconciler = new Mock<IPendingPaymentCancellationReconciler>();
+        reconciler.Setup(service => service.ReconcileForCancellationAsync(order, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                payment.MarkAsPaid("provider-paid-id");
+                order.ChangeStatus(OrderStatus.Confirmed, new FixedClock().UtcNow);
+                order.ChangeStatus(OrderStatus.Paid, new FixedClock().UtcNow);
+                return PaymentStatus.Paid;
+            });
+        var unitOfWork = CreateTransactionalUnitOfWork<OrderDto>();
+        var handler = new CancelOrderCommandHandler(
+            orders.Object,
+            new StubCurrentUser(7),
+            CreateCancellationService(
+                orders.Object,
+                Mock.Of<IProductVariantRepository>(),
+                unitOfWork.Object,
+                reconciler.Object));
+
+        var action = () => handler.Handle(new CancelOrderCommand(order.Id), CancellationToken.None);
+
+        await action.Should().ThrowAsync<ApiContractException>();
+        order.Status.Should().Be(OrderStatus.Paid);
+        payment.Status.Should().Be(PaymentStatus.Paid);
+        variant.StockMovements.Should().NotContain(movement => movement.Type == StockMovementType.Cancellation);
+        orders.Verify(repository => repository.GetByIdForUserForUpdateAsync(
+            It.IsAny<Guid>(), It.IsAny<long>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // Burada yöneticinin genel durum endpointiyle doğrudan refund akışını bypass edemediğini doğruluyorum.
@@ -141,7 +244,8 @@ public sealed class OrderPaymentAndLifecycleTests
             new OrderInventoryService(Mock.Of<IProductVariantRepository>()),
             new OrderCouponService(Mock.Of<ICouponRepository>(), new FixedClock()),
             new FixedClock(),
-            unitOfWork.Object);
+            unitOfWork.Object,
+            Mock.Of<IOrderCancellationOperationRepository>());
 
         Func<Task> act = () => handler.Handle(
             new ChangeOrderStatusCommand(order.Id, OrderStatus.Refunded),
@@ -202,7 +306,8 @@ public sealed class OrderPaymentAndLifecycleTests
             new OrderInventoryService(Mock.Of<IProductVariantRepository>()),
             new OrderCouponService(Mock.Of<ICouponRepository>(), clock),
             clock,
-            unitOfWork.Object);
+            unitOfWork.Object,
+            Mock.Of<IOrderCancellationOperationRepository>());
 
         var result = await handler.Handle(
             new ChangeOrderStatusCommand(
@@ -219,6 +324,56 @@ public sealed class OrderPaymentAndLifecycleTests
         result.TrackingUrl.Should().Be("https://track.example.com/TRACK-123");
         result.ShippedAt.Should().Be(clock.UtcNow);
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // Burada kalıcı cancellation intent'i bulunan Preparing siparişin admin tarafından Shipped yapılmadığını doğruluyorum.
+    [Fact]
+    public async Task ChangeStatus_Should_Reject_Shipment_While_Cancellation_Is_In_Progress()
+    {
+        var clock = new FixedClock();
+        var order = CreateOrder();
+        order.ChangeStatus(OrderStatus.Confirmed, clock.UtcNow);
+        var payment = new Payment(order.Id, PaymentProvider.Iyzico, order.GrandTotal, "shipment_cancel_race_key_001");
+        order.AddPayment(payment);
+        payment.MarkAsPaid("shipment_cancel_provider_payment_001");
+        order.ChangeStatus(OrderStatus.Paid, clock.UtcNow);
+        order.ChangeStatus(OrderStatus.Preparing, clock.UtcNow);
+        var operation = new OrderCancellationOperation(
+            order,
+            payment,
+            OrderCancellationInitiatorType.Member,
+            PaymentReversalType.Cancel,
+            clock.UtcNow);
+        var orders = new Mock<IOrderRepository>();
+        orders.Setup(repository => repository.GetByIdForUpdateAsync(order.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        var operations = new Mock<IOrderCancellationOperationRepository>();
+        operations.Setup(repository => repository.GetByOrderIdAsync(
+                order.Id,
+                true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(operation);
+        var unitOfWork = CreateTransactionalUnitOfWork<OrderDto>();
+        var handler = new ChangeOrderStatusCommandHandler(
+            orders.Object,
+            new OrderInventoryService(Mock.Of<IProductVariantRepository>()),
+            new OrderCouponService(Mock.Of<ICouponRepository>(), clock),
+            clock,
+            unitOfWork.Object,
+            operations.Object);
+
+        var shipment = () => handler.Handle(
+            new ChangeOrderStatusCommand(
+                order.Id,
+                OrderStatus.Shipped,
+                "Carrier",
+                "TRACK-RACE-001"),
+            CancellationToken.None);
+
+        var exception = await shipment.Should().ThrowAsync<ApiContractException>();
+        exception.Which.ErrorCode.Should().Be("order_cancellation_in_progress");
+        order.Status.Should().Be(OrderStatus.Preparing);
+        unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // Burada yönetici kupon kodunu değiştirse bile iptal sırasında kullanım kaydının sipariş kimliğiyle geri alındığını doğruluyorum.
@@ -303,8 +458,31 @@ public sealed class OrderPaymentAndLifecycleTests
                 It.IsAny<Func<CancellationToken, Task<bool>>>(),
                 It.IsAny<CancellationToken>()))
             .Returns<Func<CancellationToken, Task<bool>>, CancellationToken>((operation, token) => operation(token));
+        unitOfWork.Setup(unit => unit.ExecuteInSerializableTransactionAsync(
+                It.IsAny<Func<CancellationToken, Task<OrderCancellationOperation>>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<OrderCancellationOperation>>, CancellationToken>((operation, token) => operation(token));
         unitOfWork.Setup(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         return unitOfWork;
+    }
+
+    // Burada eski lifecycle testlerini yeni ortak cancellation sagasının tahsilatsız dalıyla çalıştırıyorum.
+    private static OrderCancellationService CreateCancellationService(
+        IOrderRepository orders,
+        IProductVariantRepository variants,
+        IUnitOfWork unitOfWork,
+        IPendingPaymentCancellationReconciler reconciler)
+    {
+        return new OrderCancellationService(
+            orders,
+            Mock.Of<IOrderCancellationOperationRepository>(),
+            reconciler,
+            Mock.Of<ICheckoutFormGateway>(),
+            new OrderInventoryService(variants),
+            new OrderCouponService(Mock.Of<ICouponRepository>(), new FixedClock()),
+            Mock.Of<IOrderNotificationService>(),
+            new FixedClock(),
+            unitOfWork);
     }
 
     private sealed class StubCurrentUser : ICurrentUserService

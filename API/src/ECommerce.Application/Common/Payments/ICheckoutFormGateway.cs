@@ -18,6 +18,34 @@ public interface ICheckoutFormGateway
     // Burada callback tokenıyla ödeme sonucunu sağlayıcıdan yeniden sorguluyorum.
     Task<CheckoutFormRetrieveResult> RetrieveAsync(
         string token,
+        string conversationId,
+        CancellationToken cancellationToken = default);
+
+    // Burada terk edilmiş siparişe geç ulaşan kesin tahsilatı provider payment kimliğiyle geri çeviriyorum.
+    Task<LatePaymentReversalResult> ReverseLatePaymentAsync(
+        string providerPaymentId,
+        string conversationId,
+        decimal expectedAmount,
+        CancellationToken cancellationToken = default);
+
+    // Burada tahsil edilmiş ödemenin güncel cancel/refund durumunu reporting servisinden doğruluyorum.
+    Task<PaymentReversalReport> RetrieveReversalReportAsync(
+        string providerPaymentId,
+        CancellationToken cancellationToken = default);
+
+    // Burada provider paymentId üzerinden aynı gün tam iptal isteğini gönderiyorum.
+    Task<PaymentReversalGatewayResult> CancelPaymentAsync(
+        string providerPaymentId,
+        string conversationId,
+        decimal expectedPaidAmount,
+        CancellationToken cancellationToken = default);
+
+    // Burada standart item-level refund isteğini gerçek paymentTransactionId ve paidPrice tutarıyla gönderiyorum.
+    Task<PaymentReversalGatewayResult> RefundPaymentItemAsync(
+        string providerPaymentId,
+        string providerPaymentTransactionId,
+        string conversationId,
+        decimal amount,
         CancellationToken cancellationToken = default);
 
     // Burada webhook gövdesinin sağlayıcı imzasını sabit zamanlı karşılaştırmayla doğruluyorum.
@@ -61,7 +89,9 @@ public sealed record CheckoutFormInitializeResult(
     string? Token,
     string? PaymentPageUrl,
     DateTime? ExpiresAt,
-    string? FailureReason);
+    string? FailureReason,
+    bool IsDefinitiveFailure = false,
+    string? ConversationId = null);
 
 public enum CheckoutFormPaymentState
 {
@@ -78,9 +108,18 @@ public sealed record CheckoutFormRetrieveResult(
     string Currency,
     decimal Price,
     decimal PaidPrice,
+    int? InstallmentCount,
     string? ProviderPaymentId,
     int? FraudStatus,
-    string? FailureReason);
+    string? FailureReason,
+    IReadOnlyList<CheckoutFormItemTransaction>? ItemTransactions = null);
+
+public sealed record CheckoutFormItemTransaction(
+    string ProviderPaymentTransactionId,
+    string ItemId,
+    decimal Price,
+    decimal PaidPrice,
+    int TransactionStatus);
 
 public sealed record CheckoutFormWebhookNotification(
     string EventType,
@@ -88,3 +127,42 @@ public sealed record CheckoutFormWebhookNotification(
     string Token,
     string PaymentConversationId,
     string Status);
+
+public sealed record LatePaymentReversalResult(
+    bool Succeeded,
+    bool Retryable,
+    string? FailureReason = null);
+
+public sealed record PaymentReversalGatewayResult(
+    bool Succeeded,
+    bool Retryable,
+    string? ErrorCode = null,
+    string? FailureReason = null);
+
+public sealed record PaymentReversalReport(
+    string ProviderPaymentId,
+    string PaymentConversationId,
+    string Currency,
+    decimal Price,
+    decimal PaidPrice,
+    string RefundStatus,
+    IReadOnlyList<PaymentReversalReportCancel> Cancels,
+    IReadOnlyList<PaymentReversalReportItem> Items);
+
+public sealed record PaymentReversalReportCancel(
+    string ConversationId,
+    decimal Amount,
+    int Status,
+    string Currency);
+
+public sealed record PaymentReversalReportItem(
+    string ProviderPaymentTransactionId,
+    decimal Price,
+    decimal PaidPrice,
+    IReadOnlyList<PaymentReversalReportRefund> Refunds);
+
+public sealed record PaymentReversalReportRefund(
+    string ConversationId,
+    decimal Amount,
+    int Status,
+    string Currency);

@@ -26,6 +26,9 @@ public sealed class AppDbContext : DbContext
     public DbSet<OrderCustomerSnapshot> OrderCustomerSnapshots => Set<OrderCustomerSnapshot>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<PaymentItemTransaction> PaymentItemTransactions => Set<PaymentItemTransaction>();
+    public DbSet<OrderCancellationOperation> OrderCancellationOperations => Set<OrderCancellationOperation>();
+    public DbSet<OrderCancellationOperationItem> OrderCancellationOperationItems => Set<OrderCancellationOperationItem>();
     public DbSet<EmailOutboxMessage> EmailOutbox => Set<EmailOutboxMessage>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductSearchDocument> ProductSearchDocuments => Set<ProductSearchDocument>();

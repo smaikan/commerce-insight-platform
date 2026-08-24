@@ -16,6 +16,7 @@ public sealed class ChangeOrderStatusCommandHandler : IRequestHandler<ChangeOrde
     private readonly IDateTimeProvider _clock;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderNotificationService? _notificationService;
+    private readonly IOrderCancellationOperationRepository _cancellationOperations;
 
     // Burada yönetim yaşam döngüsü değişikliği için sipariş, stok, saat ve transaction bağımlılıklarını hazırlıyorum.
     public ChangeOrderStatusCommandHandler(
@@ -24,6 +25,7 @@ public sealed class ChangeOrderStatusCommandHandler : IRequestHandler<ChangeOrde
         OrderCouponService couponService,
         IDateTimeProvider clock,
         IUnitOfWork unitOfWork,
+        IOrderCancellationOperationRepository cancellationOperations,
         IOrderNotificationService? notificationService = null)
     {
         _orderRepository = orderRepository;
@@ -31,6 +33,7 @@ public sealed class ChangeOrderStatusCommandHandler : IRequestHandler<ChangeOrde
         _couponService = couponService;
         _clock = clock;
         _unitOfWork = unitOfWork;
+        _cancellationOperations = cancellationOperations;
         _notificationService = notificationService;
     }
 
@@ -70,12 +73,33 @@ public sealed class ChangeOrderStatusCommandHandler : IRequestHandler<ChangeOrde
                 throw new ConflictException("A payment attempt is still being processed and requires reconciliation before cancellation.");
             }
 
+            if (order.Payments.Any(payment => payment.Status == PaymentStatus.Paid))
+            {
+                throw new ConflictException("Paid orders must be cancelled through a provider-confirmed payment reversal.");
+            }
+
             await _inventoryService.RestoreCancelledOrderStockAsync(order, cancellationToken);
             await _couponService.ReleaseForCancellationAsync(order, cancellationToken);
         }
 
         if (request.Status == OrderStatus.Shipped)
         {
+            var cancellationOperation = await _cancellationOperations.GetByOrderIdAsync(
+                order.Id,
+                true,
+                cancellationToken);
+            if (cancellationOperation?.Status is
+                OrderCancellationOperationStatus.Requested or
+                OrderCancellationOperationStatus.Processing or
+                OrderCancellationOperationStatus.ReconciliationPending)
+            {
+                throw new ApiContractException(
+                    409,
+                    "order_cancellation_in_progress",
+                    "Order cancellation is in progress",
+                    "Ödeme geri alma işlemi devam eden sipariş kargoya verilemez.");
+            }
+
             order.SetShipment(
                 request.ShippingCarrier!,
                 request.TrackingNumber!,

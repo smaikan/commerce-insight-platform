@@ -313,6 +313,17 @@ public sealed class EmailOutboxBackgroundService : BackgroundService
                 message.Amount
                     ?? throw new InvalidOperationException("Payment amount is missing."),
                 cancellationToken),
+            EmailOutboxMessageType.PaymentReversalCompleted => sender.SendPaymentReversalCompletedAsync(
+                message.Email,
+                message.RecipientName
+                    ?? throw new InvalidOperationException("Payment reversal recipient name is missing."),
+                message.OrderNumber
+                    ?? throw new InvalidOperationException("Payment reversal order number is missing."),
+                message.Amount
+                    ?? throw new InvalidOperationException("Payment reversal amount is missing."),
+                message.Status
+                    ?? throw new InvalidOperationException("Payment reversal type is missing."),
+                cancellationToken),
             EmailOutboxMessageType.OrderStatusChanged => sender.SendOrderStatusChangedAsync(
                 message.Email,
                 message.RecipientName

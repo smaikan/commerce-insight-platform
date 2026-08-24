@@ -2,6 +2,7 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Payments;
 using ECommerce.Application.Common.Security;
 using ECommerce.Application.Orders.Services;
+using ECommerce.Application.Payments;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using MediatR;
@@ -18,6 +19,7 @@ public sealed class ExpireStockReservationsCommandHandler
     private readonly IDateTimeProvider _clock;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderNotificationService? _notificationService;
+    private readonly DefinitivePaymentFailureService _definitivePaymentFailure;
 
     // Burada stok rezervasyonu sonlandırma akışının sipariş, stok, kupon, sağlayıcı, saat ve transaction bağımlılıklarını hazırlıyorum.
     public ExpireStockReservationsCommandHandler(
@@ -26,6 +28,7 @@ public sealed class ExpireStockReservationsCommandHandler
         OrderCouponService couponService,
         IDateTimeProvider clock,
         IUnitOfWork unitOfWork,
+        DefinitivePaymentFailureService definitivePaymentFailure,
         IEnumerable<IPaymentGatewayReconciler>? paymentReconcilers = null,
         IOrderNotificationService? notificationService = null)
     {
@@ -36,6 +39,7 @@ public sealed class ExpireStockReservationsCommandHandler
         _clock = clock;
         _unitOfWork = unitOfWork;
         _notificationService = notificationService;
+        _definitivePaymentFailure = definitivePaymentFailure;
     }
 
     // Burada süre dolan rezervasyonları önce sağlayıcı dışında çözüp ardından kısa serializable transactionlarla güvenle sonlandırıyorum.
@@ -127,6 +131,7 @@ public sealed class ExpireStockReservationsCommandHandler
                 new PaymentReconciliationRequest(
                     order.Id,
                     payment.Id,
+                    order.SubTotal,
                     payment.Amount,
                     payment.IdempotencyKey,
                     payment.ProviderToken),
@@ -204,7 +209,11 @@ public sealed class ExpireStockReservationsCommandHandler
                 return ReservationOutcome.None;
             }
 
-            payment.MarkAsPaid(reconciliationResult.TransactionId);
+            payment.MarkAsPaid(
+                reconciliationResult.TransactionId,
+                reconciliationResult.FraudStatus,
+                reconciliationResult.ProviderPaidAmount,
+                reconciliationResult.InstallmentCount);
             if (order.Status == OrderStatus.Pending)
             {
                 order.ChangeStatus(OrderStatus.Confirmed, utcNow);
@@ -225,18 +234,15 @@ public sealed class ExpireStockReservationsCommandHandler
             return ReservationOutcome.None;
         }
 
-        payment.MarkAsTimedOut();
-        await _inventoryService.RestoreCancelledOrderStockAsync(order, cancellationToken);
-        await _couponService.ReleaseForCancellationAsync(order, cancellationToken);
-        if (!order.ExpireStockReservation(utcNow))
+        var applied = await _definitivePaymentFailure.ApplyAsync(
+            order,
+            payment,
+            "Payment attempt was rejected during provider reconciliation.",
+            reconciliationResult.TransactionId,
+            cancellationToken);
+        if (!applied)
         {
             return ReservationOutcome.None;
-        }
-
-        if (_notificationService is not null)
-        {
-            await _notificationService.QueuePaymentResultAsync(order, payment, cancellationToken);
-            await _notificationService.QueueOrderStatusChangedAsync(order, cancellationToken);
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -250,6 +250,34 @@ public sealed class EmailOutboxMessage : BaseEntity
             amount: amount);
     }
 
+    // Burada provider tarafından doğrulanan ödeme geri alımını operasyon başına tek müşteri bildirimi olarak hazırlıyorum.
+    public static EmailOutboxMessage CreatePaymentReversalCompleted(
+        string email,
+        string recipientName,
+        Guid cancellationOperationId,
+        string orderNumber,
+        decimal amount,
+        PaymentReversalType reversalType,
+        DateTime createdAt)
+    {
+        EnsureNonEmptyIdentifier(cancellationOperationId, "Cancellation operation id");
+        EnsurePositiveAmount(amount);
+        if (!Enum.IsDefined(reversalType))
+        {
+            throw new DomainException("Payment reversal type is invalid.");
+        }
+
+        return CreateMessage(
+            EmailOutboxMessageType.PaymentReversalCompleted,
+            email,
+            $"payment-reversal-completed:{cancellationOperationId:N}",
+            createdAt,
+            recipientName: recipientName,
+            orderNumber: orderNumber,
+            amount: amount,
+            status: reversalType.ToString());
+    }
+
     // Burada sipariş durum değişimi için durum başına yalnız bir müşteri bildirimi hazırlıyorum.
     public static EmailOutboxMessage CreateOrderStatusChanged(
         string email,
@@ -459,6 +487,7 @@ public sealed class EmailOutboxMessage : BaseEntity
     }
 
     // Burada tip-bazlı ve güvenilir alanlarla yeni e-posta outbox kaydını oluşturuyorum.
+    // Burada bütün e-posta türlerinin ortak normalize edilmiş outbox alanlarını tek noktada oluşturuyorum.
     private static EmailOutboxMessage CreateMessage(
         EmailOutboxMessageType type,
         string email,
@@ -496,6 +525,7 @@ public sealed class EmailOutboxMessage : BaseEntity
         };
     }
 
+    // Burada opsiyonel outbox metnini boş değer ve kolon uzunluğu kurallarına göre hazırlıyorum.
     private static string? NormalizeOptionalField(string? value, int maxLength)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;

@@ -12,5 +12,6 @@ public enum EmailOutboxMessageType
     ReturnStatusChanged = 8,
     GuestOrderAccess = 9,
     ContactMessageReceived = 10,
-    ContactMessageReply = 11
+    ContactMessageReply = 11,
+    PaymentReversalCompleted = 12
 }

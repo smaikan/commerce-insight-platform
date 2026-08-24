@@ -11,6 +11,11 @@ public interface IOrderRepository
     // Burada mevcut siparişe ait yeni ödeme denemesini açıkça veritabanı takibine ekleme sözleşmesini tanımlıyorum.
     Task AddPaymentAsync(Payment payment, CancellationToken cancellationToken = default);
 
+    // Burada başarılı provider sonucundaki item transaction snapshot'larını açıkça Added durumda izlemeyi tanımlıyorum.
+    Task AddPaymentItemTransactionsAsync(
+        IReadOnlyCollection<PaymentItemTransaction> items,
+        CancellationToken cancellationToken = default);
+
     // Burada siparişi sahibi ve kalemleriyle birlikte okuma amaçlı getirme sözleşmesini tanımlıyorum.
     Task<Order?> GetByIdForUserAsync(Guid orderId, long userId, CancellationToken cancellationToken = default);
 
@@ -37,6 +42,12 @@ public interface IOrderRepository
 
     // Burada süresi geçmiş stok rezervasyonlarını sağlayıcı mutabakatından önce takip etmeden ve sınırlı getiriyorum.
     Task<IReadOnlyList<Order>> GetExpiredStockReservationsAsync(
+        DateTime utcNow,
+        int maxCount,
+        CancellationToken cancellationToken = default);
+
+    // Burada terk edilmiş CheckoutForm oturumlarından uzlaştırma zamanı gelen provider tokenlarını bounded okumayı tanımlıyorum.
+    Task<IReadOnlyList<string>> GetDueAbandonedPaymentTokensAsync(
         DateTime utcNow,
         int maxCount,
         CancellationToken cancellationToken = default);

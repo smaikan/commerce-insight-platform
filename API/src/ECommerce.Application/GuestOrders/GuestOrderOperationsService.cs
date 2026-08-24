@@ -21,11 +21,10 @@ public sealed class GuestOrderOperationsService
     private readonly IReturnRequestRepository _returns;
     private readonly IProductVariantRepository _variants;
     private readonly IReadOnlyCollection<IPaymentGateway> _paymentGateways;
-    private readonly OrderInventoryService _inventory;
-    private readonly OrderCouponService _coupons;
     private readonly IOrderNotificationService _notifications;
     private readonly IDateTimeProvider _clock;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly OrderCancellationService _cancellations;
 
     // Burada guest ödeme, iptal ve iade işlemlerinin mevcut domain servisleriyle ortak bağımlılıklarını hazırlıyorum.
     public GuestOrderOperationsService(
@@ -35,11 +34,10 @@ public sealed class GuestOrderOperationsService
         IReturnRequestRepository returns,
         IProductVariantRepository variants,
         IEnumerable<IPaymentGateway> paymentGateways,
-        OrderInventoryService inventory,
-        OrderCouponService coupons,
         IOrderNotificationService notifications,
         IDateTimeProvider clock,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        OrderCancellationService cancellations)
     {
         _access = access;
         _guestOrders = guestOrders;
@@ -47,11 +45,10 @@ public sealed class GuestOrderOperationsService
         _returns = returns;
         _variants = variants;
         _paymentGateways = paymentGateways.ToList();
-        _inventory = inventory;
-        _coupons = coupons;
         _notifications = notifications;
         _clock = clock;
         _unitOfWork = unitOfWork;
+        _cancellations = cancellations;
     }
 
     // Burada guest sipariş için idempotent ödeme kaydını oluşturup sağlayıcı sonucunu güvenle uygularım.
@@ -104,37 +101,48 @@ public sealed class GuestOrderOperationsService
             cancellationToken);
     }
 
-    // Burada guest müşterinin yalnız ödeme öncesi siparişini mevcut stok geri alma ve kupon release akışıyla iptal ediyorum.
-    public Task<OrderDto> CancelAsync(
+    // Burada guest müşterinin sahiplik ve CSRF doğrulamasından sonra bekleyen ödemeyi transaction dışında uzlaştırıp güvenli iptal yapıyorum.
+    public async Task<OrderCancellationResult> CancelAsync(
         string sessionToken,
         string csrfToken,
         Guid orderId,
         CancellationToken cancellationToken)
     {
-        return _unitOfWork.ExecuteInSerializableTransactionAsync(
-            async token =>
-            {
-                var session = await _access.ValidateSessionAsync(sessionToken, csrfToken, true, token);
-                var order = await _guestOrders.GetOrderForSessionAsync(session.Id, orderId, true, token)
-                    ?? throw new NotFoundException("Order was not found.");
-                if (order.Status is not (OrderStatus.Pending or OrderStatus.Confirmed or OrderStatus.Paid or OrderStatus.Preparing))
-                {
-                    throw new ConflictException("Only orders that have not been shipped can be cancelled by the customer.");
-                }
-
-                if (order.Payments.Any(payment => payment.Status == PaymentStatus.Pending))
-                {
-                    throw new ConflictException("A payment attempt requires reconciliation before cancellation.");
-                }
-
-                await _inventory.RestoreCancelledOrderStockAsync(order, token);
-                await _coupons.ReleaseForCancellationAsync(order, token);
-                order.ChangeStatus(OrderStatus.Cancelled, _clock.UtcNow);
-                await _notifications.QueueOrderStatusChangedAsync(order, token);
-                await _unitOfWork.SaveChangesAsync(token);
-                return order.ToDto();
-            },
+        var snapshotSession = await _access.ValidateSessionAsync(
+            sessionToken,
+            csrfToken,
+            true,
             cancellationToken);
+        var snapshot = await _guestOrders.GetOrderForSessionAsync(
+            snapshotSession.Id,
+            orderId,
+            false,
+            cancellationToken)
+            ?? throw new NotFoundException("Order was not found.");
+        return await _cancellations.RequestAsync(
+            snapshot,
+            OrderCancellationInitiatorType.Guest,
+            "/api/guest-orders",
+            cancellationToken);
+    }
+
+    // Burada guest session grant'ini doğrulayıp yalnız sahip olunan siparişin cancellation operasyonunu döndürüyorum.
+    public async Task<OrderCancellationOperationDto> GetCancellationAsync(
+        string sessionToken,
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        var session = await _access.ValidateSessionAsync(
+            sessionToken,
+            null,
+            false,
+            cancellationToken);
+        var order = await _guestOrders.GetOrderForSessionAsync(
+            session.Id,
+            orderId,
+            false,
+            cancellationToken) ?? throw new NotFoundException("Order was not found.");
+        return await _cancellations.GetAsync(order.Id, "/api/guest-orders", cancellationToken);
     }
 
     // Burada guest sipariş için teslimat sonrası iade veya değişim talebini mevcut miktar kurallarıyla oluşturuyorum.

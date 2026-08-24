@@ -3172,6 +3172,148 @@ namespace ECommerce.Persistence.Migrations
                     b.ToTable("OrderAddressSnapshots", (string)null);
                 });
 
+            modelBuilder.Entity("ECommerce.Domain.Entities.OrderCancellationOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ErrorSummary")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("InitiatorType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PaymentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProviderConversationId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ProviderPaymentId")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("ReversalType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_OrderCancellationOperations_ActiveOrder")
+                        .HasFilter("[Status] IN ('Requested', 'Processing', 'ReconciliationPending')");
+
+                    b.HasIndex("PaymentId");
+
+                    b.HasIndex("ProviderConversationId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "NextAttemptAt", "Id");
+
+                    b.ToTable("OrderCancellationOperations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderCancellationOperations_AttemptCount_NonNegative", "[AttemptCount] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.OrderCancellationOperationItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("OperationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PaymentItemTransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProviderConversationId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ProviderPaymentTransactionId")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentItemTransactionId");
+
+                    b.HasIndex("ProviderConversationId")
+                        .IsUnique();
+
+                    b.HasIndex("OperationId", "ProviderPaymentTransactionId")
+                        .IsUnique();
+
+                    b.ToTable("OrderCancellationOperationItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderCancellationOperationItems_Amount_Positive", "[Amount] > 0");
+                        });
+                });
+
             modelBuilder.Entity("ECommerce.Domain.Entities.OrderCustomerSnapshot", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3312,11 +3454,20 @@ namespace ECommerce.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("AbandonmentNextReconciliationAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("AbandonmentReconciledAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal>("Amount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CustomerAbandonedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("FailureReason")
@@ -3329,6 +3480,12 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<string>("IdempotencyKey")
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
+
+                    b.Property<int?>("InstallmentCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("LateChargeReversedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier");
@@ -3348,6 +3505,10 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<string>("ProviderConversationId")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal?>("ProviderPaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ProviderToken")
                         .HasMaxLength(500)
@@ -3385,9 +3546,61 @@ namespace ECommerce.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("[TransactionId] IS NOT NULL");
 
+                    b.HasIndex("Status", "AbandonmentReconciledAt", "AbandonmentNextReconciliationAt")
+                        .HasFilter("[CustomerAbandonedAt] IS NOT NULL");
+
                     b.ToTable("Payments", null, t =>
                         {
                             t.HasCheckConstraint("CK_Payments_Amount_Positive", "[Amount] > 0");
+
+                            t.HasCheckConstraint("CK_Payments_InstallmentCount_Range", "[InstallmentCount] IS NULL OR [InstallmentCount] BETWEEN 1 AND 12");
+
+                            t.HasCheckConstraint("CK_Payments_ProviderCharge_Complete", "([ProviderPaidAmount] IS NULL AND [InstallmentCount] IS NULL) OR ([ProviderPaidAmount] IS NOT NULL AND [InstallmentCount] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_Payments_ProviderPaidAmount_Positive", "[ProviderPaidAmount] IS NULL OR [ProviderPaidAmount] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.PaymentItemTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrderItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("PaidPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("PaymentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ProviderTransactionId")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderItemId");
+
+                    b.HasIndex("ProviderTransactionId")
+                        .IsUnique();
+
+                    b.HasIndex("PaymentId", "OrderItemId")
+                        .IsUnique();
+
+                    b.ToTable("PaymentItemTransactions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PaymentItemTransactions_Amounts_Positive", "[Price] > 0 AND [PaidPrice] > 0");
                         });
                 });
 
@@ -3852,6 +4065,9 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -3904,10 +4120,13 @@ namespace ECommerce.Persistence.Migrations
 
                     b.HasIndex("Barcode");
 
+                    b.HasIndex("DeletedAtUtc");
+
                     b.HasIndex("ProductId");
 
                     b.HasIndex("Sku")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[DeletedAtUtc] IS NULL");
 
                     b.HasIndex("VariantOptionNameId");
 
@@ -3945,7 +4164,6 @@ namespace ECommerce.Persistence.Migrations
             modelBuilder.Entity("ECommerce.Domain.Entities.ProductVariantOptionValue", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("DisplayOrder")
@@ -5589,6 +5807,44 @@ namespace ECommerce.Persistence.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("ECommerce.Domain.Entities.OrderCancellationOperation", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECommerce.Domain.Entities.Payment", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.OrderCancellationOperationItem", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.OrderCancellationOperation", "Operation")
+                        .WithMany("Items")
+                        .HasForeignKey("OperationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ECommerce.Domain.Entities.PaymentItemTransaction", "PaymentItemTransaction")
+                        .WithMany()
+                        .HasForeignKey("PaymentItemTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Operation");
+
+                    b.Navigation("PaymentItemTransaction");
+                });
+
             modelBuilder.Entity("ECommerce.Domain.Entities.OrderCustomerSnapshot", b =>
                 {
                     b.HasOne("ECommerce.Domain.Entities.Order", "Order")
@@ -5633,6 +5889,25 @@ namespace ECommerce.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.PaymentItemTransaction", b =>
+                {
+                    b.HasOne("ECommerce.Domain.Entities.OrderItem", "OrderItem")
+                        .WithMany()
+                        .HasForeignKey("OrderItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECommerce.Domain.Entities.Payment", "Payment")
+                        .WithMany("ItemTransactions")
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OrderItem");
+
+                    b.Navigation("Payment");
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Product", b =>
@@ -6046,6 +6321,16 @@ namespace ECommerce.Persistence.Migrations
                     b.Navigation("Items");
 
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.OrderCancellationOperation", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.Payment", b =>
+                {
+                    b.Navigation("ItemTransactions");
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.Product", b =>

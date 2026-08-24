@@ -13,6 +13,8 @@ public sealed class Payment : BaseEntity
     public const int MaximumPaymentPageUrlLength = 1000;
     public const string IdempotencyKeyPattern = "^[A-Za-z0-9_-]+$";
 
+    private readonly List<PaymentItemTransaction> _itemTransactions = [];
+
     public Guid OrderId { get; private set; }
     public Order Order { get; private set; } = null!;
     public PaymentProvider Provider { get; private set; }
@@ -26,8 +28,15 @@ public sealed class Payment : BaseEntity
     public string? PaymentPageUrl { get; private set; }
     public DateTime? ProviderTokenExpiresAt { get; private set; }
     public int? FraudStatus { get; private set; }
+    public decimal? ProviderPaidAmount { get; private set; }
+    public int? InstallmentCount { get; private set; }
     public DateTime? PaidAt { get; private set; }
+    public DateTime? CustomerAbandonedAt { get; private set; }
+    public DateTime? AbandonmentNextReconciliationAt { get; private set; }
+    public DateTime? AbandonmentReconciledAt { get; private set; }
+    public DateTime? LateChargeReversedAt { get; private set; }
     public DateTime CreatedAt { get; private set; }
+    public IReadOnlyCollection<PaymentItemTransaction> ItemTransactions => _itemTransactions.AsReadOnly();
 
     private Payment()
     {
@@ -109,12 +118,57 @@ public sealed class Payment : BaseEntity
         ProviderTokenExpiresAt = tokenExpiresAt;
     }
 
-    // Burada yalnız bekleyen ödeme denemesini sağlayıcı işlem kimliğiyle başarılı olarak işaretliyorum.
-    public void MarkAsPaid(string transactionId, int? fraudStatus = null)
+    // Burada kesin başarısız CheckoutForm yanıtının doğrulanmış token ve conversation kimliğini denetim için saklıyorum.
+    public void RecordCheckoutFormIdentity(string providerToken, string conversationId)
+    {
+        if (Status != PaymentStatus.Pending)
+        {
+            throw new DomainException("Only pending payment can receive checkout form identity.");
+        }
+
+        var normalizedToken = NormalizeRequiredValue(
+            providerToken,
+            MaximumProviderTokenLength,
+            "Provider token");
+        var normalizedConversationId = NormalizeRequiredValue(
+            conversationId,
+            MaximumConversationIdLength,
+            "Provider conversation id");
+        if ((ProviderToken is not null && ProviderToken != normalizedToken) ||
+            (ProviderConversationId is not null && ProviderConversationId != normalizedConversationId))
+        {
+            throw new DomainException("Checkout form identity cannot be changed.");
+        }
+
+        ProviderToken = normalizedToken;
+        ProviderConversationId = normalizedConversationId;
+    }
+
+    // Burada yalnız bekleyen ödeme denemesini sağlayıcının kesin tahsilat ayrıntılarıyla başarılı işaretliyorum.
+    public void MarkAsPaid(
+        string transactionId,
+        int? fraudStatus = null,
+        decimal? providerPaidAmount = null,
+        int? installmentCount = null)
     {
         if (Status != PaymentStatus.Pending)
         {
             throw new DomainException("Only pending payment can be marked as paid.");
+        }
+
+        if (providerPaidAmount.HasValue != installmentCount.HasValue)
+        {
+            throw new DomainException("Provider paid amount and installment count must be recorded together.");
+        }
+
+        if (providerPaidAmount is <= 0)
+        {
+            throw new DomainException("Provider paid amount must be greater than zero.");
+        }
+
+        if (installmentCount is < 1 or > 12)
+        {
+            throw new DomainException("Installment count must be between 1 and 12.");
         }
 
         TransactionId = NormalizeRequiredValue(transactionId, MaximumTransactionIdLength, "Payment transaction id");
@@ -123,6 +177,8 @@ public sealed class Payment : BaseEntity
         FailureReason = null;
         PaidAt = DateTime.UtcNow;
         FraudStatus = fraudStatus;
+        ProviderPaidAmount = providerPaidAmount;
+        InstallmentCount = installmentCount;
     }
 
     // Burada yalnız bekleyen ödeme denemesini güvenli hata özetiyle başarısız olarak işaretliyorum.
@@ -166,6 +222,53 @@ public sealed class Payment : BaseEntity
         Status = PaymentStatus.Refunded;
     }
 
+    // Burada aynı gün provider cancel başarısından sonra tahsil edilmiş ödemeyi iptal edildi olarak kaydediyorum.
+    public void MarkAsCancelledAfterProviderReversal()
+    {
+        if (Status != PaymentStatus.Paid)
+        {
+            throw new DomainException("Only a paid payment can be cancelled by the provider.");
+        }
+
+        Status = PaymentStatus.Cancelled;
+    }
+
+    // Burada CF-Retrieve sonucundaki gerçek item transaction ve paidPrice dağılımını yalnız bir kez kalıcılaştırıyorum.
+    public IReadOnlyList<PaymentItemTransaction> RecordProviderItemTransactions(
+        IReadOnlyCollection<ProviderPaymentItemSnapshot> items,
+        DateTime utcNow)
+    {
+        if (Status != PaymentStatus.Paid || !ProviderPaidAmount.HasValue)
+        {
+            throw new DomainException("Only a paid payment can record provider item transactions.");
+        }
+
+        if (_itemTransactions.Count != 0)
+        {
+            return [];
+        }
+
+        if (items.Count == 0 ||
+            items.Select(item => item.OrderItemId).Distinct().Count() != items.Count ||
+            items.Select(item => item.ProviderTransactionId).Distinct(StringComparer.Ordinal).Count() != items.Count ||
+            items.Sum(item => item.PaidPrice) != ProviderPaidAmount.Value)
+        {
+            throw new DomainException("Provider item transactions do not match the paid amount.");
+        }
+
+        var created = items
+            .Select(item => new PaymentItemTransaction(
+                this,
+                item.OrderItemId,
+                item.ProviderTransactionId,
+                item.Price,
+                item.PaidPrice,
+                utcNow))
+            .ToList();
+        _itemTransactions.AddRange(created);
+        return created;
+    }
+
     // Burada henüz başarılı olmayan ödeme denemesini iptal ediyorum.
     public void Cancel()
     {
@@ -175,6 +278,92 @@ public sealed class Payment : BaseEntity
         }
 
         Status = PaymentStatus.Cancelled;
+    }
+
+    // Burada müşterinin açık CheckoutForm oturumunu terk etmesini izlenebilir ve sonradan uzlaştırılabilir biçimde kaydediyorum.
+    public void AbandonCheckoutForm(DateTime utcNow)
+    {
+        if (Status != PaymentStatus.Pending || string.IsNullOrWhiteSpace(ProviderToken))
+        {
+            throw new DomainException("Only an initialized pending checkout form can be abandoned.");
+        }
+
+        Status = PaymentStatus.Cancelled;
+        FailureReason = "Payment form was cancelled by the customer before completion.";
+        CustomerAbandonedAt = utcNow;
+        AbandonmentNextReconciliationAt = utcNow;
+        AbandonmentReconciledAt = null;
+        LateChargeReversedAt = null;
+    }
+
+    // Burada aynı terk edilmiş ödeme için paralel worker ve callback çağrılarını kısa bir veritabanı lease'iyle tekilleştiriyorum.
+    public bool ClaimAbandonmentReconciliation(DateTime utcNow, TimeSpan leaseDuration)
+    {
+        if (Status != PaymentStatus.Cancelled || !CustomerAbandonedAt.HasValue ||
+            AbandonmentReconciledAt.HasValue || string.IsNullOrWhiteSpace(ProviderToken) ||
+            (AbandonmentNextReconciliationAt.HasValue && AbandonmentNextReconciliationAt.Value > utcNow))
+        {
+            return false;
+        }
+
+        if (leaseDuration <= TimeSpan.Zero)
+        {
+            throw new DomainException("Abandonment reconciliation lease must be positive.");
+        }
+
+        AbandonmentNextReconciliationAt = utcNow.Add(leaseDuration);
+        return true;
+    }
+
+    // Burada sağlayıcı sonucu hâlâ beklemedeyse terk edilmiş oturumu bounded aralıkla yeniden sorgulanabilir tutuyorum.
+    public void ScheduleAbandonmentReconciliation(DateTime nextAttemptAt)
+    {
+        if (Status != PaymentStatus.Cancelled || !CustomerAbandonedAt.HasValue || AbandonmentReconciledAt.HasValue)
+        {
+            throw new DomainException("Only an open abandoned checkout form can be rescheduled.");
+        }
+
+        AbandonmentNextReconciliationAt = nextAttemptAt;
+    }
+
+    // Burada tahsilat oluşmadan kapanan terk edilmiş oturumun izleme döngüsünü terminal olarak tamamlıyorum.
+    public void CompleteAbandonmentReconciliation(DateTime utcNow)
+    {
+        if (Status != PaymentStatus.Cancelled || !CustomerAbandonedAt.HasValue)
+        {
+            throw new DomainException("Only an abandoned checkout form can complete reconciliation.");
+        }
+
+        AbandonmentReconciledAt = utcNow;
+        AbandonmentNextReconciliationAt = null;
+    }
+
+    // Burada iptal edilmiş siparişe geç ulaşan tahsilatın iyzico'da geri çevrildiğini ödeme denetim kaydına işliyorum.
+    public void RecordReversedLateCharge(
+        string transactionId,
+        int? fraudStatus,
+        decimal providerPaidAmount,
+        int installmentCount,
+        DateTime utcNow)
+    {
+        if (Status != PaymentStatus.Cancelled || !CustomerAbandonedAt.HasValue)
+        {
+            throw new DomainException("Only an abandoned checkout form can record a reversed late charge.");
+        }
+
+        if (providerPaidAmount <= 0 || installmentCount is < 1 or > 12)
+        {
+            throw new DomainException("Late charge provider details are invalid.");
+        }
+
+        TransactionId = NormalizeRequiredValue(transactionId, MaximumTransactionIdLength, "Payment transaction id");
+        FraudStatus = fraudStatus;
+        ProviderPaidAmount = providerPaidAmount;
+        InstallmentCount = installmentCount;
+        FailureReason = "Late provider charge was automatically cancelled after customer abandonment.";
+        LateChargeReversedAt = utcNow;
+        AbandonmentReconciledAt = utcNow;
+        AbandonmentNextReconciliationAt = null;
     }
 
     // Burada zorunlu sağlayıcı metnini boşluk ve uzunluk kurallarına göre normalize ediyorum.

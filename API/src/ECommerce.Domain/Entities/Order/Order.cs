@@ -473,6 +473,17 @@ public sealed class Order : AuditableEntity
         MarkAsUpdated();
     }
 
+    // Burada provider ters işlemi başlamadan önce sipariş satırını transaction yarışlarında görünür bir cancellation intent yazımına hazırlıyorum.
+    public void RegisterCancellationIntent()
+    {
+        if (Status is not OrderStatus.Paid and not OrderStatus.Preparing)
+        {
+            throw new DomainException("Only a paid or preparing order can register a cancellation intent.");
+        }
+
+        MarkAsUpdated();
+    }
+
     // Burada kargo takip snapshot'ını hazırlanan veya kargodaki sipariş için doğrulayıp kargoya çıkış anını koruyorum.
     public void SetShipment(string shippingCarrier, string trackingNumber, string? trackingUrl, DateTime utcNow)
     {

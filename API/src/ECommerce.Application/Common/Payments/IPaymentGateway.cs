@@ -40,6 +40,7 @@ public sealed record PaymentGatewayResult(
 public sealed record PaymentReconciliationRequest(
     Guid OrderId,
     Guid PaymentId,
+    decimal BasketPrice,
     decimal Amount,
     string IdempotencyKey,
     string? ProviderToken = null);
@@ -55,4 +56,7 @@ public enum PaymentReconciliationStatus
 // Burada sağlayıcının bekleyen ödeme için kesin ya da belirsiz mutabakat sonucunu taşıyorum.
 public sealed record PaymentReconciliationResult(
     PaymentReconciliationStatus Status,
-    string? TransactionId = null);
+    string? TransactionId = null,
+    decimal? ProviderPaidAmount = null,
+    int? InstallmentCount = null,
+    int? FraudStatus = null);

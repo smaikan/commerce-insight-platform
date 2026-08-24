@@ -12,6 +12,16 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.ToTable("Payments", tableBuilder =>
         {
             tableBuilder.HasCheckConstraint("CK_Payments_Amount_Positive", "[Amount] > 0");
+            tableBuilder.HasCheckConstraint(
+                "CK_Payments_ProviderPaidAmount_Positive",
+                "[ProviderPaidAmount] IS NULL OR [ProviderPaidAmount] > 0");
+            tableBuilder.HasCheckConstraint(
+                "CK_Payments_InstallmentCount_Range",
+                "[InstallmentCount] IS NULL OR [InstallmentCount] BETWEEN 1 AND 12");
+            tableBuilder.HasCheckConstraint(
+                "CK_Payments_ProviderCharge_Complete",
+                "([ProviderPaidAmount] IS NULL AND [InstallmentCount] IS NULL) OR " +
+                "([ProviderPaidAmount] IS NOT NULL AND [InstallmentCount] IS NOT NULL)");
         });
 
         builder.HasKey(payment => payment.Id);
@@ -29,6 +39,9 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.Property(payment => payment.Amount)
             .HasPrecision(18, 2)
             .IsRequired();
+
+        builder.Property(payment => payment.ProviderPaidAmount)
+            .HasPrecision(18, 2);
 
         builder.Property(payment => payment.IdempotencyKey)
             .HasMaxLength(Payment.MaximumIdempotencyKeyLength);
@@ -61,5 +74,12 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.HasIndex(payment => new { payment.Provider, payment.ProviderConversationId })
             .HasFilter("[ProviderConversationId] IS NOT NULL")
             .IsUnique();
+        builder.HasIndex(payment => new
+            {
+                payment.Status,
+                payment.AbandonmentReconciledAt,
+                payment.AbandonmentNextReconciliationAt
+            })
+            .HasFilter("[CustomerAbandonedAt] IS NOT NULL");
     }
 }

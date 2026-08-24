@@ -112,6 +112,38 @@ public sealed class EmailOutboxMessageTests
         firstMessage.Amount.Should().Be(120.50m);
     }
 
+    // Burada doğrulanmış ödeme geri alımının operasyon kimliğiyle tekilleşip gerçek tutar ve türü taşıdığını doğruluyorum.
+    [Fact]
+    public void Payment_Reversal_Message_Should_Use_Operation_Deduplication_Key()
+    {
+        var utcNow = new DateTime(2026, 8, 24, 12, 0, 0, DateTimeKind.Utc);
+        var operationId = Guid.NewGuid();
+
+        var firstMessage = EmailOutboxMessage.CreatePaymentReversalCompleted(
+            "user@example.com",
+            "User Test",
+            operationId,
+            "ORD-REFUND-1",
+            349.90m,
+            PaymentReversalType.Refund,
+            utcNow);
+        var replayMessage = EmailOutboxMessage.CreatePaymentReversalCompleted(
+            "user@example.com",
+            "User Test",
+            operationId,
+            "ORD-REFUND-1",
+            349.90m,
+            PaymentReversalType.Refund,
+            utcNow.AddSeconds(1));
+
+        firstMessage.Type.Should().Be(EmailOutboxMessageType.PaymentReversalCompleted);
+        firstMessage.DeduplicationKey.Should().Be($"payment-reversal-completed:{operationId:N}");
+        replayMessage.DeduplicationKey.Should().Be(firstMessage.DeduplicationKey);
+        firstMessage.OrderNumber.Should().Be("ORD-REFUND-1");
+        firstMessage.Amount.Should().Be(349.90m);
+        firstMessage.Status.Should().Be(nameof(PaymentReversalType.Refund));
+    }
+
     // Burada claim edilen mesajın yeniden claim edilemediğini ve hata halinde lease bilgisinin temizlendiğini doğruluyorum.
     [Fact]
     public void Claimed_Message_Should_Release_Its_Lease_When_A_Failure_Is_Recorded()

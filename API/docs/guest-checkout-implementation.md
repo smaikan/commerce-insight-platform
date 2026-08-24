@@ -59,7 +59,7 @@ Migration mevcut kuponları `IsMemberOnly=false` ile korur; sahiplik foreign key
 - `src/ECommerce.Application/Orders/Services/OrderCheckoutOrchestrator.cs`: guest ve üyede ortak güvenilir checkout.
 - `src/ECommerce.Application/GuestOrders/Checkout/*`: guest command, validation, transaction ve replay.
 - `src/ECommerce.Application/GuestOrders/GuestOrderAccessService.cs`: access-link, exchange, session doğrulama, liste/detail ve claim.
-- `src/ECommerce.Application/GuestOrders/GuestOrderOperationsService.cs`: mevcut ödeme, iptal, stok geri alma, kupon release ve iade kurallarının guest yüzeyi.
+- `src/ECommerce.Application/GuestOrders/GuestOrderOperationsService.cs`: ödeme, provider kontrollü iptal, stok geri alma, kupon release ve iade kurallarının guest yüzeyi.
 - `src/ECommerce.API/Controllers/Cart/CartController.cs`: `POST /api/cart/checkout/guest`, guest cart/order cookie yazımı ve protection çağrısı.
 - `src/ECommerce.API/Controllers/GuestOrders/GuestOrdersController.cs`: magic-link ve self-service uçları, Origin/CSRF/cookie sınırı.
 - `src/ECommerce.Application/Orders/Services/OrderCouponService.cs`: member-only ayrımı ve nullable guest kullanım kaydı.
@@ -102,6 +102,8 @@ Guest request zorunlu `shippingMethodId` ve shipping snapshot alır. Üye reques
 ```
 
 Guest kupon kullanımı User yerine Order üzerinden izlenir ve mevcut cancellation release akışıyla geri alınır.
+
+Guest iptalinde bekleyen iyzico ödeme önce sahiplik + Origin + CSRF doğrulamasından sonra transaction dışında retrieve edilir. Paid sonuç iptali engeller; kesin failure Payment/Order, stok, kupon ve outbox'ı aynı transaction'da bir kez sonuçlandırır; Unknown/bağlantı hatası/`fraudStatus=0` rezervasyonu korur. İptalde guest cart temizlenmez.
 
 ## 7. Guest limitleri ve hata kodları
 

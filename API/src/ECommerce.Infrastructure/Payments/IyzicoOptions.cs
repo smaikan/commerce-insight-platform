@@ -19,6 +19,8 @@ public sealed class IyzicoOptions
 
 public sealed class IyzicoOptionsValidator : IValidateOptions<IyzicoOptions>
 {
+    private static readonly int[] SupportedInstallments = [1, 2, 3, 6, 9, 12];
+
     // Burada devreye alınmış iyzico sandbox ayarlarının eksiksiz ve güvenli olduğunu başlangıçta doğruluyorum.
     public ValidateOptionsResult Validate(string? name, IyzicoOptions options)
     {
@@ -59,9 +61,9 @@ public sealed class IyzicoOptionsValidator : IValidateOptions<IyzicoOptions>
         }
 
         if (options.EnabledInstallments.Length == 0 ||
-            options.EnabledInstallments.Any(value => value is < 1 or > 12))
+            options.EnabledInstallments.Any(value => !SupportedInstallments.Contains(value)))
         {
-            failures.Add("Iyzico:EnabledInstallments must contain values between 1 and 12.");
+            failures.Add("Iyzico:EnabledInstallments may contain only 1, 2, 3, 6, 9, or 12.");
         }
 
         return failures.Count == 0

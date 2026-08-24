@@ -28,6 +28,14 @@ public sealed class OrderRepository : IOrderRepository
         await _context.Payments.AddAsync(payment, cancellationToken);
     }
 
+    // Burada uygulama tarafından üretilen provider kalem kimliklerini EF convention'ına bırakmadan Added olarak izliyorum.
+    public async Task AddPaymentItemTransactionsAsync(
+        IReadOnlyCollection<PaymentItemTransaction> items,
+        CancellationToken cancellationToken = default)
+    {
+        await _context.PaymentItemTransactions.AddRangeAsync(items, cancellationToken);
+    }
+
     // Burada siparişi yalnız gerçek sahibi için kalemleriyle birlikte takip etmeden getiriyorum.
     public Task<Order?> GetByIdForUserAsync(Guid orderId, long userId, CancellationToken cancellationToken = default)
     {
@@ -104,6 +112,28 @@ public sealed class OrderRepository : IOrderRepository
             .ToListAsync(cancellationToken);
     }
 
+    // Burada müşteri tarafından terk edilmiş ve lease zamanı gelen ödeme tokenlarını worker için küçük bir projeksiyonla getiriyorum.
+    public async Task<IReadOnlyList<string>> GetDueAbandonedPaymentTokensAsync(
+        DateTime utcNow,
+        int maxCount,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Payments
+            .AsNoTracking()
+            .Where(payment =>
+                payment.Status == ECommerce.Domain.Enums.PaymentStatus.Cancelled &&
+                payment.CustomerAbandonedAt.HasValue &&
+                !payment.AbandonmentReconciledAt.HasValue &&
+                payment.ProviderToken != null &&
+                (!payment.AbandonmentNextReconciliationAt.HasValue ||
+                 payment.AbandonmentNextReconciliationAt.Value <= utcNow))
+            .OrderBy(payment => payment.AbandonmentNextReconciliationAt)
+            .ThenBy(payment => payment.Id)
+            .Select(payment => payment.ProviderToken!)
+            .Take(maxCount)
+            .ToListAsync(cancellationToken);
+    }
+
     // Burada kullanıcının kendi siparişlerini güvenli owner filtresiyle sayfalıyorum.
     public Task<PagedResult<Order>> GetListForUserAsync(
         OrderListFilter filter,
@@ -170,6 +200,7 @@ public sealed class OrderRepository : IOrderRepository
         return _context.Orders
             .Include(order => order.Items)
             .Include(order => order.Payments)
+            .ThenInclude(payment => payment.ItemTransactions)
             .Include(order => order.AddressSnapshots)
             .Include(order => order.CustomerSnapshot)
             .AsSplitQuery();

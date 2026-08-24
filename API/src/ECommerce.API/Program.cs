@@ -99,6 +99,9 @@ builder.Services.AddSingleton<IOrderReservationPolicy>(provider =>
     new ConfigurationOrderReservationPolicy(
         provider.GetRequiredService<IOptions<OrderReservationOptions>>().Value));
 builder.Services.AddHostedService<OrderReservationExpirationBackgroundService>();
+// Burada müşteri tarafından terk edilen iyzico oturumlarını geç tahsilata karşı düzenli uzlaştırıyorum.
+builder.Services.AddHostedService<AbandonedCheckoutReconciliationBackgroundService>();
+builder.Services.AddHostedService<OrderCancellationReconciliationBackgroundService>();
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>
@@ -119,6 +122,9 @@ builder.Services.AddSwaggerGen(options =>
     options.OperationFilter<AllowAnonymousOperationFilter>();
     options.OperationFilter<StoreSettingsOperationFilter>();
     options.OperationFilter<ContactMessagesOperationFilter>();
+    options.OperationFilter<ProductVariantBulkOperationFilter>();
+    options.OperationFilter<ReturnsOperationFilter>();
+    options.OperationFilter<OrderCancellationOperationFilter>();
     options.CustomSchemaIds(type =>
     {
         if (type.Name is "Payment" or "PaymentStatus" or "PaymentDto")

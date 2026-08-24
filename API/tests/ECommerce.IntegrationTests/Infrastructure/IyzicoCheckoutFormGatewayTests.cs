@@ -103,6 +103,49 @@ public sealed class IyzicoCheckoutFormGatewayTests
             .WithMessage("*integrity validation failed*");
     }
 
+    // Burada token, conversation ve imzası doğrulanan initialize reddinin kesin başarısızlık olarak ayrıldığını doğruluyorum.
+    [Fact]
+    public async Task InitializeAsync_Should_Return_Definitive_Failure_Only_For_Signed_Bound_Response()
+    {
+        const string conversationId = "conversation-failed-001";
+        const string token = "checkout-token-failed-001";
+        var gateway = CreateGateway(new StubHttpMessageHandler(_ => Task.FromResult(Json(HttpStatusCode.OK, new
+        {
+            status = "failure",
+            conversationId,
+            token,
+            errorCode = "10051",
+            errorMessage = "Provider rejected request.",
+            signature = SignResponse(conversationId, token)
+        }))));
+
+        var result = await gateway.InitializeAsync(CreateInitializeRequest(conversationId));
+
+        result.Succeeded.Should().BeFalse();
+        result.IsDefinitiveFailure.Should().BeTrue();
+        result.Token.Should().Be(token);
+        result.ConversationId.Should().Be(conversationId);
+    }
+
+    // Burada imzasız initialize reddinin kesin başarısızlık kabul edilip rezervasyonu bırakamadığını doğruluyorum.
+    [Fact]
+    public async Task InitializeAsync_Should_Reject_Unsigned_Failure_Response()
+    {
+        const string conversationId = "conversation-failed-002";
+        var gateway = CreateGateway(new StubHttpMessageHandler(_ => Task.FromResult(Json(HttpStatusCode.OK, new
+        {
+            status = "failure",
+            conversationId,
+            token = "checkout-token-failed-002",
+            errorCode = "10051"
+        }))));
+
+        var action = () => gateway.InitializeAsync(CreateInitializeRequest(conversationId));
+
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*integrity validation failed*");
+    }
+
     // Burada retrieve yanıtının resmi alan sırasıyla imzalanıp Paid sonucuna dönüştürüldüğünü doğruluyorum.
     [Fact]
     public async Task RetrieveAsync_Should_Validate_Signature_And_Return_Paid()
@@ -115,6 +158,7 @@ public sealed class IyzicoCheckoutFormGatewayTests
         const string token = "checkout-token-001";
         const decimal paidPrice = 125.50m;
         const decimal price = 100m;
+        string? capturedBody = null;
         var signature = SignResponse(
             paymentStatus,
             paymentId,
@@ -124,28 +168,378 @@ public sealed class IyzicoCheckoutFormGatewayTests
             "125.5",
             "100",
             token);
-        var gateway = CreateGateway(new StubHttpMessageHandler(_ => Task.FromResult(Json(HttpStatusCode.OK, new
+        var gateway = CreateGateway(new StubHttpMessageHandler(async request =>
         {
-            status = "success",
-            conversationId,
-            price,
-            paidPrice,
-            currency,
-            basketId,
-            paymentId,
-            paymentStatus,
-            fraudStatus = 1,
-            token,
-            signature
-        }))));
+            capturedBody = await request.Content!.ReadAsStringAsync();
+            return Json(HttpStatusCode.OK, new
+            {
+                status = "success",
+                conversationId,
+                price,
+                paidPrice,
+                currency,
+                basketId,
+                paymentId,
+                paymentStatus,
+                fraudStatus = 1,
+                installment = 6,
+                token,
+                signature
+            });
+        }));
 
-        var result = await gateway.RetrieveAsync(token);
+        var result = await gateway.RetrieveAsync(token, conversationId);
 
         result.State.Should().Be(CheckoutFormPaymentState.Paid);
         result.ProviderPaymentId.Should().Be(paymentId);
         result.FraudStatus.Should().Be(1);
         result.Price.Should().Be(price);
         result.PaidPrice.Should().Be(paidPrice);
+        result.InstallmentCount.Should().Be(6);
+        using var requestBody = JsonDocument.Parse(capturedBody!);
+        requestBody.RootElement.GetProperty("conversationId").GetString().Should().Be(conversationId);
+    }
+
+    // Burada imzalı FAILURE yanıtının kimliği doğrulandıktan sonra kesin başarısızlığa dönüştürüldüğünü doğruluyorum.
+    [Fact]
+    public async Task RetrieveAsync_Should_Return_Failed_For_Signed_Provider_Failure()
+    {
+        const string paymentStatus = "FAILURE";
+        const string paymentId = "failed-payment-001";
+        const string currency = "TRY";
+        const string basketId = "basket-failed-001";
+        const string conversationId = "conversation-failed-003";
+        const string token = "checkout-token-failed-003";
+        var signature = SignResponse(
+            paymentStatus,
+            paymentId,
+            currency,
+            basketId,
+            conversationId,
+            "100",
+            "100",
+            token);
+        var gateway = CreateGateway(new StubHttpMessageHandler(_ => Task.FromResult(Json(HttpStatusCode.OK, new
+        {
+            status = "success",
+            conversationId,
+            price = 100m,
+            paidPrice = 100m,
+            currency,
+            basketId,
+            paymentId,
+            paymentStatus,
+            fraudStatus = -1,
+            installment = 1,
+            token,
+            signature
+        }))));
+
+        var result = await gateway.RetrieveAsync(token, conversationId);
+
+        result.State.Should().Be(CheckoutFormPaymentState.Failed);
+        result.Token.Should().Be(token);
+        result.ConversationId.Should().Be(conversationId);
+    }
+
+    // Burada fraud incelemesindeki sıfır durumunun imzalı olsa bile kesin başarısızlığa çevrilmediğini doğruluyorum.
+    [Fact]
+    public async Task RetrieveAsync_Should_Return_Pending_For_FraudStatus_Zero()
+    {
+        const string conversationId = "conversation-pending-001";
+        const string token = "checkout-token-pending-001";
+        var signature = SignResponse(
+            "FAILURE", "pending-payment-001", "TRY", "basket-pending-001",
+            conversationId, "100", "100", token);
+        var gateway = CreateGateway(new StubHttpMessageHandler(_ => Task.FromResult(Json(HttpStatusCode.OK, new
+        {
+            status = "success",
+            conversationId,
+            price = 100m,
+            paidPrice = 100m,
+            currency = "TRY",
+            basketId = "basket-pending-001",
+            paymentId = "pending-payment-001",
+            paymentStatus = "FAILURE",
+            fraudStatus = 0,
+            installment = 1,
+            token,
+            signature
+        }))));
+
+        var result = await gateway.RetrieveAsync(token, conversationId);
+
+        result.State.Should().Be(CheckoutFormPaymentState.Pending);
+        result.FraudStatus.Should().Be(0);
+    }
+
+    // Burada süresi dolmuş token benzeri API-level failure yanıtının finansal sonuç yerine özel provider ret hatasına dönüştüğünü doğruluyorum.
+    [Fact]
+    public async Task RetrieveAsync_Should_Separate_Api_Level_Failure_From_Payment_Result()
+    {
+        const string conversationId = "conversation-expired-001";
+        const string token = "checkout-token-expired-001";
+        var gateway = CreateGateway(new StubHttpMessageHandler(_ => Task.FromResult(Json(HttpStatusCode.OK, new
+        {
+            status = "failure",
+            conversationId,
+            errorCode = "5122"
+        }))));
+
+        var action = () => gateway.RetrieveAsync(token, conversationId);
+
+        var exception = await action.Should().ThrowAsync<CheckoutFormProviderUnavailableException>();
+        exception.Which.ErrorCode.Should().Be("5122");
+    }
+
+    // Burada geç tahsilat ters işleminin paymentId ile imzalı cancel endpointine gönderildiğini ve kimlik/tutar yanıtının doğrulandığını test ediyorum.
+    [Fact]
+    public async Task ReverseLatePaymentAsync_Should_Send_Cancel_Request_And_Validate_Result()
+    {
+        const string providerPaymentId = "late-payment-001";
+        const string conversationId = "abandon-conversation-001";
+        string? capturedPath = null;
+        string? capturedAuthorization = null;
+        string? capturedBody = null;
+        var gateway = CreateGateway(new StubHttpMessageHandler(async request =>
+        {
+            capturedPath = request.RequestUri?.AbsolutePath;
+            capturedAuthorization = request.Headers.Authorization?.ToString();
+            capturedBody = await request.Content!.ReadAsStringAsync();
+            return Json(HttpStatusCode.OK, new
+            {
+                status = "success",
+                conversationId,
+                paymentId = providerPaymentId,
+                price = 100m,
+                currency = "TRY"
+            });
+        }));
+
+        var result = await gateway.ReverseLatePaymentAsync(
+            providerPaymentId,
+            conversationId,
+            100m);
+
+        result.Succeeded.Should().BeTrue();
+        capturedPath.Should().Be("/payment/cancel");
+        capturedAuthorization.Should().StartWith("IYZWSv2 ");
+        using var body = JsonDocument.Parse(capturedBody!);
+        body.RootElement.GetProperty("paymentId").GetString().Should().Be(providerPaymentId);
+        body.RootElement.GetProperty("conversationId").GetString().Should().Be(conversationId);
+    }
+
+    // Burada standart item refund isteğinin Refund V2 yerine paymentTransactionId ile gönderilip resmi response HMAC'ini doğruladığını test ediyorum.
+    [Fact]
+    public async Task RefundPaymentItemAsync_Should_Send_Item_Level_Request_And_Validate_Signature()
+    {
+        const string providerPaymentId = "refund-payment-001";
+        const string providerTransactionId = "refund-item-001";
+        const string conversationId = "refund-conversation-001";
+        string? capturedPath = null;
+        string? capturedBody = null;
+        var signature = SignResponse(providerPaymentId, "44", "TRY", conversationId);
+        var gateway = CreateGateway(new StubHttpMessageHandler(async request =>
+        {
+            capturedPath = request.RequestUri?.AbsolutePath;
+            capturedBody = await request.Content!.ReadAsStringAsync();
+            return Json(HttpStatusCode.OK, new
+            {
+                status = "success",
+                conversationId,
+                paymentId = providerPaymentId,
+                paymentTransactionId = providerTransactionId,
+                price = 44m,
+                currency = "TRY",
+                signature
+            });
+        }));
+
+        var result = await gateway.RefundPaymentItemAsync(
+            providerPaymentId,
+            providerTransactionId,
+            conversationId,
+            44m);
+
+        result.Succeeded.Should().BeTrue();
+        capturedPath.Should().Be("/payment/refund");
+        using var body = JsonDocument.Parse(capturedBody!);
+        body.RootElement.GetProperty("paymentTransactionId").GetString().Should().Be(providerTransactionId);
+        body.RootElement.GetProperty("price").GetDecimal().Should().Be(44m);
+        body.RootElement.TryGetProperty("paymentId", out _).Should().BeFalse();
+    }
+
+    // Burada reporting cevabındaki payment, cancel ve item refund kimliklerinin reconciliation modeline eksiksiz taşındığını doğruluyorum.
+    [Fact]
+    public async Task RetrieveReversalReportAsync_Should_Map_Authoritative_Reversal_Evidence()
+    {
+        const string providerPaymentId = "12345678";
+        string? capturedPathAndQuery = null;
+        var gateway = CreateGateway(new StubHttpMessageHandler(request =>
+        {
+            capturedPathAndQuery = request.RequestUri?.PathAndQuery;
+            return Task.FromResult(Json(HttpStatusCode.OK, new
+            {
+                status = "success",
+                payments = new[]
+                {
+                    new
+                    {
+                        paymentId = 12345678,
+                        paymentConversationId = "original-payment-conversation",
+                        paymentRefundStatus = "PARTIALLY_REFUNDED",
+                        basketId = "basket-001",
+                        currency = "TRY",
+                        price = 100m,
+                        paidPrice = 110m,
+                        cancels = Array.Empty<object>(),
+                        itemTransactions = new[]
+                        {
+                            new
+                            {
+                                paymentTransactionId = 27225633,
+                                price = 40m,
+                                paidPrice = 44m,
+                                refunds = new[]
+                                {
+                                    new
+                                    {
+                                        refundConversationId = "refund-conversation-001",
+                                        refundPrice = 44m,
+                                        refundStatus = 1,
+                                        currencyCode = "TRY"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }));
+        }));
+
+        var report = await gateway.RetrieveReversalReportAsync(providerPaymentId);
+
+        capturedPathAndQuery.Should().Be(
+            "/v2/reporting/payment/details?paymentId=12345678");
+        report.ProviderPaymentId.Should().Be(providerPaymentId);
+        report.PaidPrice.Should().Be(110m);
+        report.Items.Should().ContainSingle();
+        report.Items[0].ProviderPaymentTransactionId.Should().Be("27225633");
+        report.Items[0].Refunds.Should().ContainSingle(refund =>
+            refund.ConversationId == "refund-conversation-001" && refund.Amount == 44m);
+    }
+
+    // Burada sayısal reporting paymentId değeri istenen provider kimliğinden saparsa cevabın reddedildiğini doğruluyorum.
+    [Fact]
+    public async Task RetrieveReversalReportAsync_Should_Reject_A_Different_Numeric_PaymentId()
+    {
+        var gateway = CreateGateway(new StubHttpMessageHandler(_ => Task.FromResult(Json(HttpStatusCode.OK, new
+        {
+            status = "success",
+            payments = new[]
+            {
+                new
+                {
+                    paymentId = 87654321,
+                    paymentConversationId = "original-payment-conversation",
+                    paymentRefundStatus = "NOT_REFUNDED",
+                    currency = "TRY",
+                    price = 100m,
+                    paidPrice = 110m,
+                    cancels = Array.Empty<object>(),
+                    itemTransactions = Array.Empty<object>()
+                }
+            }
+        }))));
+
+        var action = () => gateway.RetrieveReversalReportAsync("12345678");
+
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*payment identity does not match*");
+    }
+
+    // Burada imza yanıt için doğru olsa bile istenen conversation kimliğinden sapmanın reddedildiğini doğruluyorum.
+    [Fact]
+    public async Task RetrieveAsync_Should_Reject_Response_Bound_To_Different_Conversation()
+    {
+        const string requestedConversationId = "conversation-requested";
+        const string responseConversationId = "conversation-attacker";
+        const string token = "checkout-token-identity-001";
+        var signature = SignResponse(
+            "FAILURE", "failed-payment-002", "TRY", "basket-identity-001",
+            responseConversationId, "100", "100", token);
+        var gateway = CreateGateway(new StubHttpMessageHandler(_ => Task.FromResult(Json(HttpStatusCode.OK, new
+        {
+            status = "success",
+            conversationId = responseConversationId,
+            price = 100m,
+            paidPrice = 100m,
+            currency = "TRY",
+            basketId = "basket-identity-001",
+            paymentId = "failed-payment-002",
+            paymentStatus = "FAILURE",
+            fraudStatus = -1,
+            installment = 1,
+            token,
+            signature
+        }))));
+
+        var action = () => gateway.RetrieveAsync(token, requestedConversationId);
+
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*integrity validation failed*");
+    }
+
+    // Burada rezervasyon mutabakatının taksit farkını kabul edip gerçek tahsilat ayrıntılarını döndürdüğünü doğruluyorum.
+    [Fact]
+    public async Task ReconcilePendingPaymentAsync_Should_Accept_Installment_Surcharge()
+    {
+        var orderId = Guid.Parse("8cdb1408-16e6-47ca-99da-2d3de248eeab");
+        var paymentId = Guid.Parse("7c0bcdad-f97f-43cc-a633-e9a7e7fd4197");
+        const string token = "checkout-token-installment";
+        const string providerPaymentId = "12345679";
+        const decimal basketPrice = 100m;
+        const decimal orderAmount = 125.50m;
+        const decimal providerPaidAmount = 139.25m;
+        var signature = SignResponse(
+            "SUCCESS",
+            providerPaymentId,
+            "TRY",
+            orderId.ToString("N"),
+            paymentId.ToString("N"),
+            "139.25",
+            "100",
+            token);
+        var gateway = CreateGateway(new StubHttpMessageHandler(_ => Task.FromResult(Json(HttpStatusCode.OK, new
+        {
+            status = "success",
+            conversationId = paymentId.ToString("N"),
+            price = basketPrice,
+            paidPrice = providerPaidAmount,
+            currency = "TRY",
+            basketId = orderId.ToString("N"),
+            paymentId = providerPaymentId,
+            paymentStatus = "SUCCESS",
+            fraudStatus = 1,
+            installment = 6,
+            token,
+            signature
+        }))));
+
+        var result = await gateway.ReconcilePendingPaymentAsync(
+            new PaymentReconciliationRequest(
+                orderId,
+                paymentId,
+                basketPrice,
+                orderAmount,
+                "IDEMPOTENCY_KEY",
+                token));
+
+        result.Status.Should().Be(PaymentReconciliationStatus.Paid);
+        result.TransactionId.Should().Be(providerPaymentId);
+        result.ProviderPaidAmount.Should().Be(providerPaidAmount);
+        result.InstallmentCount.Should().Be(6);
+        result.FraudStatus.Should().Be(1);
     }
 
     // Burada yalnız güncel HPP V3 webhook alan sırasıyla üretilen imzanın kabul edildiğini doğruluyorum.

@@ -49,6 +49,8 @@ Her iki checkout akışında backend:
 
 Guest’te session/grant, idempotency ve protected magic-link outbox kayıtları da aynı transaction’dadır. SMTP gönderimi checkout response’unu bekletmez. Stok doğrudan kolon azaltılarak veya ikinci guest yolu açılarak değiştirilmez.
 
+Paid/Preparing müşteri iptalinde iyzico cancel veya item-level refund sonucu kesin doğrulandığında genel sipariş iptal bildirimiyle birlikte ayrı `PaymentReversalCompleted` müşteri e-postası outbox'a eklenir. Mesaj gerçek `providerPaidAmount` tutarını kullanır ve cancellation operation kimliğiyle tekilleştirilir. Provider sonucu belirsizken bu e-posta oluşturulmaz.
+
 ## OrderDto
 
 Sipariş kartları için `OrderItemDto`, checkout anındaki `productUrl`, `imageUrl` ve `imageAlt` snapshot'larını taşır. `productUrl` mutlak URL değil ürün slug'ıdır; frontend `/products/${encodeURIComponent(productUrl)}` rotasını kurar. Görsel veya eski snapshot yoksa ilgili alanlar `null` olabilir.
@@ -67,16 +69,19 @@ Sıfır toplamlı tam kupon siparişi payment oluşturmadan `Paid` olabilir ve s
 
 ## Ödeme ve iptal
 
-iyzico hosted ödeme formu sandbox akışı üye ve guest siparişlerde desteklenir. Kart verisi API'ye gönderilmez; frontend initialize cevabındaki `paymentPageUrl` adresine yönlenir. Callback ve V3 webhook sonrasında API sonucu iyzico'dan yeniden sorgular; yanıt imzası, fraud durumu, TRY, basket/conversation kimliği ve backend toplamları eşleşmeden sipariş Paid olmaz. Frontend entegrasyon sırası ve DTO için [iyzico CheckoutForm sandbox sözleşmesini](../08-endpoint-sozlesmeleri/05-siparis-ve-odeme/IYZICO-CHECKOUTFORM-SOZLESMESI.md) okuyun.
+iyzico hosted ödeme formu sandbox akışı üye ve guest siparişlerde desteklenir. Kart verisi API'ye gönderilmez; frontend initialize cevabındaki `paymentPageUrl` adresine yönlenir. Callback ve V3 webhook sonrasında API sonucu iyzico'dan yeniden sorgular; yanıt imzası, fraud durumu, TRY, basket/conversation kimliği ve backend toplamları eşleşmeden sipariş Paid olmaz. Taksit farkı dahil nihai kart tahsilatı sipariş toplamından ayrı saklanır; bu fark geçerli bir taksitli ödemeyi sahte tutar uyuşmazlığına düşürmez. Frontend entegrasyon sırası ve DTO için [iyzico CheckoutForm sandbox sözleşmesini](../08-endpoint-sozlesmeleri/05-siparis-ve-odeme/IYZICO-CHECKOUTFORM-SOZLESMESI.md) okuyun.
 
 Üye: `POST /api/orders/{id}/payments`, guest: `POST /api/guest-orders/{id}/payments`. İkisinde `Idempotency-Key` zorunludur ve amount/provider sonucu backend otoritesidir. Aynı siparişte pending ödeme varken yeni deneme reddedilir.
 
-İptal yalnız Pending/Confirmed ve reconciliation bekleyen ödeme yokken mümkündür. İptal mevcut `OrderInventoryService` ile `Cancellation` stok hareketi oluşturur, kupon kullanımını geri alır, rezervasyonu kapatır ve outbox bildirimi üretir.
+İptal `Pending/Confirmed/Paid/Preparing` siparişte mümkündür. Bekleyen iyzico ödemesi mevcut CF-Retrieve/abandoned-token akışını korur. Tahsil edilmiş siparişte önce reporting doğrulanır; Türkiye iş tarihinde aynı gün `/payment/cancel`, aksi halde kalıcı gerçek item transaction/paidPrice değerleriyle standart `/payment/refund` uygulanır. Çok ürünlü siparişte Refund V2 veya tahminî tutar kullanılmaz. Belirsiz provider sonucu `202` operasyonuna dönüşür; Order/Payment/stok/kupon kesin finansal başarıdan önce değiştirilmez.
+
+Storefront ödeme sayfasına yönlenmeden önce aktif Order GUID'sini yalnız geri-dönüş kurtarması için saklar; bu kimlik yetki sağlamaz. Browser geri geldiğinde yeni Order oluşturmak yerine owner-scoped GET ile mevcut Pending/Confirmed siparişi açar. Kullanıcı aynı idempotency key ile ödemeye devam edebilir veya provider kontrollü iptali seçebilir.
 
 ## Durum ve müşteri aksiyonları
 
-- Pending/Confirmed: ödeme veya uygun iptal.
-- Paid/Preparing/Shipped: müşteri iptal edemez; admin yaşam döngüsü.
+- Pending/Confirmed: ödeme veya provider kontrollü iptal.
+- Paid/Preparing: kalıcı cancellation/reversal sagası üzerinden müşteri iptali.
+- Shipped ve sonrası: müşteri iptal edemez.
 - Delivered: satın alan üye review/rating ve iade talebi oluşturabilir.
 - Guest, claim edilmeden review/rating oluşturamaz. Güvenli claim sonrasında mevcut delivered purchase kontrolü geçerlidir.
 - ReturnRequested/ReturnApproved: iade ve değişim akışı yönetir. Onaylanan `Refund` talebi siparişi kalıcı olarak `Refunded (7)` yapar; onaylanan `Exchange` talebi `ReturnApproved (9)` olarak kalır.
