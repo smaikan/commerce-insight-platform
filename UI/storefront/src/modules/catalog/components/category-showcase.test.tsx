@@ -57,6 +57,7 @@ describe("category showcase", () => {
     expect(html).toContain("md:grid-cols-3");
     expect(html).toContain("aspect-[16/10]");
     expect(html).toContain("sm:aspect-[3/2]");
+    expect(html).toContain("rounded-lg");
     expect(html).not.toContain("aspect-square");
   });
 

@@ -3,48 +3,67 @@ import Link from "next/link";
 
 import type { CategoryShowcaseItem, CategoryShowcasePage } from "@/modules/catalog/categories";
 import { categoriesHref } from "@/modules/catalog/categories-query";
-import { PageJumpForm } from "@/modules/catalog/components/page-jump-form";
 
-// Burada kategorileri koleksiyon sayfasıyla aynı kart geometrisi ve görsel dilde erişilebilir bir vitrinde sunuyorum.
+// Burada kategorileri koleksiyon sayfasıyla aynı lüks kart geometrisi ve editoryal görsel dilde erişilebilir bir vitrinde sunuyorum.
 export function CategoryShowcase({ page }: { page: CategoryShowcasePage }) {
   const categories = page.items;
 
   return (
-    <main id="main-content" className="flex-1 pb-16 sm:pb-20">
-      <header className="border-b border-line/80 bg-surface">
-        <div className="page-shell py-9 sm:py-11 lg:flex lg:items-end lg:justify-between lg:gap-12 lg:py-12">
-          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-brand-950 sm:text-4xl">
-            Kategoriler
-          </h1>
-          {/* Burada API'nin authoritative toplam kategori sayısını kullanıcıya gösteriyorum. */}
-          <p className="mt-3 text-sm font-medium text-ink-muted lg:mt-0">
-            {page.totalCount} kategori
-          </p>
+    <main id="main-content" className="flex-1 pb-16">
+      {/* Breadcrumb Gezintisi & Başlık Alanı */}
+      <header className="border-b border-line/70 bg-surface">
+        <div className="page-shell max-w-[84rem] py-8 sm:py-10">
+          <nav aria-label="Sayfa yolu" className="mb-3 flex items-center gap-1.5 text-xs text-ink-muted">
+            <Link href="/" className="focus-ring hover:text-brand-700 transition-colors">
+              Ana Sayfa
+            </Link>
+            <span aria-hidden="true" className="text-line">/</span>
+            <span aria-current="page" className="font-semibold text-ink">
+              Kategoriler
+            </span>
+          </nav>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-700">
+                ELEVEN KATALOG
+              </p>
+              <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink sm:text-4xl lg:text-5xl">
+                Kategoriler
+              </h1>
+              <p className="mt-2 max-w-xl text-xs sm:text-sm text-ink-muted leading-relaxed">
+                Tüm takı ve aksesuar koleksiyonlarını kategori bazında keşfedin.
+              </p>
+            </div>
+            <p className="text-xs sm:text-sm font-semibold text-brand-950">
+              {page.totalCount} kategori
+            </p>
+          </div>
         </div>
       </header>
 
-      <section className="page-shell pt-8 sm:pt-10 lg:pt-12" aria-labelledby="category-list-title">
+      <section className="page-shell max-w-[84rem] pt-8 sm:pt-10" aria-labelledby="category-list-title">
         <h2 id="category-list-title" className="sr-only">Tüm kategoriler</h2>
 
-        {/* Burada mobilde rahat dokunulan, tablet ve masaüstünde bozulmadan üç sütunda kalan kart ızgarasını kuruyorum. */}
         {categories.length > 0 ? (
-          <ul className="grid grid-cols-1 gap-x-5 gap-y-9 sm:grid-cols-2 sm:gap-y-11 md:grid-cols-3 md:gap-y-14 xl:gap-x-6">
+          <ul className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 md:grid-cols-3 md:gap-y-12">
             {categories.map((category, index) => (
               <CategoryCard
                 key={category.id}
                 category={category}
-                isLcpCandidate={index === 0}
+                isLcpCandidate={index < 3}
               />
             ))}
           </ul>
         ) : (
-          <div className="border-y border-line py-14 text-center sm:py-20">
-            <h2 className="text-xl font-bold text-brand-950">Henüz görüntülenecek kategori yok</h2>
-            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-ink-muted">
+          <div className="rounded-2xl border border-line/80 bg-surface p-12 text-center shadow-xs">
+            <h2 className="text-xl font-bold text-ink">Henüz görüntülenecek kategori yok</h2>
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-ink-muted">
               Yayınlanmış ürünlere sahip kategoriler hazır olduğunda burada görünecek.
             </p>
-            <Link href="/products" className="focus-ring mt-6 inline-flex min-h-11 items-center font-bold text-brand-700 hover:text-brand-950">
-              Kataloğa git <span className="ml-2" aria-hidden="true">→</span>
+            <Link href="/products" className="focus-ring mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-950 px-6 py-3 text-xs font-bold text-white hover:bg-brand-700 transition-colors">
+              <span>Kataloğa Git</span>
+              <span aria-hidden="true">&rarr;</span>
             </Link>
           </div>
         )}
@@ -55,43 +74,38 @@ export function CategoryShowcase({ page }: { page: CategoryShowcasePage }) {
   );
 }
 
-// Burada API sayfalamasını erişilebilir önceki, sonraki ve doğrudan sayfa atlama formuyla sunuyorum.
+// Burada API sayfalamasını erişilebilir önceki ve sonraki bağlantılarıyla sunuyorum.
 function CategoryPagination({ page }: { page: CategoryShowcasePage }) {
   if (page.totalPages <= 1) return null;
 
   return (
-    <nav className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6" aria-label="Kategori sayfaları">
+    <nav className="mt-14 flex flex-wrap items-center justify-between gap-4 border-t border-line/70 pt-8" aria-label="Kategori sayfaları">
       <div className="flex items-center">
         {page.hasPreviousPage ? (
           <Link
-            className="focus-ring inline-flex items-center rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink hover:border-brand-600 transition-colors"
+            className="focus-ring inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-xs font-bold text-ink hover:border-brand-700 hover:text-brand-950 transition-all shadow-2xs"
             href={categoriesHref({ page: page.pageNumber - 1, pageSize: page.pageSize })}
             rel="prev"
           >
-            Önceki
+            <span aria-hidden="true">&larr;</span>
+            <span>Önceki</span>
           </Link>
         ) : <span />}
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-        <p className="text-sm text-ink-muted">
-          Sayfa <span className="font-semibold text-ink">{page.pageNumber}</span> / <span className="font-semibold text-ink">{page.totalPages}</span>
-        </p>
-        <PageJumpForm
-          currentPage={page.pageNumber}
-          totalPages={page.totalPages}
-          hrefTemplate={categoriesHref({ page: 999999, pageSize: page.pageSize }).replace("999999", "__PAGE__")}
-        />
-      </div>
+      <p className="text-xs sm:text-sm text-ink-muted">
+        Sayfa <span className="font-bold text-ink">{page.pageNumber}</span> / <span className="font-bold text-ink">{page.totalPages}</span>
+      </p>
 
       <div className="flex items-center">
         {page.hasNextPage ? (
           <Link
-            className="focus-ring inline-flex items-center rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink hover:border-brand-600 transition-colors"
+            className="focus-ring inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-xs font-bold text-ink hover:border-brand-700 hover:text-brand-950 transition-all shadow-2xs"
             href={categoriesHref({ page: page.pageNumber + 1, pageSize: page.pageSize })}
             rel="next"
           >
-            Sonraki
+            <span>Sonraki</span>
+            <span aria-hidden="true">&rarr;</span>
           </Link>
         ) : <span />}
       </div>
@@ -99,7 +113,7 @@ function CategoryPagination({ page }: { page: CategoryShowcasePage }) {
   );
 }
 
-// Burada backend'in seçtiği kategori görselini koleksiyon kartıyla aynı oranda gösteriyor, null olduğunda yalnızca yerel placeholder kullanıyorum.
+// Burada kategori kartını lüks editoryal hover efektleri ve şık rozetlerle sunuyorum.
 function CategoryCard({
   category,
   isLcpCandidate,
@@ -111,7 +125,7 @@ function CategoryCard({
     <li>
       <article className="group">
         <Link href={category.href} prefetch={false} className="focus-ring block">
-          <div className="relative aspect-[16/10] overflow-hidden rounded-xl border border-line/70 bg-surface-subtle sm:aspect-[3/2]">
+          <div className="relative aspect-[16/10] sm:aspect-[3/2] overflow-hidden rounded-lg border border-line/70 bg-surface-subtle shadow-xs transition-all duration-500 group-hover:shadow-lg group-hover:border-brand-700/40">
             {category.imageUrl ? (
               <Image
                 src={category.imageUrl}
@@ -119,30 +133,33 @@ function CategoryCard({
                 fill
                 loading={isLcpCandidate ? "eager" : "lazy"}
                 fetchPriority={isLcpCandidate ? "high" : undefined}
-                className="object-cover transition-transform duration-300 group-hover:scale-[1.018]"
+                className="object-cover transition-transform duration-700 ease-out motion-reduce:transition-none group-hover:scale-105"
                 sizes="(min-width: 1280px) 30vw, (min-width: 768px) 31vw, (min-width: 640px) 48vw, calc(100vw - 2rem)"
               />
             ) : (
-              <div className="flex size-full items-center justify-center bg-surface-subtle px-6 text-center">
-                <svg aria-hidden="true" viewBox="0 0 64 64" className="size-14 text-brand-600/45" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M12 48 25 34l8 8 7-7 12 13" />
-                  <path d="M10 14h44v36H10z" />
-                  <circle cx="42" cy="25" r="4" />
+              <div className="flex size-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-surface to-surface-subtle px-6 text-center text-brand-700">
+                <svg aria-hidden="true" viewBox="0 0 48 48" className="size-10 text-brand-600/45 transition-transform duration-500 group-hover:scale-110" fill="none" stroke="currentColor" strokeWidth="1.25">
+                  <path d="M24 6l14 10-14 26L10 16z" />
                 </svg>
-                <span className="sr-only">Kategori görseli bulunmuyor</span>
+                <span className="text-[0.6875rem] font-bold uppercase tracking-widest text-ink-muted/80">Kategori görseli bulunmuyor</span>
               </div>
             )}
+
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           </div>
 
-          <div className="flex items-start justify-between gap-5 border-b border-line px-0.5 py-4 sm:py-5">
+          <div className="flex items-start justify-between gap-4 border-b border-line/60 px-0.5 py-4 transition-colors group-hover:border-brand-700/40">
             <div className="min-w-0">
-              <h2 className="text-lg font-bold tracking-[-0.015em] text-ink transition-colors group-hover:text-brand-700 sm:text-xl">
+              <h2 className="text-lg font-bold tracking-tight text-ink transition-colors group-hover:text-brand-700 sm:text-xl">
                 {category.name}
               </h2>
-              <p className="mt-1 text-xs font-medium text-ink-muted">{category.productCount} ürün</p>
+              <p className="mt-1 text-xs font-semibold text-brand-700">{category.productCount} ürün</p>
             </div>
-            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border border-line text-brand-700 transition-colors group-hover:border-brand-700 group-hover:bg-brand-700 group-hover:text-white" aria-hidden="true">
-              →
+            <span
+              className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-brand-700 shadow-2xs transition-all duration-300 group-hover:border-brand-950 group-hover:bg-brand-950 group-hover:text-white group-hover:translate-x-0.5"
+              aria-hidden="true"
+            >
+              &rarr;
             </span>
           </div>
         </Link>

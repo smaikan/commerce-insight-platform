@@ -39,7 +39,7 @@ const STORE_BENEFITS: Array<{
 export function StoreBenefits() {
   return (
     <section className="border-t border-line bg-surface-subtle/55" aria-label="Alışveriş bilgileri">
-      <div className="page-shell grid gap-x-10 gap-y-8 py-9 sm:grid-cols-2 sm:py-10 lg:grid-cols-4 lg:gap-x-12">
+      <div className="home-shell grid gap-x-10 gap-y-8 py-9 sm:grid-cols-2 sm:py-10 lg:grid-cols-4 lg:gap-x-12">
         {STORE_BENEFITS.map((benefit) => (
           <Link
             key={benefit.title}

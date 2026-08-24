@@ -14,5 +14,6 @@ describe("store benefits", () => {
     expect(html).toContain("14 GÜN İÇİNDE CAYMA");
     expect(html).toContain("GÜVENLİ ÖDEME");
     expect(html).toContain('href="/cancellation-and-refund"');
+    expect(html).toContain("home-shell");
   });
 });

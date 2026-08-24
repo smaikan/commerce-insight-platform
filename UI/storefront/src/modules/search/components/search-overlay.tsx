@@ -197,12 +197,29 @@ export function SearchOverlay({
                     placeholder="Ürün adı, marka veya kategori ara"
                     autoComplete="off"
                     enterKeyHint="search"
-                    className="focus-ring h-13 w-full rounded-full border border-line bg-surface pr-13 pl-5 text-base text-ink placeholder:text-ink-muted/75 sm:h-15 sm:px-7 sm:pr-15 sm:text-lg"
+                    className="focus-ring h-13 w-full rounded-full border border-line bg-surface pr-14 pl-5 text-base text-ink placeholder:text-ink-muted/75 sm:h-15 sm:px-7 sm:pr-16 sm:text-lg [&::-webkit-search-cancel-button]:appearance-none"
                     aria-describedby="storefront-search-help"
                   />
-                  <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-brand-700 sm:right-5">
-                    <SearchIcon />
-                  </span>
+                  <div className="absolute inset-y-0 right-4 flex items-center gap-1.5 sm:right-5">
+                    {query.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuery("");
+                          inputRef.current?.focus();
+                        }}
+                        className="flex size-7 cursor-pointer items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-surface-subtle hover:text-ink"
+                        aria-label="Arama metnini temizle"
+                      >
+                        <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <path d="M5 5l10 10M15 5 5 15" />
+                        </svg>
+                      </button>
+                    ) : null}
+                    <span className="pointer-events-none text-brand-700">
+                      <SearchIcon />
+                    </span>
+                  </div>
                 </div>
                 <p id="storefront-search-help" className="mt-3 text-xs leading-5 text-ink-muted sm:text-sm">
                   En az iki karakter yazın; ürünler otomatik olarak listelenecek.
@@ -211,7 +228,7 @@ export function SearchOverlay({
 
               <button
                 type="button"
-                className="focus-ring inline-flex size-11 items-center justify-center justify-self-end text-ink hover:text-brand-700"
+                className="focus-ring inline-flex size-11 cursor-pointer items-center justify-center justify-self-end text-ink transition-colors hover:text-brand-700"
                 aria-label="Aramayı kapat"
                 onClick={() => dialogRef.current?.close()}
               >
@@ -415,7 +432,7 @@ function SearchErrorState({ message, canRetry, onRetry, title }: { message: stri
   );
 }
 
-// Burada modal kartını 4:5 görsel, ürün kimliği ve fiyat odağında hafif bir link olarak kuruyorum.
+// Burada modal kartını 4:5 görsel, ürün kimliği ve fiyat odağında lüks çerçeveli bir kart olarak kuruyorum.
 function SearchProductCard({ product, onNavigate }: { product: SearchProduct; onNavigate?: () => void }) {
   const hasDiscount = product.price !== null
     && product.price !== undefined
@@ -424,31 +441,33 @@ function SearchProductCard({ product, onNavigate }: { product: SearchProduct; on
     && product.compareAtPrice > product.price;
 
   return (
-    <article className="group min-w-0">
-      <Link href={`/products/${encodeURIComponent(product.url)}`} prefetch={false} onClick={onNavigate} className="focus-ring block">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-line/70 bg-surface-subtle">
+    <article className="group relative flex h-full flex-col min-w-0 rounded-2xl border border-line/60 bg-surface p-2 sm:p-2.5 shadow-xs transition-all duration-300 hover:border-brand-700/30 hover:shadow-md">
+      <Link href={`/products/${encodeURIComponent(product.url)}`} prefetch={false} onClick={onNavigate} className="focus-ring flex flex-1 flex-col">
+        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-surface-subtle">
           {product.imageUrl ? (
             <Image
               src={product.imageUrl}
               alt={product.imageAlt || product.title}
               fill
               loading="lazy"
-              className="object-cover transition-transform duration-300 group-hover:scale-[1.015]"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
               sizes="(min-width: 1024px) 18vw, (min-width: 640px) 30vw, 44vw"
             />
           ) : (
-            <div className="flex size-full items-center justify-center px-5 text-center text-xs text-ink-muted sm:text-sm">Ürün görseli bulunmuyor</div>
+            <div className="flex size-full items-center justify-center px-4 text-center text-xs text-ink-muted">Ürün görseli bulunmuyor</div>
           )}
         </div>
 
-        <div className="px-0.5 pt-3">
-          {product.brandName ? <p className="truncate text-xs font-semibold tracking-[0.04em] text-brand-700">{product.brandName}</p> : null}
-          <h3 className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-ink transition-colors group-hover:text-brand-700 sm:text-[0.9375rem]">{product.title}</h3>
-          <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            {product.price !== null && product.price !== undefined ? <span className="text-sm font-bold text-ink sm:text-base">{formatCurrency(product.price)}</span> : <span className="text-xs text-ink-muted">Fiyat bilgisi yok</span>}
-            {hasDiscount ? <span className="text-xs text-ink-muted line-through">{formatCurrency(product.compareAtPrice!)}</span> : null}
+        <div className="flex flex-1 flex-col justify-between pt-2 px-0.5 sm:pt-2.5">
+          <div>
+            {product.brandName ? <p className="mb-0.5 truncate text-[10px] sm:text-xs font-bold uppercase tracking-[0.1em] text-brand-700">{product.brandName}</p> : null}
+            <h3 className="line-clamp-2 min-h-[1.85rem] sm:min-h-[2.25rem] text-xs sm:text-sm font-medium leading-snug text-ink transition-colors group-hover:text-brand-700">{product.title}</h3>
           </div>
-          {!product.isAvailable ? <p className="mt-1.5 text-xs font-semibold text-danger">Şu an mevcut değil</p> : null}
+          <div className="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+            {product.price !== null && product.price !== undefined ? <span className="text-sm sm:text-base font-bold tracking-tight text-brand-950">{formatCurrency(product.price)}</span> : <span className="text-xs text-ink-muted">Fiyat bilgisi yok</span>}
+            {hasDiscount ? <span className="text-[11px] sm:text-xs text-ink-muted/75 line-through">{formatCurrency(product.compareAtPrice!)}</span> : null}
+          </div>
+          {!product.isAvailable ? <p className="mt-1 text-[11px] font-semibold text-danger">Şu an mevcut değil</p> : null}
         </div>
       </Link>
     </article>

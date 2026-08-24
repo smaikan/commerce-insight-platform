@@ -5,7 +5,7 @@ const apiGetMock = vi.hoisted(() => vi.fn());
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/api/client", () => ({ apiGet: apiGetMock }));
 
-import { getCategoryShowcase } from "./categories";
+import { getCategoryShowcase, getMostPopulatedCategories } from "./categories";
 import { parseCatalogView, toPublishedProductQuery } from "./query";
 
 const ringId = "11111111-1111-4111-8111-111111111111";
@@ -92,5 +92,26 @@ describe("category showcase data", () => {
     expect(result.items).toHaveLength(50);
     expect(apiGetMock).toHaveBeenCalledTimes(1);
     expect(apiGetMock.mock.calls.every(([path]) => String(path).startsWith("/api/product-types/published"))).toBe(true);
+  });
+
+  it("selects the globally highest product counts and links them to crawlable category landings", async () => {
+    apiGetMock.mockResolvedValue({
+      items: [
+        { id: ringId, name: "Yüzük", productCount: 5, imageUrl: "https://cdn.example.com/ring.webp" },
+        { id: necklaceId, name: "Kolye", productCount: 9, imageUrl: "https://cdn.example.com/necklace.webp" },
+        { id: "empty", name: "Boş", productCount: 0, imageUrl: null },
+      ],
+      pageNumber: 1,
+      pageSize: 100,
+      totalCount: 3,
+      totalPages: 1,
+      hasPreviousPage: false,
+      hasNextPage: false,
+    });
+
+    const result = await getMostPopulatedCategories(2);
+
+    expect(result.map((item) => item.name)).toEqual(["Kolye", "Yüzük"]);
+    expect(result.map((item) => item.href)).toEqual(["/category/kolye", "/category/yuzuk"]);
   });
 });

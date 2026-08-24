@@ -52,4 +52,19 @@ describe("catalog page layout", () => {
     expect(html).toContain(">Örnek Marka</h1>");
     expect(html).toContain("Markanın API tarafından sağlanan açıklaması.");
   });
+
+  it("renders clean Ana Sayfa / Katalog breadcrumb when viewing all products", () => {
+    const html = renderToStaticMarkup(
+      <CatalogPageLayout
+        title="Tüm ürünler"
+        products={emptyProducts}
+        facets={emptyFacets}
+        view={{ page: 1, sort: "newest" }}
+        emptyDescription="Henüz ürün yok."
+      />,
+    );
+
+    expect(html).toContain("Ana Sayfa");
+    expect(html).toContain(">Katalog</span>");
+  });
 });

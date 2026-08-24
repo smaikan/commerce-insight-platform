@@ -5,7 +5,7 @@ const apiGetMock = vi.hoisted(() => vi.fn());
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/api/client", () => ({ apiGet: apiGetMock }));
 
-import { getCollectionShowcase } from "./collections";
+import { getCollectionShowcase, getMostPopulatedCollections } from "./collections";
 
 describe("collection showcase data", () => {
   beforeEach(() => {
@@ -66,5 +66,26 @@ describe("collection showcase data", () => {
       imageUrl: null,
       productCount: 2,
     });
+  });
+
+  it("selects only populated collections by authoritative product count", async () => {
+    apiGetMock.mockResolvedValue({
+      items: [
+        { id: "1", name: "Günlük", url: "gunluk", productCount: 8, isFeatured: false, displayOrder: 1, imageUrl: "https://cdn.example.com/daily.webp" },
+        { id: "2", name: "City Edit", url: "city-edit", productCount: 14, isFeatured: false, displayOrder: 2, imageUrl: "https://cdn.example.com/city.webp" },
+        { id: "3", name: "Boş", url: "bos", productCount: 0, isFeatured: false, displayOrder: 3, imageUrl: null },
+      ],
+      pageNumber: 1,
+      pageSize: 100,
+      totalCount: 3,
+      totalPages: 1,
+      hasPreviousPage: false,
+      hasNextPage: false,
+    });
+
+    const result = await getMostPopulatedCollections(2);
+
+    expect(result.map((item) => item.name)).toEqual(["City Edit", "Günlük"]);
+    expect(result.map((item) => item.href)).toEqual(["/collection/city-edit", "/collection/gunluk"]);
   });
 });

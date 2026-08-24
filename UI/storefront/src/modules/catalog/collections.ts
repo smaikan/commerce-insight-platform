@@ -5,6 +5,7 @@ import { cache } from "react";
 import type { components, paths } from "@/generated/api";
 import { apiGet } from "@/lib/api/client";
 import { catalogSegmentFromApiUrl } from "@/modules/catalog/classification-url";
+import { selectMostPopulated } from "@/modules/catalog/showcase-ranking";
 
 type PublishedCollectionPage = components["schemas"]["PublishedCollectionShowcaseItemDtoPagedResult"];
 type PublishedCollectionQuery = NonNullable<
@@ -47,4 +48,19 @@ export const getCollectionShowcase = cache(async (
       imageAlt: collection.name,
     })),
   };
+});
+
+// Burada manuel koleksiyon sırasından bağımsız olarak tüm sayfaları kapsayıp görünür ürün sayısı en yüksek iki koleksiyonu seçiyorum.
+export const getMostPopulatedCollections = cache(async (limit = 2): Promise<CollectionShowcaseItem[]> => {
+  const firstPage = await getCollectionShowcase(1, 100);
+  const remainingPages = firstPage.totalPages > 1
+    ? await Promise.all(
+      Array.from({ length: firstPage.totalPages - 1 }, (_, index) => getCollectionShowcase(index + 2, 100)),
+    )
+    : [];
+
+  return selectMostPopulated(
+    [firstPage, ...remainingPages].flatMap((page) => page.items),
+    limit,
+  );
 });

@@ -41,8 +41,8 @@ export const getStorefrontNavigation = cache(async (): Promise<StorefrontNavigat
     NAVIGATION_FACET_CONFIG.map(async (config): Promise<StorefrontNavigationGroup> => {
       try {
         const facets = await apiGet<PublishedFacetItem[]>(config.path, {
-          revalidate: 300,
-          tags: ["published-products", config.tag],
+          revalidate: 60,
+          tags: ["published-products", config.tag, "navigation"],
         });
 
         return {

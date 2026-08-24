@@ -54,9 +54,43 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Burada etkileşimli öğeler için tutarlı işaretçi (pointer) kuralını tanımlıyorum. */
+button,
+a,
+summary,
+select,
+[role="button"],
+[role="tab"],
+[role="menuitem"],
+[role="option"],
+input[type="checkbox"],
+input[type="radio"],
+input[type="submit"],
+input[type="button"],
+input[type="file"],
+label[for],
+label:has(input[type="checkbox"]),
+label:has(input[type="radio"]),
+label:has(input[type="file"]) {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
 /* Burada tüm ana sayfa içeriklerini aynı responsive kolon ve kenar boşluğunda hizalıyorum. */
 .page-shell {
   width: min(100% - 2rem, 90rem);
+  margin-inline: auto;
+}
+
+/* Burada yalnız ana sayfanın görsel vitrinini daha sakin bir masaüstü genişliğinde ve ortak merkez çizgisinde tutuyorum. */
+.home-shell {
+  width: min(100% - 2rem, 80rem);
   margin-inline: auto;
 }
 
@@ -80,16 +114,27 @@ body {
   .page-shell {
     width: min(100% - 3rem, 90rem);
   }
+
+  .home-shell {
+    width: min(100% - 3rem, 80rem);
+  }
 }
 
 @media (min-width: 64rem) {
   .page-shell {
     width: min(100% - 4rem, 90rem);
   }
+
+  .home-shell {
+    width: min(100% - 6rem, 80rem);
+  }
 }
 
 /* Burada klavye kullanıcıları için ortak ve görünür odak dilini tanımlıyorum. */
-.focus-ring,
+.focus-ring {
+  outline: none;
+}
+
 .nav-link,
 .header-action,
 .mobile-nav-link {
@@ -256,6 +301,11 @@ body {
 
 .search-dialog::backdrop {
   background: rgb(16 45 68 / 0.18);
+}
+
+/* Burada bekleyen ödeme karar modalını checkout'tan görsel olarak ayırıp arka plan etkileşimini sakin bir katmanla kilitliyorum. */
+.payment-recovery-dialog::backdrop {
+  background: rgb(16 45 68 / 0.56);
 }
 
 @keyframes mobile-navigation-enter {

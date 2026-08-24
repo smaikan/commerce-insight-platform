@@ -4,7 +4,9 @@ import { cache } from "react";
 
 import type { components, paths } from "@/generated/api";
 import { apiGet } from "@/lib/api/client";
+import { classificationSegmentFromName } from "@/modules/catalog/classification-url";
 import { catalogHref } from "@/modules/catalog/query";
+import { selectMostPopulated } from "@/modules/catalog/showcase-ranking";
 
 type PublishedCategoryPage = components["schemas"]["PublishedProductTypeShowcaseItemDtoPagedResult"];
 type PublishedCategoryQuery = NonNullable<
@@ -47,4 +49,20 @@ export const getCategoryShowcase = cache(async (
       imageAlt: category.name,
     })),
   };
+});
+
+// Burada endpointin ada göre sayfalamasının tamamını gerektiğinde paralel okuyup ana sayfa için global en yoğun iki kategoriyi seçiyorum.
+export const getMostPopulatedCategories = cache(async (limit = 2): Promise<CategoryShowcaseItem[]> => {
+  const firstPage = await getCategoryShowcase(1, 100);
+  const remainingPages = firstPage.totalPages > 1
+    ? await Promise.all(
+      Array.from({ length: firstPage.totalPages - 1 }, (_, index) => getCategoryShowcase(index + 2, 100)),
+    )
+    : [];
+  const items = [firstPage, ...remainingPages].flatMap((page) => page.items);
+
+  return selectMostPopulated(items, limit).map((category) => ({
+    ...category,
+    href: `/category/${encodeURIComponent(classificationSegmentFromName(category.name))}`,
+  }));
 });

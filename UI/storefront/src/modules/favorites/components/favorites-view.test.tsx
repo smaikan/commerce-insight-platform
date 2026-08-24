@@ -77,7 +77,7 @@ describe("favorites view", () => {
   it("uses variants and the first usable image from the favorite ProductDto", () => {
     const html = renderToStaticMarkup(<FavoritesView products={favoritePage([favoriteProduct({
       variants: [
-        { id: "00000000-0000-0000-0000-000000000001", productId: "P00001", name: "Boyut", value: "Standart", sku: "SKU-001", price: 1250, netPrice: 1041.67, stock: 4, addToCartCount: 0, purchaseCount: 0, isActive: true },
+        { id: "00000000-0000-0000-0000-000000000001", productId: "P00001", name: "Boyut", value: "Standart", sku: "SKU-001", price: 1250, netPrice: 1041.67, stock: 4, addToCartCount: 0, purchaseCount: 0, isActive: true, concurrencyToken: "variant-token" },
       ],
       images: [
         { id: "00000000-0000-0000-0000-000000000002", productId: "P00001", imageUrl: "https://cdn.example.test/favorite.jpg", altText: "Favori ürün", displayOrder: 0, isMain: false },

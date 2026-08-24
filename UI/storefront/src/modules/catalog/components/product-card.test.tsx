@@ -35,6 +35,7 @@ describe("product card favorites", () => {
     expect(html).toContain('aria-pressed="false"');
     expect(html).toContain("size-11");
     expect(html).toContain("size-8");
+    expect(html).toContain("rounded-xl");
     expect(html).not.toContain("border-line text-ink");
   });
 });
