@@ -1,35 +1,34 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/lib/admin/components/confirm-dialog";
 import type { AdminMutationResult } from "@/lib/admin/mutation-result";
 import { updateOrderStatusAction } from "@/modules/orders/actions";
 import { orderStatusTransitions } from "@/modules/orders/lifecycle";
-import type { Order } from "@/modules/orders/types";
+import { runOrderStatusAction } from "@/modules/orders/status-action-state";
+import type { Order, OrderStatus } from "@/modules/orders/types";
 
 const initialState: AdminMutationResult | null = null;
 type OrderStatusControlOrder = Pick<Order, "id" | "orderNumber" | "status" | "shippingCarrier" | "trackingNumber" | "trackingUrl">;
 
 // Burada normal sipariş geçişlerini iade akışından ayırıp kargo ve iptal kararlarını kontrollü formda sunuyorum.
 export function OrderStatusControl({ order }: { order: OrderStatusControlOrder }) {
-  const transitions = orderStatusTransitions(order.status);
-  const [state, formAction, pending] = useActionState(updateOrderStatusAction, initialState);
+  const [currentStatus, setCurrentStatus] = useState<OrderStatus>(order.status);
+  const transitions = orderStatusTransitions(currentStatus);
+  const [state, setState] = useState<AdminMutationResult | null>(initialState);
+  const [pending, setPending] = useState(false);
   const [targetStatus, setTargetStatus] = useState<number>(transitions[0]?.value ?? order.status);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
+  const submittingRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const isShipping = targetStatus === 4;
 
-  // Burada başarılı durum değişikliğinden sonra aynı detayın ve sunucu verisinin güncel halini yüklüyorum.
-  useEffect(() => {
-    if (state?.status === "success" || state?.refresh) router.refresh();
-  }, [router, state]);
-
   if (transitions.length === 0) {
-    const message = order.status === 7
+    const message = currentStatus === 7
       ? "Ücret iade edildi durumu iade akışı tarafından belirlenir. Bu iş durumu, ödeme sağlayıcısında para iadesi veya Payment güncellemesi yapıldığı anlamına gelmez."
-      : order.status === 8 || order.status === 9
+      : currentStatus === 8 || currentStatus === 9
         ? "Bu siparişin durumu aşağıdaki iade taleplerinden yönetilir. Genel durum alanı iade akışını değiştiremez."
         : "Bu durum için genel sipariş akışında başka bir geçiş yok.";
     return (
@@ -41,14 +40,36 @@ export function OrderStatusControl({ order }: { order: OrderStatusControlOrder }
 
   // Burada iptal hedefinde formu göndermeden önce işlemin stok ve kupon etkisini kullanıcıya açıkça onaylatıyorum.
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     if (targetStatus === 6 && !showCancelConfirmation) {
-      event.preventDefault();
       setShowCancelConfirmation(true);
+      return;
     }
+
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    const formData = new FormData(event.currentTarget);
+
+    void runOrderStatusAction(updateOrderStatusAction, formData, setPending)
+      .then((result) => {
+        setState(result);
+        if (result.status === "success" && result.orderStatus !== undefined) {
+          const nextTransitions = orderStatusTransitions(result.orderStatus);
+          setCurrentStatus(result.orderStatus);
+          setTargetStatus(nextTransitions[0]?.value ?? result.orderStatus);
+        }
+        if (result.status === "success" || result.refresh) {
+          // Burada authoritative PATCH sonucunu önce görünür state'e uygulayıp detayın kalan alanlarını arka planda yeniden okuyorum.
+          router.refresh();
+        }
+      })
+      .finally(() => {
+        submittingRef.current = false;
+      });
   }
 
   return (
-    <form ref={formRef} action={formAction} onSubmit={handleSubmit} className="space-y-3">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-3" aria-busy={pending}>
       <input type="hidden" name="orderId" value={order.id} />
       <label className="block text-xs font-semibold text-muted">
         Yeni durum

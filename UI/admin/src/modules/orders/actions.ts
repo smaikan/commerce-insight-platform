@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { adminMutationError } from "@/lib/admin/mutation-error";
 import type { AdminMutationResult } from "@/lib/admin/mutation-result";
 import { ApiError } from "@/lib/api/problem";
@@ -12,6 +11,9 @@ import {
   updateOrderStatus,
 } from "@/modules/orders/api";
 import { isManagedOrderStatus } from "@/modules/orders/lifecycle";
+import type { ReturnMutationResult } from "@/modules/orders/return-action-state";
+import { availableReturnActions, type ReturnActionIntent } from "@/modules/orders/return-lifecycle";
+import type { OrderStatusMutationResult } from "@/modules/orders/status-action-state";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -19,7 +21,7 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 export async function updateOrderStatusAction(
   _previousState: AdminMutationResult | null,
   formData: FormData,
-): Promise<AdminMutationResult> {
+): Promise<OrderStatusMutationResult> {
   const orderId = readString(formData, "orderId");
   const status = Number(formData.get("status"));
   if (!orderId || !uuidPattern.test(orderId) || !isManagedOrderStatus(status)) {
@@ -34,17 +36,19 @@ export async function updateOrderStatusAction(
   }
 
   try {
-    await updateOrderStatus(orderId, {
+    const updatedOrder = await updateOrderStatus(orderId, {
       status,
       shippingCarrier: status === 4 ? shippingCarrier : null,
       trackingNumber: status === 4 ? trackingNumber : null,
       trackingUrl: status === 4 ? trackingUrl : null,
     }, await requireAdminActionSession());
-    revalidateOrderPaths(orderId);
-    return { status: "success", message: "Sipariş durumu güncellendi." };
+    return {
+      status: "success",
+      message: "Sipariş durumu güncellendi.",
+      orderStatus: updatedOrder.status,
+    };
   } catch (error) {
     return mutationError(
-      orderId,
       error,
       "Sipariş durumu güncellenemedi.",
       "Sipariş durumu bu geçiş için artık uygun değil. Güncel siparişi kontrol edip tekrar deneyin.",
@@ -56,14 +60,14 @@ export async function updateOrderStatusAction(
 export async function manageReturnRequestAction(
   _previousState: AdminMutationResult | null,
   formData: FormData,
-): Promise<AdminMutationResult> {
+): Promise<ReturnMutationResult> {
   const orderId = readString(formData, "orderId");
   const returnRequestId = readString(formData, "returnRequestId");
   const intent = readString(formData, "intent");
   if (!orderId || !uuidPattern.test(orderId) || !returnRequestId || !uuidPattern.test(returnRequestId)) {
     return { status: "error", message: "İade talebi kimliği geçersiz." };
   }
-  if (intent !== "approve" && intent !== "reject" && intent !== "receive" && intent !== "complete") {
+  if (!isReturnActionIntent(intent)) {
     return { status: "error", message: "İade işlemi geçersiz." };
   }
 
@@ -78,48 +82,71 @@ export async function manageReturnRequestAction(
     if (currentReturn.orderId !== orderId) {
       return { status: "error", message: "İade talebi bu siparişe ait değil." };
     }
-    if (intent === "approve" || intent === "reject") {
-      await decideReturnRequest(returnRequestId, intent, decisionNote, session);
-    } else {
-      await advanceReturnRequest(returnRequestId, intent, session);
+    if (!availableReturnActions(currentReturn).includes(intent)) {
+      return {
+        status: "error",
+        message: "Bu işlem iade talebinin güncel durumu için geçerli değil. Güncel talebi inceleyip işlemi yeniden seçin.",
+        refresh: true,
+      };
     }
-    revalidateOrderPaths(orderId);
-    return { status: "success", message: returnActionSuccessMessage(intent) };
+    const updatedReturn = intent === "approve" || intent === "reject"
+      ? await decideReturnRequest(returnRequestId, intent, decisionNote, session)
+      : await advanceReturnRequest(returnRequestId, intent, session);
+    return {
+      status: "success",
+      message: returnActionSuccessMessage(intent, currentReturn.type, currentReturn.status),
+      returnRequest: updatedReturn,
+    };
   } catch (error) {
-    return mutationError(
-      orderId,
-      error,
-      "İade talebi güncellenemedi.",
-      "İade talebi başka bir işlemle değişmiş olabilir. Güncel talebi kontrol edip tekrar deneyin.",
-    );
+    return returnMutationError(error);
   }
 }
 
 // Burada çakışan yaşam döngüsü mutasyonunda güncel sipariş ve iade verisinin yeniden okunmasını işaretliyorum.
-function mutationError(orderId: string, error: unknown, fallback: string, conflictMessage: string): AdminMutationResult {
+function mutationError(error: unknown, fallback: string, conflictMessage: string): AdminMutationResult {
   const result = adminMutationError(error, fallback, conflictMessage);
   if (error instanceof ApiError && error.problem.status === 409) {
-    revalidateOrderPaths(orderId);
     return { ...result, refresh: true };
   }
   return result;
 }
 
-// Burada değişen sipariş ve iade bilgisini liste, detay ve hızlı bakış sınırlarında yeniden doğrulatıyorum.
-function revalidateOrderPaths(orderId: string): void {
-  revalidatePath("/orders");
-  revalidatePath(`/orders/${encodeURIComponent(orderId)}`);
+// Burada yaşam döngüsü işleminden sonra kalıcı bölgede gösterilecek kısa başarı mesajını seçiyorum.
+function returnActionSuccessMessage(intent: ReturnActionIntent, type: 0 | 1, previousStatus: number): string {
+  if (intent === "approve") {
+    return type === 0
+      ? "İade talebi onaylandı; sipariş Ücret İade Edildi durumuna güncellendi."
+      : "Değişim talebi onaylandı; iade ve değişim stok hareketleri tamamlandı.";
+  }
+  if (intent === "reject") return "İade talebi reddedildi.";
+  if (intent === "receive") {
+    return previousStatus === 0
+      ? "İade ürünleri teslim alındı; talep karar bekliyor."
+      : "Eski akıştaki onaylı iade ürünleri teslim alındı.";
+  }
+  return "Eski iade süreci tamamlandı.";
 }
 
-// Burada yaşam döngüsü işleminden sonra kalıcı bölgede gösterilecek kısa başarı mesajını seçiyorum.
-function returnActionSuccessMessage(intent: "approve" | "reject" | "receive" | "complete"): string {
-  const messages = {
-    approve: "İade talebi onaylandı.",
-    reject: "İade talebi reddedildi.",
-    receive: "İade ürünleri teslim alındı.",
-    complete: "İade süreci tamamlandı.",
-  };
-  return messages[intent];
+// Burada yeni typed geçiş hatasını gerçek concurrency ve stok çakışmalarından ayırıyorum.
+function returnMutationError(error: unknown): AdminMutationResult {
+  if (error instanceof ApiError && error.problem.status === 409) {
+    const message = error.problem.code === "return_status_transition_invalid"
+      ? "İade talebinin durumu değişti. Güncel talebi inceleyip işlemi yeniden seçin."
+      : error.problem.code === "concurrency_conflict"
+        ? "İade talebi başka bir işlemle eşzamanlı değiştirildi. Güncel talebi inceleyip işlemi yeniden seçin."
+        : error.problem.detail || "İade işlemi stok veya varyant koşulları nedeniyle tamamlanamadı.";
+    return { status: "error", message, traceId: error.problem.traceId, refresh: true };
+  }
+  return adminMutationError(
+    error,
+    "İade talebi güncellenemedi.",
+    "İade talebi güncellenemedi. Güncel talebi kontrol edip tekrar deneyin.",
+  );
+}
+
+// Burada form intent'ini dört belgelenmiş return operasyonuyla sınırlandırıyorum.
+function isReturnActionIntent(intent: string | undefined): intent is ReturnActionIntent {
+  return intent === "approve" || intent === "reject" || intent === "receive" || intent === "complete";
 }
 
 // Burada FormData içindeki zorunlu metni tek değer ve boşluk normalizasyonuyla okuyorum.

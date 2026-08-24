@@ -78,7 +78,7 @@ export function OrderExpandableRows({
             aria-expanded={isExpanded}
             aria-controls={previewId}
             onClick={togglePreview}
-            className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 ${isExpanded ? "border-primary/30 bg-surface-strong text-primary" : "border-border bg-surface-strong text-foreground hover:border-primary/30 hover:text-primary"}`}
+            className={`inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 text-xs font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 ${isExpanded ? "border-primary/30 bg-surface-strong text-primary" : "border-border bg-surface-strong text-foreground hover:border-primary/30 hover:text-primary"}`}
           >
             <span>{isExpanded ? "Kapat" : "Hızlı bakış"}</span>
             <svg aria-hidden="true" viewBox="0 0 20 20" className={`size-4 fill-none stroke-current stroke-2 transition-transform ${isExpanded ? "rotate-180" : ""}`}>
@@ -130,7 +130,7 @@ function PreviewFailure({ preview, onRetry }: { preview: Extract<PreviewState, {
         <p className="mt-1 text-sm leading-6 text-muted">{preview.message}</p>
         {preview.traceId ? <p className="mt-1 font-mono text-xs text-muted">Takip kodu: {preview.traceId}</p> : null}
       </div>
-      <button type="button" onClick={() => void onRetry()} className="min-h-10 rounded-lg border border-border-strong bg-surface-strong px-4 text-sm font-semibold text-foreground hover:border-primary/35 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+      <button type="button" onClick={() => void onRetry()} className="min-h-10 cursor-pointer rounded-lg border border-border-strong bg-surface-strong px-4 text-sm font-semibold text-foreground transition-colors hover:border-primary/35 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
         Tekrar dene
       </button>
     </div>
@@ -156,7 +156,7 @@ function PreviewContent({ preview, orderHref }: { preview: OrderListPreview; ord
             </p>
           ) : null}
         </div>
-        <Link href={orderHref} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
+        <Link href={orderHref} className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
           Siparişi görüntüle
           <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4 fill-none stroke-current stroke-2">
             <path d="m7 4 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />

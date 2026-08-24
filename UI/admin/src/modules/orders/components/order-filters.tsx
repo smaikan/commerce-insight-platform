@@ -44,12 +44,12 @@ export function OrderFilters({ query }: { query: OrderListQuery }) {
           </select>
         </label>
 
-        <button type="submit" className="min-h-10 self-end rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover sm:min-h-9">
+        <button type="submit" className="min-h-10 cursor-pointer self-end rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover sm:min-h-9">
           Uygula
         </button>
 
         {hasOrderFilters(query) ? (
-          <Link href="/orders" className="inline-flex min-h-10 self-end items-center justify-center rounded-lg border border-border-strong bg-surface-strong px-4 text-sm font-medium text-foreground hover:bg-surface-subtle sm:min-h-9">
+          <Link href="/orders" className="inline-flex min-h-10 cursor-pointer self-end items-center justify-center rounded-lg border border-border-strong bg-surface-strong px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface-subtle sm:min-h-9">
             Temizle
           </Link>
         ) : null}
