@@ -1,6 +1,6 @@
 ﻿# API endpoint sözleşmeleri
 
-Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte tutulur. Güncel runtime sözleşmesi **280 endpoint** yayınlar; frontend işlev alanları aşağıda gruplandırılmıştır. Her ayrıntı dosyasında işlev, parametreler, request body örneği ve başarı/hata sözleşmesi vardır.
+Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte tutulur. Güncel runtime sözleşmesi **286 endpoint** yayınlar; frontend işlev alanları aşağıda gruplandırılmıştır. Her ayrıntı dosyasında işlev, parametreler, request body örneği ve başarı/hata sözleşmesi vardır.
 
 ## 14 İletişim mesajları
 
@@ -32,6 +32,7 @@ Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte
 - [POST /api/guest-orders/access/exchange](05-siparis-ve-odeme/POST--api-guest-orders-access-exchange.md)
 - [GET /api/guest-orders](05-siparis-ve-odeme/GET--api-guest-orders.md)
 - [GET /api/guest-orders/{id}](05-siparis-ve-odeme/GET--api-guest-orders--id-.md)
+- [GET /api/guest-orders/{id}/cancellation](05-siparis-ve-odeme/GET--api-guest-orders--id--cancellation.md)
 - [POST /api/guest-orders/{id}/payments](05-siparis-ve-odeme/POST--api-guest-orders--id--payments.md)
 - [POST /api/guest-orders/{id}/cancel](05-siparis-ve-odeme/POST--api-guest-orders--id--cancel.md)
 - [GET /api/guest-orders/{id}/returns](06-iade/GET--api-guest-orders--id--returns.md)
@@ -250,9 +251,10 @@ Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte
 - [PUT /api/product-variants/{id}](03-katalog-ve-etkilesim/PUT--api-product-variants--id-.md)
 - [PATCH /api/product-variants/{id}/activation](03-katalog-ve-etkilesim/PATCH--api-product-variants--id--activation.md)
 - [PATCH /api/product-variants/{id}/price](03-katalog-ve-etkilesim/PATCH--api-product-variants--id--price.md)
-- [POST /api/product-variants/{id}/stock-movements](03-katalog-ve-etkilesim/POST--api-product-variants--id--stock-movements.md)
+- [POST /api/product-variants/stock-movements](03-katalog-ve-etkilesim/POST--api-product-variants-stock-movements.md)
 - [GET /api/product-variants/by-product/{productId}](03-katalog-ve-etkilesim/GET--api-product-variants-by-product--product-d-.md)
 - [POST /api/product-variants/by-product/{productId}](03-katalog-ve-etkilesim/POST--api-product-variants-by-product--product-d-.md)
+- [PUT /api/product-variants/by-product/{productId}/bulk](03-katalog-ve-etkilesim/PUT--api-product-variants-by-product--product-d--bulk.md)
 - [GET /api/tags](03-katalog-ve-etkilesim/GET--api-tags.md)
 - [POST /api/tags](03-katalog-ve-etkilesim/POST--api-tags.md)
 - [GET /api/tags/{id}](03-katalog-ve-etkilesim/GET--api-tags--id-.md)
@@ -301,6 +303,7 @@ Bu klasör controllerlardan yayınlanan Swagger/OpenAPI sözleşmesiyle birlikte
 - [GET /api/orders](05-siparis-ve-odeme/GET--api-orders.md)
 - [POST /api/orders](05-siparis-ve-odeme/POST--api-orders.md)
 - [GET /api/orders/{id}](05-siparis-ve-odeme/GET--api-orders--id-.md)
+- [GET /api/orders/{id}/cancellation](05-siparis-ve-odeme/GET--api-orders--id--cancellation.md)
 - [POST /api/orders/{id}/cancel](05-siparis-ve-odeme/POST--api-orders--id--cancel.md)
 - [POST /api/orders/{id}/payments](05-siparis-ve-odeme/POST--api-orders--id--payments.md)
 - [PATCH /api/orders/{id}/status](05-siparis-ve-odeme/PATCH--api-orders--id--status.md)

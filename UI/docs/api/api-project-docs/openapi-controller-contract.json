@@ -2980,7 +2980,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "put": {
         "tags": [
@@ -3085,7 +3085,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "put": {
         "tags": [
@@ -3190,7 +3190,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "put": {
         "tags": [
@@ -3295,7 +3295,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "put": {
         "tags": [
@@ -3400,7 +3400,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "put": {
         "tags": [
@@ -3524,7 +3524,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/auth/login": {
@@ -3573,7 +3573,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/auth/refresh-token": {
@@ -3622,7 +3622,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/auth/logout": {
@@ -3654,7 +3654,7 @@
             "description": "OK"
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/auth/forgot-password": {
@@ -3726,7 +3726,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/auth/reset-password": {
@@ -3838,7 +3838,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/accounting/bank-accounts": {
@@ -4019,7 +4019,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "post": {
         "tags": [
@@ -4106,7 +4106,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "delete": {
         "tags": [
@@ -4330,7 +4330,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "delete": {
         "tags": [
@@ -4368,7 +4368,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/cart/items": {
@@ -4417,7 +4417,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/cart/items/{cartItemId}": {
@@ -4477,7 +4477,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "delete": {
         "tags": [
@@ -4524,7 +4524,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/cart/merge-guest": {
@@ -4602,7 +4602,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/cart/checkout/guest": {
@@ -4667,7 +4667,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/accounting/cash-accounts": {
@@ -4848,7 +4848,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "post": {
         "tags": [
@@ -4942,7 +4942,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/collections/{id}": {
@@ -4983,7 +4983,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "delete": {
         "tags": [
@@ -5427,7 +5427,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "get": {
         "tags": [
@@ -7207,7 +7207,7 @@
             "description": "OK"
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/guest-orders/access/exchange": {
@@ -7256,7 +7256,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/guest-orders": {
@@ -7306,7 +7306,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/guest-orders/{id}": {
@@ -7347,7 +7347,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/guest-orders/{id}/payments": {
@@ -7414,7 +7414,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/guest-orders/{id}/payments/iyzico/checkout-form": {
@@ -7563,7 +7563,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/guest-orders/{id}/cancel": {
@@ -7571,6 +7571,7 @@
         "tags": [
           "GuestOrders"
         ],
+        "description": "Owner-scoped. Pending/Confirmed siparişte mevcut CheckoutForm mutabakatını; Paid/Preparing siparişte iyzico reporting sonrası aynı gün payment cancel veya gerçek item transaction değerleriyle standart refund sagasını kullanır. Provider başarısı kesinleşmeden Order/Payment/stok/kupon değiştirilmez. Shipped ve sonrası reddedilir.",
         "parameters": [
           {
             "name": "id",
@@ -7584,7 +7585,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "İptal tamamlandı veya idempotent replay; güncel OrderDto ve status=Cancelled (6).",
             "content": {
               "text/plain": {
                 "schema": {
@@ -7602,9 +7603,211 @@
                 }
               }
             }
+          },
+          "202": {
+            "description": "Provider sonucu mutabakat bekliyor; owner-scoped polling URL taşıyan OrderCancellationOperationDto.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCancellationOperationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCancellationOperationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCancellationOperationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ProblemDetails code=validation_error veya bad_request.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ProblemDetails code=invalid_guest_access.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ProblemDetails code=invalid_guest_access; trusted Origin veya CSRF doğrulaması başarısız.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ProblemDetails code=resource_not_found; owner scope bilgi sızdırmaz.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "ProblemDetails code=order_cancellation_not_allowed, payment_reversal_data_missing, payment_reversal_rejected, payment_reversal_manual_review veya conflict.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
-        "security": [ ]
+        "security": []
+      }
+    },
+    "/api/guest-orders/{id}/cancellation": {
+      "get": {
+        "tags": [
+          "GuestOrders"
+        ],
+        "description": "Yalnız sipariş sahibinin en güncel kalıcı cancellation/reversal operasyonunu polling için döndürür. Provider kimlikleri ve iç hata payload'ı response'a açılmaz.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Güncel OrderCancellationOperationDto.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCancellationOperationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCancellationOperationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCancellationOperationDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ProblemDetails code=invalid_guest_access.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ProblemDetails code=resource_not_found; owner scope bilgi sızdırmaz.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": []
       }
     },
     "/api/guest-orders/{id}/returns": {
@@ -7663,7 +7866,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "post": {
         "tags": [
@@ -7721,7 +7924,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/guest-orders/{id}/returns/{returnId}": {
@@ -7771,7 +7974,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/guest-orders/claim": {
@@ -8083,7 +8286,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/payments/iyzico/webhook": {
@@ -8205,7 +8408,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/main-banners": {
@@ -8235,7 +8438,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "put": {
         "tags": [
@@ -8288,6 +8491,111 @@
       "get": {
         "tags": [
           "MainBanners"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/main-banner-mobile": {
+      "get": {
+        "tags": [
+          "MainMobileBanner"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "put": {
+        "tags": [
+          "MainMobileBanner"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerSectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSectionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/main-banner-mobile/admin": {
+      "get": {
+        "tags": [
+          "MainMobileBanner"
         ],
         "responses": {
           "200": {
@@ -8850,6 +9158,7 @@
         "tags": [
           "Orders"
         ],
+        "description": "Owner-scoped. Pending/Confirmed siparişte mevcut CheckoutForm mutabakatını; Paid/Preparing siparişte iyzico reporting sonrası aynı gün payment cancel veya gerçek item transaction değerleriyle standart refund sagasını kullanır. Provider başarısı kesinleşmeden Order/Payment/stok/kupon değiştirilmez. Shipped ve sonrası reddedilir.",
         "parameters": [
           {
             "name": "id",
@@ -8863,7 +9172,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "İptal tamamlandı veya idempotent replay; güncel OrderDto ve status=Cancelled (6).",
             "content": {
               "text/plain": {
                 "schema": {
@@ -8878,6 +9187,187 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OrderDto"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Provider sonucu mutabakat bekliyor; owner-scoped polling URL taşıyan OrderCancellationOperationDto.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCancellationOperationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCancellationOperationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCancellationOperationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ProblemDetails code=validation_error veya bad_request.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ProblemDetails code=authentication_required veya invalid_access_token.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ProblemDetails code=resource_not_found; owner scope bilgi sızdırmaz.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "ProblemDetails code=order_cancellation_not_allowed, payment_reversal_data_missing, payment_reversal_rejected, payment_reversal_manual_review veya conflict.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{id}/cancellation": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "description": "Yalnız sipariş sahibinin en güncel kalıcı cancellation/reversal operasyonunu polling için döndürür. Provider kimlikleri ve iç hata payload'ı response'a açılmaz.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Güncel OrderCancellationOperationDto.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCancellationOperationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCancellationOperationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCancellationOperationDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ProblemDetails code=authentication_required veya invalid_access_token.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ProblemDetails code=resource_not_found; owner scope bilgi sızdırmaz.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -9272,7 +9762,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/product-engagement/products/{productId}/favorites": {
@@ -9395,7 +9885,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "delete": {
         "tags": [
@@ -9496,7 +9986,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/product-engagement/products/{productId}/rating": {
@@ -9617,7 +10107,7 @@
             "description": "OK"
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/product-engagement/reviews/{reviewId}/approval": {
@@ -9739,7 +10229,7 @@
             "description": "OK"
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/product-images/{id}": {
@@ -9780,7 +10270,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "put": {
         "tags": [
@@ -9899,7 +10389,7 @@
             "description": "OK"
           }
         },
-        "security": [ ]
+        "security": []
       },
       "post": {
         "tags": [
@@ -10226,7 +10716,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/products/published/search-suggestions": {
@@ -10338,7 +10828,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/products/by-collection/{collectionId}": {
@@ -10409,7 +10899,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/products/by-tag/{tagId}": {
@@ -10480,7 +10970,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/products/by-type/{typeId}": {
@@ -10551,7 +11041,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/products/by-brand/{brandId}": {
@@ -10622,7 +11112,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/products/by-url/{url}": {
@@ -10662,7 +11152,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/products/seo-index": {
@@ -10693,7 +11183,7 @@
             "description": "OK"
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/products/{id}": {
@@ -11243,7 +11733,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "post": {
         "tags": [
@@ -11337,7 +11827,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/product-types/{id}": {
@@ -11378,7 +11868,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "delete": {
         "tags": [
@@ -11662,7 +12152,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "put": {
         "tags": [
@@ -11737,8 +12227,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -11781,7 +12271,7 @@
             "description": "OK"
           }
         },
-        "security": [ ]
+        "security": []
       },
       "post": {
         "tags": [
@@ -11833,6 +12323,194 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductVariantDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/product-variants/by-product/{productId}/bulk": {
+      "put": {
+        "tags": [
+          "ProductVariants"
+        ],
+        "description": "AdminOnly. Aynı ürüne ait mevcut varyantları tek serializable transaction içinde atomik günceller. SKU takası ve döngüsel SKU değişimleri desteklenir; bütün satırlar başarılı olmazsa hiçbir değişiklik kalıcılaşmaz. Her satır güncel expectedConcurrencyToken taşır. Başarılı cevap request sırasındaki authoritative varyant listesidir. Aynı request eski tokenlarla tekrarlandığında yan etkiler tekrarlanmaz ve concurrency_conflict döner.",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkUpdateProductVariantsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkUpdateProductVariantsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkUpdateProductVariantsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Atomik güncelleme tamamlandı; güncel ProductVariantDto listesi döner.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductVariantDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductVariantDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductVariantDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error veya business_rule_violation.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantBulkProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantBulkProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantBulkProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "authentication_required veya invalid_access_token.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "resource_not_found; bir veya daha fazla varyant belirtilen ürüne ait değildir.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "concurrency_conflict veya product_variant_sku_conflict. SKU çakışmasında errors anahtarları variants[n].sku biçimindedir.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantBulkProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantBulkProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantBulkProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -11899,21 +12577,10 @@
         }
       }
     },
-    "/api/product-variants/{id}/stock-movements": {
+    "/api/product-variants/stock-movements": {
       "post": {
         "tags": [
           "ProductVariants"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
         ],
         "requestBody": {
           "content": {
@@ -11951,6 +12618,126 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductVariantDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -12103,7 +12890,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/products/published/facets/collections": {
@@ -12192,7 +12979,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/products/published/facets/product-types": {
@@ -12281,7 +13068,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/accounting/purchase-invoices": {
@@ -13064,6 +13851,7 @@
           {
             "name": "Status",
             "in": "query",
+            "description": "Numeric değerler değişmez: 0 Requested, 1 Approved, 2 Rejected, 3 Received, 4 Completed. Yeni kayıt yaşam döngüsü: Requested (0) → Received (3) → Approved (1) veya Rejected (2). Completed yalnız legacy uyumluluğu içindir.",
             "schema": {
               "$ref": "#/components/schemas/ReturnRequestStatus"
             }
@@ -13141,6 +13929,7 @@
           {
             "name": "Status",
             "in": "query",
+            "description": "Numeric değerler değişmez: 0 Requested, 1 Approved, 2 Rejected, 3 Received, 4 Completed. Yeni kayıt yaşam döngüsü: Requested (0) → Received (3) → Approved (1) veya Rejected (2). Completed yalnız legacy uyumluluğu içindir.",
             "schema": {
               "$ref": "#/components/schemas/ReturnRequestStatus"
             }
@@ -13271,6 +14060,7 @@
         "tags": [
           "Returns"
         ],
+        "description": "Yeni kayıt yaşam döngüsü: Requested (0) → Received (3) → Approved (1) veya Rejected (2). Yalnız karar bekleyen Received kayıt onaylanır. Refund talebi Order Refunded (7) yapar ve SaleReturn stok girişini; Exchange talebi Order ReturnApproved (9) yapar, iade stok girişini ve replacement stok çıkışını aynı transaction içinde uygular. Ödeme sağlayıcısına refund çağrısı yapılmaz ve Payment kaydı değiştirilmez.",
         "parameters": [
           {
             "name": "id",
@@ -13318,6 +14108,106 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReturnRequestDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ProblemDetails code=validation_error, bad_request veya business_rule_violation.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ProblemDetails code=authentication_required veya invalid_access_token.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ProblemDetails code=forbidden.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ProblemDetails code=resource_not_found.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Geçersiz yaşam döngüsü geçişinde ProblemDetails code=return_status_transition_invalid; gerçek eşzamanlı yazma yarışında concurrency_conflict; stok veya varyant çakışmasında conflict.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -13330,6 +14220,7 @@
         "tags": [
           "Returns"
         ],
+        "description": "Yeni kayıt yaşam döngüsü: Requested (0) → Received (3) → Approved (1) veya Rejected (2). Yalnız karar bekleyen Received kayıt reddedilir; stok hareketi oluşmaz ve Order durumu diğer aktif taleplerden yeniden türetilir.",
         "parameters": [
           {
             "name": "id",
@@ -13380,6 +14271,106 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "ProblemDetails code=validation_error, bad_request veya business_rule_violation.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ProblemDetails code=authentication_required veya invalid_access_token.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ProblemDetails code=forbidden.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ProblemDetails code=resource_not_found.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Geçersiz yaşam döngüsü geçişinde ProblemDetails code=return_status_transition_invalid; gerçek eşzamanlı yazma yarışında concurrency_conflict; stok veya varyant çakışmasında conflict.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -13389,6 +14380,7 @@
         "tags": [
           "Returns"
         ],
+        "description": "Yeni kayıt yaşam döngüsü: Requested (0) → Received (3) → Approved (1) veya Rejected (2). Yeni Requested kayıt Received olur, receivedAt UTC yazılır, Order ReturnRequested (8) kalır ve stok değişmez. Yalnız deployment öncesinden kalan Approved kayıtların eski receive davranışı geriye dönük uyumluluk için korunur.",
         "parameters": [
           {
             "name": "id",
@@ -13420,6 +14412,106 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "ProblemDetails code=validation_error, bad_request veya business_rule_violation.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ProblemDetails code=authentication_required veya invalid_access_token.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ProblemDetails code=forbidden.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ProblemDetails code=resource_not_found.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Geçersiz yaşam döngüsü geçişinde ProblemDetails code=return_status_transition_invalid; gerçek eşzamanlı yazma yarışında concurrency_conflict; stok veya varyant çakışmasında conflict.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -13429,6 +14521,7 @@
         "tags": [
           "Returns"
         ],
+        "description": "Yeni kayıtlarda kullanılmaz. Yalnız deployment öncesindeki Approved → Received kayıtlarını Completed (4) durumuna taşıyan sınırlı uyumluluk endpointidir.",
         "parameters": [
           {
             "name": "id",
@@ -13457,6 +14550,106 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReturnRequestDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ProblemDetails code=validation_error, bad_request veya business_rule_violation.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ProblemDetails code=authentication_required veya invalid_access_token.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ProblemDetails code=forbidden.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ProblemDetails code=resource_not_found.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Geçersiz yaşam döngüsü geçişinde ProblemDetails code=return_status_transition_invalid; gerçek eşzamanlı yazma yarışında concurrency_conflict; stok veya varyant çakışmasında conflict.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -14042,7 +15235,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/shipping-methods": {
@@ -14328,8 +15521,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "201": {
+            "description": "Created",
             "content": {
               "text/plain": {
                 "schema": {
@@ -14344,6 +15537,126 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BulkCreateStockMovementsResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -14559,7 +15872,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/store-settings/admin": {
@@ -15305,7 +16618,7 @@
             "description": "OK"
           }
         },
-        "security": [ ]
+        "security": []
       },
       "post": {
         "tags": [
@@ -15392,7 +16705,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       },
       "delete": {
         "tags": [
@@ -15610,7 +16923,7 @@
             }
           }
         },
-        "security": [ ]
+        "security": []
       }
     },
     "/api/tax-rates": {
@@ -17450,11 +18763,17 @@
       },
       "AdjustStockRequest": {
         "required": [
+          "productVariantSku",
           "quantityDelta",
           "type"
         ],
         "type": "object",
         "properties": {
+          "productVariantSku": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
           "quantityDelta": {
             "type": "integer",
             "format": "int32"
@@ -18675,15 +19994,16 @@
       },
       "BulkStockMovementRequest": {
         "required": [
-          "productVariantId",
+          "productVariantSku",
           "quantityDelta",
           "type"
         ],
         "type": "object",
         "properties": {
-          "productVariantId": {
-            "type": "string",
-            "format": "uuid"
+          "productVariantSku": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
           },
           "quantityDelta": {
             "type": "integer",
@@ -18695,6 +20015,97 @@
           "reason": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BulkUpdateProductVariantRequestItem": {
+        "required": [
+          "expectedConcurrencyToken",
+          "id",
+          "isActive",
+          "name",
+          "price",
+          "sku",
+          "stock",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sku": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "price": {
+            "maximum": 79228162514264337593543950335,
+            "minimum": 0.01,
+            "type": "number",
+            "format": "double"
+          },
+          "stock": {
+            "maximum": 2147483647,
+            "minimum": 0,
+            "type": "integer",
+            "description": "Hedef mutlak stok bakiyesi. Fark yalnız bir StockCountAdjustment hareketi olarak kaydedilir.",
+            "format": "int32"
+          },
+          "expectedConcurrencyToken": {
+            "type": "string",
+            "description": "GET response'undaki güncel concurrencyToken. Eski değer bütün batch'i 409 concurrency_conflict ile rollback eder.",
+            "format": "uuid"
+          },
+          "compareAtPrice": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "barcode": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "material": {
+            "maxLength": 120,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "stockAdjustmentReason": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BulkUpdateProductVariantsRequest": {
+        "required": [
+          "variants"
+        ],
+        "type": "object",
+        "properties": {
+          "variants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkUpdateProductVariantRequestItem"
+            }
           }
         },
         "additionalProperties": false
@@ -21910,6 +23321,66 @@
         },
         "additionalProperties": false
       },
+      "OrderCancellationOperationDto": {
+        "required": [
+          "createdAt",
+          "operationId",
+          "orderId",
+          "pollingUrl",
+          "reversalType",
+          "status",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderCancellationOperationStatus"
+          },
+          "reversalType": {
+            "$ref": "#/components/schemas/PaymentReversalType"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nextAttemptAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "pollingUrl": {
+            "type": "string",
+            "description": "Member veya guest sahiplik kontrolünü yeniden uygulayan relative polling URL'si."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Provider kimliklerini açmayan owner-scoped cancellation polling DTO'su. Bütün tarihler UTC'dir; nextAttemptAt nullable'dır."
+      },
+      "OrderCancellationOperationStatus": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "type": "integer",
+        "description": "Numeric wire değerleri: 0 Requested, 1 Processing, 2 ReconciliationPending, 3 Completed, 4 Failed, 5 ManualReview.",
+        "format": "int32"
+      },
       "OrderCustomerDto": {
         "required": [
           "email",
@@ -22348,6 +23819,15 @@
         "type": "integer",
         "format": "int32"
       },
+      "PaymentReversalType": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "description": "Numeric wire değerleri: 0 Cancel (aynı gün tam iptal), 1 Refund (standart item-level refund).",
+        "format": "int32"
+      },
       "PaymentSummaryDto": {
         "required": [
           "amount",
@@ -22491,7 +23971,7 @@
             "nullable": true
           }
         },
-        "additionalProperties": { }
+        "additionalProperties": {}
       },
       "ProductActivityType": {
         "enum": [
@@ -23017,6 +24497,43 @@
         },
         "additionalProperties": false
       },
+      "ProductVariantBulkProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      },
       "ProductVariantCostHistoryDto": {
         "required": [
           "createdAt",
@@ -23100,6 +24617,7 @@
       "ProductVariantDto": {
         "required": [
           "addToCartCount",
+          "concurrencyToken",
           "id",
           "isActive",
           "name",
@@ -23174,6 +24692,11 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "concurrencyToken": {
+            "type": "string",
+            "description": "Bir sonraki batch güncellemesinde expectedConcurrencyToken olarak gönderilecek güncel optimistic concurrency değeri.",
+            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -24681,6 +26204,7 @@
           4
         ],
         "type": "integer",
+        "description": "Numeric değerler değişmez: 0 Requested, 1 Approved, 2 Rejected, 3 Received, 4 Completed. Yeni kayıt yaşam döngüsü: Requested (0) → Received (3) → Approved (1) veya Rejected (2). Completed yalnız legacy uyumluluğu içindir.",
         "format": "int32"
       },
       "ReturnRequestSummaryDto": {
@@ -26813,7 +28337,7 @@
             }
           }
         },
-        "additionalProperties": { }
+        "additionalProperties": {}
       }
     },
     "securitySchemes": {
@@ -26827,7 +28351,7 @@
   },
   "security": [
     {
-      "Bearer": [ ]
+      "Bearer": []
     }
   ],
   "tags": [
@@ -26905,6 +28429,9 @@
     },
     {
       "name": "MainBanners"
+    },
+    {
+      "name": "MainMobileBanner"
     },
     {
       "name": "Orders"

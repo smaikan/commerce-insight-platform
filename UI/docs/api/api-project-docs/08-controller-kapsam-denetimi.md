@@ -1,8 +1,20 @@
 # Controller Kapsam Denetimi ve Tam Endpoint Envanteri
 
+## 24 Ağustos 2026 Paid/Preparing müşteri iptali
+
+Üye ve guest sipariş controllerlarına owner-scoped cancellation polling GET operasyonları eklendi. Mevcut cancel POST operasyonları `200 OrderDto`, `202 OrderCancellationOperationDto` ve terminal `409` sözleşmelerini yayımlar; `Paid/Preparing` tahsilatı iyzico cancel veya item-level refund sagasıyla geri alınmadan Order iptal edilmez. Güncel çalışan Swagger sözleşmesi toplam **286 operasyon** yayınlar.
+
+## 23 Ağustos 2026 karar öncesi fiziksel iade teslimi
+
+Returns route envanteri değişmedi. Yeni kayıt sırası `Requested → Received → Approved|Rejected` oldu; `complete` yalnız eski kayıt uyumluluğu için korundu. Dört admin mutasyonu kararlı `return_status_transition_invalid` ve `concurrency_conflict` 409 sözleşmelerini yayımlar. Güncel çalışan Swagger sözleşmesi toplam **284 operasyon** yayınlar.
+
+## 22 Ağustos 2026 atomik varyant batch güncellemesi
+
+`ProductVariantsController`, AdminOnly `PUT /api/product-variants/by-product/{productId}/bulk` operasyonunu yayınlar. Operasyon SKU takası ve üçlü döngüleri tek serializable transaction içinde iki aşamalı SKU değişimiyle uygular; zorunlu satır bazlı `expectedConcurrencyToken`, `product_variant_sku_conflict` ve `concurrency_conflict` sözleşmelerini ayırır. Güncel çalışan Swagger sözleşmesi toplam **281 operasyon** yayınlar.
+
 ## 21 Ağustos 2026 iletişim mesajları güncellemesi
 
-`ContactMessagesController` 7 operasyon ekler: public `POST /api/contact-messages`; AdminOnly liste, detay, status, assignment, note ve reply operasyonları. Public POST `security: []`, yaklaşık 16 KB body, idempotency, contact rate-limit ve production Turnstile koruması taşır. Admin operasyonları Bearer + AdminOnly'dir. `GET /api/users` response tipi `PagedResult<AdminUserDto>` olarak controller metadata'sında açıkça tanımlanmıştır. Güncel çalışan Swagger sözleşmesi toplam **280 operasyon** yayınlar.
+`ContactMessagesController` 7 operasyon ekler: public `POST /api/contact-messages`; AdminOnly liste, detay, status, assignment, note ve reply operasyonları. Public POST `security: []`, yaklaşık 16 KB body, idempotency, contact rate-limit ve production Turnstile koruması taşır. Admin operasyonları Bearer + AdminOnly'dir. `GET /api/users` response tipi `PagedResult<AdminUserDto>` olarak controller metadata'sında açıkça tanımlanmıştır. Bu sürümün çalışan Swagger sözleşmesi toplam **280 operasyon** yayınlıyordu.
 
 ## 16 Ağustos 2026 public kategori vitrini güncellemesi
 
@@ -42,13 +54,13 @@ Güncel runtime Swagger sözleşmesi **257 endpoint** yayınlar. Önceki 254 ope
 | `GET/POST /api/guest-orders/{id}/returns`, `GET .../{returnId}` | Guest session | İade liste/create/detail |
 | `POST /api/guest-orders/claim` | JWT + verified guest session + CSRF + Origin | Aynı e-postadaki sahipsiz siparişleri bağlar |
 
-Bu bölümde aşağıda görünen eski 206/40/257/264/265/267/271/272 sayıları tarihsel envanterdir; güncel OpenAPI ve controller audit için 280 sayısı kullanılır.
+Bu bölümde aşağıda görünen eski 206/40/257/264/265/267/271/272/280/281/284 sayıları tarihsel envanterdir; güncel OpenAPI ve controller audit için 286 sayısı kullanılır.
 
 Bu denetim 29 Temmuz 2026'da `API/src/ECommerce.API/Controllers` altındaki 33 controller doğrudan okunarak yapıldı. Route, HTTP fiili ve yetki için controller attribute'ları kaynak kabul edilmiştir.
 
 ## Sonuç
 
-- Güncel runtime Swagger sözleşmesinde **280 endpoint** bulunuyor; aşağıdaki alan tabloları yetki ve davranış denetimini özetler.
+- Güncel runtime Swagger sözleşmesinde **286 endpoint** bulunuyor; aşağıdaki alan tabloları yetki ve davranış denetimini özetler.
 - Eski fonksiyonel belgeler alanları anlatıyor; fakat her endpoint için ayrı request şeması ve başarılı JSON response örneği standardı yok. En büyük eksik muhasebe raporlarıdır: 28 route tek paragrafta özetlenmişti.
 - Bu belge route kaçırılmasını önleyen zorunlu kontrol listesidir. `Public`: token yok; `User`: JWT ve sahiplik; `Admin`: JWT + `AdminOnly`/Admin rolü. Sayfalı yanıt `PagedResult<T>`dir.
 
@@ -82,7 +94,7 @@ Bu denetim 29 Temmuz 2026'da `API/src/ECommerce.API/Controllers` altındaki 33 c
 | Kaynak | Yetki ve gerçek endpointler | Mantık / başarı |
 | --- | --- | --- |
 | Products (22) | Public: `GET /published`, `/published/facets/brands`, `/published/facets/collections`, `/published/facets/product-types`, `/by-url/{url}`, `/seo-index`, `/by-collection/{collectionId}`, `/by-tag/{tagId}`, `/by-type/{typeId}`, `/by-brand/{brandId}`. Admin: `GET /api/products`, `GET /{productId}`, `POST /`, `POST /bulk`, `DELETE /{productId}`, `PUT /performance-metrics`, `PUT /{productId}`, `PATCH /{productId}/status`, `/activation`, `/featured`, `/has-variants`, `PUT /{productId}/relations`. | Delete 204 ile idempotent soft-delete uygular; operasyon geçmişi korunur ve ürün katalog okumalarından gizlenir. Admin ve storefront listeleri tür, marka, koleksiyon ve etiket filtrelerini destekler. Üç facet endpointi seçenekleri yayımlanmış ürün adetleriyle ve kendi boyut filtresini dışlayarak döndürür. `P…` public product ID kullanılır. |
-| Product variants (8) | Public: `GET /api/product-variants/{id}`, `GET /by-product/{productId}`. Admin: `POST /by-product/{productId}`, `PUT /{id}`, `PATCH /{id}/price`, `POST /{id}/stock-movements`, `PATCH /{id}/activation`, `DELETE /{id}`. | Detay/mutasyon `ProductVariantDto`, create 201, delete 204. Stok doğrudan set edilmez; hareket yazılır. |
+| Product variants (9) | Public: `GET /api/product-variants/{id}`, `GET /by-product/{productId}`. Admin: `POST /by-product/{productId}`, `PUT /{id}`, `PUT /by-product/{productId}/bulk`, `PATCH /{id}/price`, `POST /stock-movements`, `PATCH /{id}/activation`, `DELETE /{id}`. | Detay/mutasyon `ProductVariantDto`, create 201, delete 204. Bulk PUT SKU takası/döngüsünü atomik yapar ve satır bazlı concurrency token ister. Manuel stok hareketi request body'deki `productVariantSku` ile eşleşir; stok doğrudan set edilmez. |
 | Images (5) | Public: `GET /api/product-images/{id}`, `GET /by-product/{productId}`. Admin: `POST /by-product/{productId}`, `PUT /{id}`, `DELETE /{id}`. | `ProductImageDto`/liste, create 201, delete 204. |
 | Brands (7) | Public: `GET /api/brands`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `DELETE /{id}`. | Delete 204; bağlı ürün korunur ve `brandId=null` olur. |
 | Collections (9) | Public: `GET /api/collections`, `GET /published`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `PATCH /{id}/featured`, `DELETE /{id}`. | `/published` yalnız aktif ve yayımlanmış ürünü bulunan koleksiyonları adet ve etkili görselle toplu döndürür. Delete 204; ürün korunur, yalnız koleksiyon bağlantısı kaldırılır. |
@@ -91,7 +103,7 @@ Bu denetim 29 Temmuz 2026'da `API/src/ECommerce.API/Controllers` altındaki 33 c
 | Tags (7) | Public: `GET /api/tags`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `DELETE /{id}`. | Delete 204; ürün korunur, yalnız etiket bağlantısı kaldırılır. |
 | Product types (8) | Public: `GET /api/product-types`, `GET /published`, `GET /{id}`. Admin: `POST /`, `POST /bulk`, `PUT /{id}`, `PATCH /{id}/activation`, `DELETE /{id}`. | `/published`, özel kategori görselini veya en popüler görünür ürün fallback'ini adetle toplu döndürür. Delete 204; bağlı ürün korunur ve `typeId=null` olur. |
 | Engagement (9) | Public/User: `GET /api/product-engagement/favorites`, `POST/DELETE /products/{productId}/favorites`. User: `PUT /products/{productId}/rating`, `POST /products/{productId}/reviews`, `POST /products/{productId}/activities`. Public: `GET /products/{productId}/reviews`. Admin: `PATCH /reviews/{reviewId}/approval`, `GET /products/{productId}/metrics`. | JWT favorileri kullanıcıya, anonim favoriler ortak guest session'a aittir. Guest mutation Origin+CSRF ister. Favori/rating/activity çoğunlukla 204; inceleme 201; reviews sayfalıdır. |
-| Stock movements (3) | Admin: `POST /api/stock-movements/bulk`, `GET /`, `GET /variants/{productVariantId}/balance`. | Atomik bulk hareket, defter `PagedResult<StockMovementDto>`, bakiye `StockBalanceDto`. |
+| Stock movements (3) | Admin: `POST /api/stock-movements/bulk`, `GET /`, `GET /variants/{productVariantId}/balance`. | Bulk create satırları `productVariantSku` ile eşleştirilir ve atomiktir; defter `PagedResult<StockMovementDto>`, bakiye `StockBalanceDto`. |
 
 Brand/Collection/Tag/ProductType create 201, detay/mutasyon ilgili DTO, liste `PagedResult<…Dto>` döner. Bu dört grupta route içindeki `/{id}` kendi kök yoluna göredir.
 
@@ -112,11 +124,11 @@ Brand/Collection/Tag/ProductType create 201, detay/mutasyon ilgili DTO, liste `P
 | `POST /api/guest-orders/{id}/payments/iyzico/checkout-form` | Guest session | 201 `CheckoutFormSessionDto`; Origin, CSRF ve idempotency korumalıdır. |
 | `POST /api/payments/iyzico/callback` | Public | İmzalı retrieve sonrası Storefront'a 303 yönlendirme. |
 | `POST /api/payments/iyzico/webhook` | Public | `X-IYZ-SIGNATURE-V3` + retrieve sonrası idempotent 204. |
-| `POST /api/orders/{id}/cancel` | User | `OrderDto`; ödeme öncesi iptal. |
+| `POST /api/orders/{id}/cancel`, `GET /api/orders/{id}/cancellation` | User | `200 OrderDto` veya `202` owner-scoped reversal operasyonu ve polling. |
 | `GET /api/orders`, `GET /api/orders/admin/{id}`, `PATCH /api/orders/{id}/status` | Admin | Tüm siparişler, detay, yaşam döngüsü güncellemesi. |
 | `POST /api/orders/reservations/expire` | Admin | `StockReservationExpirationResult`; süresi dolmuş rezervasyonları manuel tarar. |
 | `POST /api/returns`, `GET /mine`, `GET /{id}` | User | 201 `ReturnRequestDto`, kendi liste/detayı. |
-| `GET /api/returns`, `GET /admin/{id}`, `POST /{id}/approve`, `/reject`, `/receive`, `/complete` | Admin | İade operasyon listesi, detay ve durum geçişleri; karar body'si `{decisionNote?}`. |
+| `GET /api/returns`, `GET /admin/{id}`, `POST /{id}/approve`, `/reject`, `/receive`, `/complete` | Admin | Yeni akış Requested→Received→Approved/Rejected; karar body'si `{decisionNote?}`. Complete yalnız legacy; geçersiz geçiş 409 `return_status_transition_invalid`. |
 | `GET /api/shipping-methods/active` | Public | `PagedResult<ShippingMethodDto>`; checkout seçimi. |
 | `GET /api/shipping-methods`, `GET /{id}`, `POST /`, `PUT /{id}`, `PATCH /{id}/activation` | Admin | Kargo yönetimi. |
 | `GET /api/tax-rates/active` | Public | `PagedResult<TaxRateDto>`; aktif oranlar. |

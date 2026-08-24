@@ -5254,6 +5254,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Owner-scoped. Pending/Confirmed siparişte mevcut CheckoutForm mutabakatını; Paid/Preparing siparişte iyzico reporting sonrası aynı gün payment cancel veya gerçek item transaction değerleriyle standart refund sagasını kullanır. Provider başarısı kesinleşmeden Order/Payment/stok/kupon değiştirilmez. Shipped ve sonrası reddedilir. */
         post: {
             parameters: {
                 query?: never;
@@ -5265,7 +5266,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description İptal tamamlandı veya idempotent replay; güncel OrderDto ve status=Cancelled (6). */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -5276,8 +5277,136 @@ export interface paths {
                         "text/json": components["schemas"]["OrderDto"];
                     };
                 };
+                /** @description Provider sonucu mutabakat bekliyor; owner-scoped polling URL taşıyan OrderCancellationOperationDto. */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["OrderCancellationOperationDto"];
+                        "application/json": components["schemas"]["OrderCancellationOperationDto"];
+                        "text/json": components["schemas"]["OrderCancellationOperationDto"];
+                    };
+                };
+                /** @description ProblemDetails code=validation_error veya bad_request. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=invalid_guest_access. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=invalid_guest_access; trusted Origin veya CSRF doğrulaması başarısız. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found; owner scope bilgi sızdırmaz. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=order_cancellation_not_allowed, payment_reversal_data_missing, payment_reversal_rejected, payment_reversal_manual_review veya conflict. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/guest-orders/{id}/cancellation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Yalnız sipariş sahibinin en güncel kalıcı cancellation/reversal operasyonunu polling için döndürür. Provider kimlikleri ve iç hata payload'ı response'a açılmaz. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Güncel OrderCancellationOperationDto. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["OrderCancellationOperationDto"];
+                        "application/json": components["schemas"]["OrderCancellationOperationDto"];
+                        "text/json": components["schemas"]["OrderCancellationOperationDto"];
+                    };
+                };
+                /** @description ProblemDetails code=invalid_guest_access. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found; owner scope bilgi sızdırmaz. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5844,6 +5973,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/main-banner-mobile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["BannerSectionDto"];
+                        "application/json": components["schemas"]["BannerSectionDto"];
+                        "text/json": components["schemas"]["BannerSectionDto"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BannerSectionRequest"];
+                    "text/json": components["schemas"]["BannerSectionRequest"];
+                    "application/*+json": components["schemas"]["BannerSectionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["BannerSectionDto"];
+                        "application/json": components["schemas"]["BannerSectionDto"];
+                        "text/json": components["schemas"]["BannerSectionDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/main-banner-mobile/admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["BannerSectionDto"];
+                        "application/json": components["schemas"]["BannerSectionDto"];
+                        "text/json": components["schemas"]["BannerSectionDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders": {
         parameters: {
             query?: never;
@@ -6224,6 +6454,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Owner-scoped. Pending/Confirmed siparişte mevcut CheckoutForm mutabakatını; Paid/Preparing siparişte iyzico reporting sonrası aynı gün payment cancel veya gerçek item transaction değerleriyle standart refund sagasını kullanır. Provider başarısı kesinleşmeden Order/Payment/stok/kupon değiştirilmez. Shipped ve sonrası reddedilir. */
         post: {
             parameters: {
                 query?: never;
@@ -6235,7 +6466,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description İptal tamamlandı veya idempotent replay; güncel OrderDto ve status=Cancelled (6). */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -6246,8 +6477,125 @@ export interface paths {
                         "text/json": components["schemas"]["OrderDto"];
                     };
                 };
+                /** @description Provider sonucu mutabakat bekliyor; owner-scoped polling URL taşıyan OrderCancellationOperationDto. */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["OrderCancellationOperationDto"];
+                        "application/json": components["schemas"]["OrderCancellationOperationDto"];
+                        "text/json": components["schemas"]["OrderCancellationOperationDto"];
+                    };
+                };
+                /** @description ProblemDetails code=validation_error veya bad_request. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=authentication_required veya invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found; owner scope bilgi sızdırmaz. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=order_cancellation_not_allowed, payment_reversal_data_missing, payment_reversal_rejected, payment_reversal_manual_review veya conflict. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{id}/cancellation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Yalnız sipariş sahibinin en güncel kalıcı cancellation/reversal operasyonunu polling için döndürür. Provider kimlikleri ve iç hata payload'ı response'a açılmaz. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Güncel OrderCancellationOperationDto. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["OrderCancellationOperationDto"];
+                        "application/json": components["schemas"]["OrderCancellationOperationDto"];
+                        "text/json": components["schemas"]["OrderCancellationOperationDto"];
+                    };
+                };
+                /** @description ProblemDetails code=authentication_required veya invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found; owner scope bilgi sızdırmaz. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -8334,8 +8682,8 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
-                200: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -8415,6 +8763,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/product-variants/by-product/{productId}/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description AdminOnly. Aynı ürüne ait mevcut varyantları tek serializable transaction içinde atomik günceller. SKU takası ve döngüsel SKU değişimleri desteklenir; bütün satırlar başarılı olmazsa hiçbir değişiklik kalıcılaşmaz. Her satır güncel expectedConcurrencyToken taşır. Başarılı cevap request sırasındaki authoritative varyant listesidir. Aynı request eski tokenlarla tekrarlandığında yan etkiler tekrarlanmaz ve concurrency_conflict döner. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    productId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BulkUpdateProductVariantsRequest"];
+                    "text/json": components["schemas"]["BulkUpdateProductVariantsRequest"];
+                    "application/*+json": components["schemas"]["BulkUpdateProductVariantsRequest"];
+                };
+            };
+            responses: {
+                /** @description Atomik güncelleme tamamlandı; güncel ProductVariantDto listesi döner. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProductVariantDto"][];
+                        "application/json": components["schemas"]["ProductVariantDto"][];
+                        "text/json": components["schemas"]["ProductVariantDto"][];
+                    };
+                };
+                /** @description validation_error veya business_rule_violation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProductVariantBulkProblemDetails"];
+                        "application/json": components["schemas"]["ProductVariantBulkProblemDetails"];
+                        "text/json": components["schemas"]["ProductVariantBulkProblemDetails"];
+                    };
+                };
+                /** @description authentication_required veya invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description forbidden. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description resource_not_found; bir veya daha fazla varyant belirtilen ürüne ait değildir. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description concurrency_conflict veya product_variant_sku_conflict. SKU çakışmasında errors anahtarları variants[n].sku biçimindedir. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProductVariantBulkProblemDetails"];
+                        "application/json": components["schemas"]["ProductVariantBulkProblemDetails"];
+                        "text/json": components["schemas"]["ProductVariantBulkProblemDetails"];
+                    };
+                };
+                /** @description internal_error. */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/product-variants/{id}/price": {
         parameters: {
             query?: never;
@@ -8460,7 +8920,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/api/product-variants/{id}/stock-movements": {
+    "/api/product-variants/stock-movements": {
         parameters: {
             query?: never;
             header?: never;
@@ -8473,9 +8933,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    id: string;
-                };
+                path?: never;
                 cookie?: never;
             };
             requestBody?: {
@@ -8495,6 +8953,72 @@ export interface paths {
                         "text/plain": components["schemas"]["ProductVariantDto"];
                         "application/json": components["schemas"]["ProductVariantDto"];
                         "text/json": components["schemas"]["ProductVariantDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
                     };
                 };
             };
@@ -9219,6 +9743,7 @@ export interface paths {
                     PageSize?: number;
                     OrderId?: string;
                     Type?: components["schemas"]["ReturnType"];
+                    /** @description Numeric değerler değişmez: 0 Requested, 1 Approved, 2 Rejected, 3 Received, 4 Completed. Yeni kayıt yaşam döngüsü: Requested (0) → Received (3) → Approved (1) veya Rejected (2). Completed yalnız legacy uyumluluğu içindir. */
                     Status?: components["schemas"]["ReturnRequestStatus"];
                     CreatedFromUtc?: string;
                     CreatedToUtc?: string;
@@ -9290,6 +9815,7 @@ export interface paths {
                     PageNumber?: number;
                     PageSize?: number;
                     Type?: components["schemas"]["ReturnType"];
+                    /** @description Numeric değerler değişmez: 0 Requested, 1 Approved, 2 Rejected, 3 Received, 4 Completed. Yeni kayıt yaşam döngüsü: Requested (0) → Received (3) → Approved (1) veya Rejected (2). Completed yalnız legacy uyumluluğu içindir. */
                     Status?: components["schemas"]["ReturnRequestStatus"];
                     CreatedFromUtc?: string;
                     CreatedToUtc?: string;
@@ -9408,6 +9934,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Yeni kayıt yaşam döngüsü: Requested (0) → Received (3) → Approved (1) veya Rejected (2). Yalnız karar bekleyen Received kayıt onaylanır. Refund talebi Order Refunded (7) yapar ve SaleReturn stok girişini; Exchange talebi Order ReturnApproved (9) yapar, iade stok girişini ve replacement stok çıkışını aynı transaction içinde uygular. Ödeme sağlayıcısına refund çağrısı yapılmaz ve Payment kaydı değiştirilmez. */
         post: {
             parameters: {
                 query?: never;
@@ -9434,6 +9961,61 @@ export interface paths {
                         "text/plain": components["schemas"]["ReturnRequestDto"];
                         "application/json": components["schemas"]["ReturnRequestDto"];
                         "text/json": components["schemas"]["ReturnRequestDto"];
+                    };
+                };
+                /** @description ProblemDetails code=validation_error, bad_request veya business_rule_violation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=authentication_required veya invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=forbidden. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Geçersiz yaşam döngüsü geçişinde ProblemDetails code=return_status_transition_invalid; gerçek eşzamanlı yazma yarışında concurrency_conflict; stok veya varyant çakışmasında conflict. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
                     };
                 };
             };
@@ -9453,6 +10035,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Yeni kayıt yaşam döngüsü: Requested (0) → Received (3) → Approved (1) veya Rejected (2). Yalnız karar bekleyen Received kayıt reddedilir; stok hareketi oluşmaz ve Order durumu diğer aktif taleplerden yeniden türetilir. */
         post: {
             parameters: {
                 query?: never;
@@ -9481,6 +10064,61 @@ export interface paths {
                         "text/json": components["schemas"]["ReturnRequestDto"];
                     };
                 };
+                /** @description ProblemDetails code=validation_error, bad_request veya business_rule_violation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=authentication_required veya invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=forbidden. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Geçersiz yaşam döngüsü geçişinde ProblemDetails code=return_status_transition_invalid; gerçek eşzamanlı yazma yarışında concurrency_conflict; stok veya varyant çakışmasında conflict. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -9498,6 +10136,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Yeni kayıt yaşam döngüsü: Requested (0) → Received (3) → Approved (1) veya Rejected (2). Yeni Requested kayıt Received olur, receivedAt UTC yazılır, Order ReturnRequested (8) kalır ve stok değişmez. Yalnız deployment öncesinden kalan Approved kayıtların eski receive davranışı geriye dönük uyumluluk için korunur. */
         post: {
             parameters: {
                 query?: never;
@@ -9518,6 +10157,61 @@ export interface paths {
                         "text/plain": components["schemas"]["ReturnRequestDto"];
                         "application/json": components["schemas"]["ReturnRequestDto"];
                         "text/json": components["schemas"]["ReturnRequestDto"];
+                    };
+                };
+                /** @description ProblemDetails code=validation_error, bad_request veya business_rule_violation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=authentication_required veya invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=forbidden. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Geçersiz yaşam döngüsü geçişinde ProblemDetails code=return_status_transition_invalid; gerçek eşzamanlı yazma yarışında concurrency_conflict; stok veya varyant çakışmasında conflict. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
                     };
                 };
             };
@@ -9537,6 +10231,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Yeni kayıtlarda kullanılmaz. Yalnız deployment öncesindeki Approved → Received kayıtlarını Completed (4) durumuna taşıyan sınırlı uyumluluk endpointidir. */
         post: {
             parameters: {
                 query?: never;
@@ -9557,6 +10252,61 @@ export interface paths {
                         "text/plain": components["schemas"]["ReturnRequestDto"];
                         "application/json": components["schemas"]["ReturnRequestDto"];
                         "text/json": components["schemas"]["ReturnRequestDto"];
+                    };
+                };
+                /** @description ProblemDetails code=validation_error, bad_request veya business_rule_violation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=authentication_required veya invalid_access_token. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=forbidden. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description ProblemDetails code=resource_not_found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Geçersiz yaşam döngüsü geçişinde ProblemDetails code=return_status_transition_invalid; gerçek eşzamanlı yazma yarışında concurrency_conflict; stok veya varyant çakışmasında conflict. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
                     };
                 };
             };
@@ -10193,8 +10943,8 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
-                200: {
+                /** @description Created */
+                201: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -10202,6 +10952,72 @@ export interface paths {
                         "text/plain": components["schemas"]["BulkCreateStockMovementsResultDto"];
                         "application/json": components["schemas"]["BulkCreateStockMovementsResultDto"];
                         "text/json": components["schemas"]["BulkCreateStockMovementsResultDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
                     };
                 };
             };
@@ -12160,6 +12976,7 @@ export interface components {
          */
         AddressType: 0 | 1;
         AdjustStockRequest: {
+            productVariantSku: string;
             /** Format: int32 */
             quantityDelta: number;
             type: components["schemas"]["StockMovementType"];
@@ -12490,12 +13307,39 @@ export interface components {
             items: components["schemas"]["ProductPerformanceMetricsRequest"][];
         };
         BulkStockMovementRequest: {
-            /** Format: uuid */
-            productVariantId: string;
+            productVariantSku: string;
             /** Format: int32 */
             quantityDelta: number;
             type: components["schemas"]["StockMovementType"];
             reason?: string | null;
+        };
+        BulkUpdateProductVariantRequestItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            value: string;
+            sku: string;
+            /** Format: double */
+            price: number;
+            /**
+             * Format: int32
+             * @description Hedef mutlak stok bakiyesi. Fark yalnız bir StockCountAdjustment hareketi olarak kaydedilir.
+             */
+            stock: number;
+            /**
+             * Format: uuid
+             * @description GET response'undaki güncel concurrencyToken. Eski değer bütün batch'i 409 concurrency_conflict ile rollback eder.
+             */
+            expectedConcurrencyToken: string;
+            /** Format: double */
+            compareAtPrice?: number | null;
+            barcode?: string | null;
+            material?: string | null;
+            isActive: boolean;
+            stockAdjustmentReason?: string | null;
+        };
+        BulkUpdateProductVariantsRequest: {
+            variants: components["schemas"]["BulkUpdateProductVariantRequestItem"][];
         };
         CancellationRequest: {
             reason: string;
@@ -13493,6 +14337,29 @@ export interface components {
             fullAddress: string;
             postalCode?: string | null;
         };
+        /** @description Provider kimliklerini açmayan owner-scoped cancellation polling DTO'su. Bütün tarihler UTC'dir; nextAttemptAt nullable'dır. */
+        OrderCancellationOperationDto: {
+            /** Format: uuid */
+            operationId: string;
+            /** Format: uuid */
+            orderId: string;
+            status: components["schemas"]["OrderCancellationOperationStatus"];
+            reversalType: components["schemas"]["PaymentReversalType"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            nextAttemptAt?: string | null;
+            /** @description Member veya guest sahiplik kontrolünü yeniden uygulayan relative polling URL'si. */
+            pollingUrl: string;
+        };
+        /**
+         * Format: int32
+         * @description Numeric wire değerleri: 0 Requested, 1 Processing, 2 ReconciliationPending, 3 Completed, 4 Failed, 5 ManualReview.
+         * @enum {integer}
+         */
+        OrderCancellationOperationStatus: 0 | 1 | 2 | 3 | 4 | 5;
         OrderCustomerDto: {
             firstName: string;
             lastName: string;
@@ -13634,6 +14501,12 @@ export interface components {
          * @enum {integer}
          */
         PaymentProvider: 0 | 1 | 2 | 3;
+        /**
+         * Format: int32
+         * @description Numeric wire değerleri: 0 Cancel (aynı gün tam iptal), 1 Refund (standart item-level refund).
+         * @enum {integer}
+         */
+        PaymentReversalType: 0 | 1;
         PaymentSummaryDto: {
             /** Format: uuid */
             id: string;
@@ -13847,6 +14720,19 @@ export interface components {
             description?: string | null;
             imageUrl?: string | null;
         };
+        ProductVariantBulkProblemDetails: {
+            type?: string | null;
+            title?: string | null;
+            /** Format: int32 */
+            status?: number | null;
+            detail?: string | null;
+            instance?: string | null;
+            errors?: {
+                [key: string]: string[];
+            } | null;
+        } & {
+            [key: string]: unknown;
+        };
         ProductVariantCostHistoryDto: {
             /** Format: uuid */
             id: string;
@@ -13905,6 +14791,11 @@ export interface components {
             /** Format: int64 */
             purchaseCount: number;
             isActive: boolean;
+            /**
+             * Format: uuid
+             * @description Bir sonraki batch güncellemesinde expectedConcurrencyToken olarak gönderilecek güncel optimistic concurrency değeri.
+             */
+            concurrencyToken: string;
         };
         PublicStoreSettingsDto: {
             displayName: string;
@@ -14374,6 +15265,7 @@ export interface components {
         };
         /**
          * Format: int32
+         * @description Numeric değerler değişmez: 0 Requested, 1 Approved, 2 Rejected, 3 Received, 4 Completed. Yeni kayıt yaşam döngüsü: Requested (0) → Received (3) → Approved (1) veya Rejected (2). Completed yalnız legacy uyumluluğu içindir.
          * @enum {integer}
          */
         ReturnRequestStatus: 0 | 1 | 2 | 3 | 4;
