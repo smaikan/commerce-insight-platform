@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { buildPaymentListHref, canonicalPaymentPage, parsePaymentListQuery, parsePaymentSetup } from "./query";
+describe("payment URL state", () => { it("normalizes list paging", () => { expect(parsePaymentListQuery({ pageNumber: "-2" })).toEqual({ pageNumber: 1, pageSize: 20 }); expect(buildPaymentListHref({ pageNumber: 2, pageSize: 20 })).toBe("/accounting/payments?pageNumber=2"); expect(canonicalPaymentPage(99, 3)).toBe(3); }); it("accepts only a complete typed setup", () => { expect(parsePaymentSetup({ type: "1", currentAccountId: "id" })).toEqual({ type: 1, currentAccountId: "id" }); expect(parsePaymentSetup({ type: "3", currentAccountId: "id" })).toBeNull(); expect(parsePaymentSetup({ type: "2" })).toBeNull(); }); });

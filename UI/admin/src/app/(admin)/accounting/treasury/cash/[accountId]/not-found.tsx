@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function CashNotFound() { return <div className="mx-auto max-w-xl rounded-xl border border-border bg-surface p-6 text-center"><h1 className="text-lg font-semibold">Kasa hesabı bulunamadı</h1><p className="mt-2 text-sm text-muted">Ekstre API’si bilinmeyen hesabı boş döndürdüğü için hesap kimliği kasa defterinden ayrıca doğrulandı.</p><Link href="/accounting/treasury" className="mt-4 inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white">Kasa ve bankaya dön</Link></div>; }
