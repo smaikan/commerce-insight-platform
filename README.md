@@ -26,7 +26,7 @@ ELEVEN, e-ticaret işlemleriyle analitik ve ön muhasebe yeteneklerini aynı uyg
 | **Ön muhasebe ve FIFO** | Satış, alış, cari hesap, kasa/banka ve FIFO maliyet katmanı akışları ayrı muhasebe modüllerinde yönetilir. |
 | **Stok yönetimi** | İmzalı stok hareketleri sipariş, iade, sayım veya alış kaynaklarıyla ilişkilendirilebilir ve denetlenebilir. |
 | **Cache güncelliği** | API mutasyonları, güvenli server-to-server on-demand revalidation ile ilgili Next.js tag/path hedeflerini geçersiz kılar. |
-| **Görsel dağıtımı** | Next.js Image Optimization üzerinden AVIF/WebP formatları ve responsive boyutlar yapılandırılmıştır. |
+| **Görsel dağıtımı ve optimizasyon** | Yüklenen ham ve yüksek boyutlu PNG/JPEG görseller, Sharp motoru tarafından ziyaretçinin ekranına göre otomatik olarak AVIF/WebP formatlarına dönüştürülür, %90'a varan oranda sıkıştırılır ve 30 gün önbellekte saklanır. |
 | **Public kimlikler** | Dahili `bigint` kullanıcı ve ürün kimlikleri, dış sözleşmede `P00001` ve `U00001` biçimindeki Base36 kodlamayla sunulur. |
 | **Ödeme ve taksit** | Kart verisini uygulamaya almayan iyzico CheckoutForm akışı ile ürün fiyatına bağlı bilgilendirici taksit tablosu kullanılır. |
 
@@ -87,7 +87,7 @@ Proje, **Clean Architecture** prensiplerine uygun olarak ayrıştırılmış bir
 ## Eklenen İleri Düzey Yetenekler
 
 - **Hedefli On-Demand Revalidation:** Panelden yapılan ilgili değişikliklerden sonra .NET API, Next.js `/api/revalidate` endpoint'ini güçlü bir ortak anahtarla ve allowlist kapsamındaki tag/path değerleriyle tetikler.
-- **AVIF ve WebP Görsel Pipeline:** Next.js görsel optimizasyonu, istemcinin desteklediği modern formatları ve responsive boyutları kullanacak şekilde yapılandırılmıştır.
+- **Otomatik AVIF ve WebP Görsel Pipeline:** Panele yüklenen ham ve yüksek boyutlu PNG/JPEG görseller, Sharp motoru tarafından istemcinin tarayıcısına ve ekran çözünürlüğüne (`deviceSizes`) göre dinamik olarak AVIF/WebP formatına dönüştürülür, %90'a varan oranda sıkıştırılır ve mobilde `<picture>` art direction ile çift indirme engellenir.
 - **Cloudflare Turnstile ve Misafir Güvenliği:** İletişim formu ve misafir sipariş takibi gibi açık uçlarda bot koruması ve Redis tabanlı IP rate-limiting.
 - **Mikro Etkileşimler ve UI Detayları:** Yatay kaydırılabilir kategori barları, yumuşak geçişli karuseller, sepet bildirimleri ve erişilebilir modal pencereleri.
 
