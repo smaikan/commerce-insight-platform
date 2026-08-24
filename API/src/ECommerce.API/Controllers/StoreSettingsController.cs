@@ -1,4 +1,5 @@
 using ECommerce.API.Security;
+using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.StoreSettings.Commands.UpdateContact;
 using ECommerce.Application.StoreSettings.Commands.UpdateIdentity;
 using ECommerce.Application.StoreSettings.Commands.UpdateLegal;
@@ -22,12 +23,17 @@ public sealed class StoreSettingsController : ControllerBase
 {
     private readonly ISender _sender;
     private readonly IOutputCacheStore _outputCacheStore;
+    private readonly IStorefrontRevalidationService _revalidationService;
 
     // Burada mağaza ayarı HTTP isteklerini Application katmanına ve cache invalidation akışına bağlıyorum.
-    public StoreSettingsController(ISender sender, IOutputCacheStore outputCacheStore)
+    public StoreSettingsController(
+        ISender sender,
+        IOutputCacheStore outputCacheStore,
+        IStorefrontRevalidationService revalidationService)
     {
         _sender = sender;
         _outputCacheStore = outputCacheStore;
+        _revalidationService = revalidationService;
     }
 
     // Burada storefront'a yalnız anonim erişime uygun güvenli mağaza ayarlarını döndürüyorum.
@@ -172,6 +178,8 @@ public sealed class StoreSettingsController : ControllerBase
     {
         var settings = await _sender.Send(command, cancellationToken);
         await _outputCacheStore.EvictByTagAsync("products", CancellationToken.None);
+        await _revalidationService.RevalidateStoreSettingsAsync(CancellationToken.None);
+        await _revalidationService.RevalidateProductsAsync(CancellationToken.None);
         return Ok(settings);
     }
 }

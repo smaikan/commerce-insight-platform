@@ -3,6 +3,7 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Infrastructure.Security;
 using ECommerce.Infrastructure.Email;
 using ECommerce.Infrastructure.Payments;
+using ECommerce.Infrastructure.Services;
 using ECommerce.Application.Common.Payments;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.DataProtection;
@@ -77,6 +78,15 @@ public static class InfrastructureServiceRegistration
 
         services.AddSingleton<IGuestCheckoutProtectionService, GuestCheckoutProtectionService>();
         services.AddSingleton<IContactProtectionService, ContactProtectionService>();
+
+        services.AddSingleton<IValidateOptions<StorefrontRevalidationOptions>, StorefrontRevalidationOptionsValidator>();
+        services.AddOptions<StorefrontRevalidationOptions>()
+            .Bind(configuration?.GetSection(StorefrontRevalidationOptions.SectionName) ?? new ConfigurationBuilder().Build().GetSection(StorefrontRevalidationOptions.SectionName))
+            .ValidateOnStart();
+        services.AddHttpClient<IStorefrontRevalidationService, StorefrontRevalidationService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(3);
+        });
 
         return services;
     }

@@ -1,26 +1,29 @@
-using Microsoft.AspNetCore.Mvc.Infrastructure;
+using ECommerce.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Logging;
 
 namespace ECommerce.API.OutputCaching;
 
-// Burada katalog sınıflandırma mutasyonlarından sonra public ürün ve facet cache'ini birlikte temizliyorum.
+// Burada ürün çıktısını etkileyen katalog mutasyonlarından sonra API output cache'i ve Storefront (Next.js) cache'ini anında temizliyorum.
 public sealed class ProductOutputCacheInvalidationFilter : IAsyncActionFilter
 {
     private readonly IOutputCacheStore _outputCacheStore;
+    private readonly IStorefrontRevalidationService _revalidationService;
     private readonly ILogger<ProductOutputCacheInvalidationFilter> _logger;
 
-    // Burada ürün cache etiketini temizleyecek output cache deposunu hazırlıyorum.
     public ProductOutputCacheInvalidationFilter(
         IOutputCacheStore outputCacheStore,
+        IStorefrontRevalidationService revalidationService,
         ILogger<ProductOutputCacheInvalidationFilter> logger)
     {
         _outputCacheStore = outputCacheStore;
+        _revalidationService = revalidationService;
         _logger = logger;
     }
 
-    // Burada başarılı GET dışı sınıflandırma işlemlerinden sonra ortak ürün cache etiketini geçersiz kılıyorum.
+    // Burada başarılı GET dışı katalog işlemlerinden sonra ortak ürün cache etiketini ve Storefront sayfa önbelleğini geçersiz kılıyorum.
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         var executedContext = await next();
@@ -42,6 +45,17 @@ public sealed class ProductOutputCacheInvalidationFilter : IAsyncActionFilter
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Ürün output cache temizliği başarısız oldu ancak ana işlem korundu.");
+            }
+
+            try
+            {
+                await _revalidationService.RevalidateProductsAsync(CancellationToken.None);
+                await _revalidationService.RevalidateCategoriesAsync(CancellationToken.None);
+                await _revalidationService.RevalidateCollectionsAsync(CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Storefront revalidation bildirimi gönderilemedi.");
             }
         }
     }

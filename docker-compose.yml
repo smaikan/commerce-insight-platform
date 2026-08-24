@@ -48,6 +48,9 @@ services:
       - ContactPrivacy__NoticePublishedAtUtc=2026-08-21T00:00:00Z
       - ContactPrivacy__RetentionDays=60
       - DataProtection__KeyRingPath=/var/eleven/dataprotection-keys
+      - StorefrontRevalidation__Enabled=true
+      - StorefrontRevalidation__BaseUrl=http://storefront-ui:3000
+      - StorefrontRevalidation__Secret=${STOREFRONT_REVALIDATE_SECRET:?STOREFRONT_REVALIDATE_SECRET must be set in the root .env file}
     volumes:
       - dataprotection_keys:/var/eleven/dataprotection-keys
 
@@ -84,6 +87,7 @@ services:
       - INTERNAL_API_BASE_URL=http://api:8080
       - BROWSER_API_BASE_URL=https://api.serhateleven.com.tr
       - STOREFRONT_APP_ORIGIN=https://www.serhateleven.com.tr
+      - STOREFRONT_REVALIDATE_SECRET=${STOREFRONT_REVALIDATE_SECRET:?STOREFRONT_REVALIDATE_SECRET must be set in the root .env file}
 
 volumes:
   sqlserver_data:

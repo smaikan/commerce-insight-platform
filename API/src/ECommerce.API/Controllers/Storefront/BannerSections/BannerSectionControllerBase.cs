@@ -36,10 +36,11 @@ public abstract class BannerSectionControllerBase : ControllerBase
         return Ok(await _sender.Send(new GetBannerSectionQuery(Section, ActiveOnly: false), cancellationToken));
     }
 
-    // Burada yöneticinin tek banner bölümünü diğer bölümlere dokunmadan atomik değiştirmesine izin veriyorum.
+    // Burada yöneticinin tek banner bölümünü diğer bölümlere dokunmadan atomik değiştirmesine izin veriyor ve Storefront cache'ini temizliyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly), HttpPut]
     public async Task<ActionResult<BannerSectionDto>> Replace(
         BannerSectionRequest request,
+        [FromServices] ECommerce.Application.Common.Interfaces.IStorefrontRevalidationService revalidationService,
         CancellationToken cancellationToken)
     {
         var items = (request.Items ?? [])
@@ -54,7 +55,9 @@ public abstract class BannerSectionControllerBase : ControllerBase
                 item.IsActive,
                 item.IsMain))
             .ToList();
-        return Ok(await _sender.Send(new ReplaceBannerSectionCommand(Section, items), cancellationToken));
+        var result = await _sender.Send(new ReplaceBannerSectionCommand(Section, items), cancellationToken);
+        await revalidationService.RevalidateBannersAsync(CancellationToken.None);
+        return Ok(result);
     }
 }
 
