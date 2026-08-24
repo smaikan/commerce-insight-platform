@@ -13,7 +13,7 @@ public static class ReturnOrderStatusSynchronizer
 
         if (returnRequests.Any(request =>
                 request.Type == ReturnType.Refund &&
-                request.Status is (ReturnRequestStatus.Approved or ReturnRequestStatus.Received or ReturnRequestStatus.Completed)))
+                request.RepresentsApprovedOutcome()))
         {
             order.MarkRefunded();
             return;
@@ -21,13 +21,14 @@ public static class ReturnOrderStatusSynchronizer
 
         if (returnRequests.Any(request =>
                 request.Type == ReturnType.Exchange &&
-                request.Status is (ReturnRequestStatus.Approved or ReturnRequestStatus.Received or ReturnRequestStatus.Completed)))
+                request.RepresentsApprovedOutcome()))
         {
             order.MarkReturnApproved();
             return;
         }
 
-        if (returnRequests.Any(request => request.Status == ReturnRequestStatus.Requested))
+        if (returnRequests.Any(request =>
+                request.Status == ReturnRequestStatus.Requested || request.IsAwaitingDecision()))
         {
             order.MarkReturnRequested();
             return;

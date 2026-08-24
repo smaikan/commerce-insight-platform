@@ -34,7 +34,7 @@ Body’de `UserId`, address source ID, fiyat, vergi, indirim, kargo ücreti, sto
 | Product | düzenle/status/activation/relations | status/activation | archived/passive göster |
 | Cart | add/update/remove/clear | checkout'a gönder | token yenile |
 | Order | ödeme/uygun cancel | user action'a göre; Admin status | detail read-only |
-| ReturnRequest | customer create | Admin approve/reject/receive/complete | terminal read-only |
+| ReturnRequest | customer create | Admin receive, ardından approve/reject; complete yalnız legacy | Approved/Rejected terminal read-only |
 | AccountingSalesOrder | header/items düzenle, post | cancel ile reversal | yeniden oluştur |
 | SalesInvoice | header/tam lines düzenle, post | cancel; fiziksel stok yok | yeniden oluştur |
 | PurchaseInvoice | header/lines/allocation/expense düzenle, post | cancel policy | yeniden oluştur |
@@ -77,6 +77,7 @@ AddressDto alanları: id, type, title, firstName, lastName, phoneNumber, city, d
 | resource_not_found | Detaydan çık/listeyi yenile |
 | conflict | Duplicate veya iş kuralı; mevcut kaydı silme |
 | concurrency_conflict | Güncel response'u yeniden al; overwrite seçeneği sunma |
+| return_status_transition_invalid | Aksiyonu tekrarlama; güncel iade detayını yeniden al ve mevcut duruma uygun butonları göster |
 | forbidden | Yetki kontrolü; admin aksiyonunu gizle |
 
 ## Benzersizlik ve concurrency
@@ -96,6 +97,7 @@ AddressDto alanları: id, type, title, firstName, lastName, phoneNumber, city, d
 | PaymentProvider | Fake, Iyzico, Stripe, PayTR |
 | CouponDiscountType | Percentage, FixedAmount |
 | ReturnType | Refund, Exchange |
+| ReturnRequestStatus | Requested=0, Approved=1, Rejected=2, Received=3, Completed=4 (yalnız legacy) |
 | StockMovementDirection | In=1, Out=2 |
 | AddressType | Shipping, Billing |
 
@@ -108,5 +110,4 @@ Accounting enum numeric değerleri muhasebe bölümünde verilmiştir; Accountin
 - Public listelerde yalnız aktif/visible kayıtlar dönmüş olabilir.
 - Admin listelerinde filtreler yalnız endpoint imzasında varsa kullanılabilir.
 - Product listesinde sortBy/descending vardır; diğer listelerde backend'in deterministik sırasını kullanın.
-
 

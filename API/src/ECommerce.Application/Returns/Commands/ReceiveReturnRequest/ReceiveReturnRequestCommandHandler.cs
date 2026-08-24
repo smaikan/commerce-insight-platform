@@ -11,27 +11,30 @@ namespace ECommerce.Application.Returns.Commands.ReceiveReturnRequest;
 public sealed class ReceiveReturnRequestCommandHandler : IRequestHandler<ReceiveReturnRequestCommand, ReturnRequestDto>
 {
     private readonly IReturnRequestRepository _returnRequestRepository;
+    private readonly IOrderRepository _orderRepository;
     private readonly ReturnInventoryService _inventoryService;
     private readonly IDateTimeProvider _clock;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderNotificationService? _notificationService;
 
-    // Burada fiziksel iade teslim alma akışının repository, stok, saat ve transaction bağımlılıklarını hazırlıyorum.
+    // Burada fiziksel teslim alma akışının iade, sipariş, legacy stok, saat ve transaction bağımlılıklarını hazırlıyorum.
     public ReceiveReturnRequestCommandHandler(
         IReturnRequestRepository returnRequestRepository,
+        IOrderRepository orderRepository,
         ReturnInventoryService inventoryService,
         IDateTimeProvider clock,
         IUnitOfWork unitOfWork,
         IOrderNotificationService? notificationService = null)
     {
         _returnRequestRepository = returnRequestRepository;
+        _orderRepository = orderRepository;
         _inventoryService = inventoryService;
         _clock = clock;
         _unitOfWork = unitOfWork;
         _notificationService = notificationService;
     }
 
-    // Burada teslim alınan refund ürünlerinin stok girişini aynı transaction içinde bir kez kaydediyorum.
+    // Burada fiziksel teslimi karar öncesi kaydedip yeni akışta herhangi bir stok etkisi oluşturmuyorum.
     public Task<ReturnRequestDto> Handle(ReceiveReturnRequestCommand request, CancellationToken cancellationToken)
     {
         return _unitOfWork.ExecuteInSerializableTransactionAsync(
@@ -39,23 +42,35 @@ public sealed class ReceiveReturnRequestCommandHandler : IRequestHandler<Receive
             cancellationToken);
     }
 
-    // Burada exchange stok etkisini completion aşamasına bırakarak talebin teslim alındı geçişini uyguluyorum.
+    // Burada yeni teslimi karara hazırlar, yalnız eski onaylı refund kaydının önceki stok davranışını uyumlu tutuyorum.
     private async Task<ReturnRequestDto> ReceiveInTransactionAsync(Guid returnRequestId, CancellationToken cancellationToken)
     {
         var returnRequest = await _returnRequestRepository.GetByIdForUpdateAsync(returnRequestId, cancellationToken)
             ?? throw new NotFoundException("Return request was not found.");
+        var order = await _orderRepository.GetByIdForUpdateAsync(returnRequest.OrderId, cancellationToken)
+            ?? throw new NotFoundException("Order was not found.");
+        var previousOrderStatus = order.Status;
         returnRequest.Receive(_clock.UtcNow);
-        if (returnRequest.Type == ReturnType.Refund)
+        if (returnRequest.Type == ReturnType.Refund && returnRequest.IsLegacyReceivedAwaitingCompletion())
         {
-            await _inventoryService.RestockReceivedReturnAsync(returnRequest, cancellationToken);
+            await _inventoryService.RestockRefundAsync(returnRequest, cancellationToken);
         }
+
+        var returnRequests = await _returnRequestRepository.GetByOrderIdForUpdateAsync(
+            returnRequest.OrderId,
+            cancellationToken);
+        ReturnOrderStatusSynchronizer.Synchronize(order, returnRequests);
 
         if (_notificationService is not null)
         {
             await _notificationService.QueueReturnStatusChangedAsync(
                 returnRequest,
-                returnRequest.Order,
+                order,
                 cancellationToken);
+            if (order.Status != previousOrderStatus)
+            {
+                await _notificationService.QueueOrderStatusChangedAsync(order, cancellationToken);
+            }
         }
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return returnRequest.ToDto();

@@ -11,27 +11,30 @@ namespace ECommerce.Application.Returns.Commands.CompleteReturnRequest;
 public sealed class CompleteReturnRequestCommandHandler : IRequestHandler<CompleteReturnRequestCommand, ReturnRequestDto>
 {
     private readonly IReturnRequestRepository _returnRequestRepository;
+    private readonly IOrderRepository _orderRepository;
     private readonly ReturnInventoryService _inventoryService;
     private readonly IDateTimeProvider _clock;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderNotificationService? _notificationService;
 
-    // Burada iade tamamlama akışının repository, stok, saat ve transaction bağımlılıklarını hazırlıyorum.
+    // Burada legacy tamamlama akışının iade, sipariş, stok, saat ve transaction bağımlılıklarını hazırlıyorum.
     public CompleteReturnRequestCommandHandler(
         IReturnRequestRepository returnRequestRepository,
+        IOrderRepository orderRepository,
         ReturnInventoryService inventoryService,
         IDateTimeProvider clock,
         IUnitOfWork unitOfWork,
         IOrderNotificationService? notificationService = null)
     {
         _returnRequestRepository = returnRequestRepository;
+        _orderRepository = orderRepository;
         _inventoryService = inventoryService;
         _clock = clock;
         _unitOfWork = unitOfWork;
         _notificationService = notificationService;
     }
 
-    // Burada değişim replacement stok işlemini iade stok girişinin olduğu transaction içinde tamamlayıp talebi kapatıyorum.
+    // Burada yalnız eski yaşam döngüsündeki kaydın uyumlu completion işlemini aynı transaction içinde kapatıyorum.
     public Task<ReturnRequestDto> Handle(CompleteReturnRequestCommand request, CancellationToken cancellationToken)
     {
         return _unitOfWork.ExecuteInSerializableTransactionAsync(
@@ -39,23 +42,34 @@ public sealed class CompleteReturnRequestCommandHandler : IRequestHandler<Comple
             cancellationToken);
     }
 
-    // Burada refund için finansal kapanışı kaydedip exchange için stokları atomik uyguluyorum.
+    // Burada eski exchange stoklarını atomik uygulayıp sipariş durumunu diğer aktif taleplerle yeniden türetiyorum.
     private async Task<ReturnRequestDto> CompleteInTransactionAsync(Guid returnRequestId, CancellationToken cancellationToken)
     {
         var returnRequest = await _returnRequestRepository.GetByIdForUpdateAsync(returnRequestId, cancellationToken)
             ?? throw new NotFoundException("Return request was not found.");
+        var order = await _orderRepository.GetByIdForUpdateAsync(returnRequest.OrderId, cancellationToken)
+            ?? throw new NotFoundException("Order was not found.");
+        var previousOrderStatus = order.Status;
+        returnRequest.Complete(_clock.UtcNow);
         if (returnRequest.Type == ReturnType.Exchange)
         {
             await _inventoryService.FulfillExchangeAsync(returnRequest, cancellationToken);
         }
 
-        returnRequest.Complete(_clock.UtcNow);
+        var returnRequests = await _returnRequestRepository.GetByOrderIdForUpdateAsync(
+            returnRequest.OrderId,
+            cancellationToken);
+        ReturnOrderStatusSynchronizer.Synchronize(order, returnRequests);
         if (_notificationService is not null)
         {
             await _notificationService.QueueReturnStatusChangedAsync(
                 returnRequest,
-                returnRequest.Order,
+                order,
                 cancellationToken);
+            if (order.Status != previousOrderStatus)
+            {
+                await _notificationService.QueueOrderStatusChangedAsync(order, cancellationToken);
+            }
         }
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return returnRequest.ToDto();

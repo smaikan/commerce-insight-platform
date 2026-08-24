@@ -15,40 +15,41 @@ public sealed class ReturnInventoryService
         _variantRepository = variantRepository;
     }
 
-    // Burada fiziksel olarak teslim alınmış para iadesi kalemlerinin stoklarını tek transaction içinde yalnız bir kez geri ekliyorum.
-    public async Task RestockReceivedReturnAsync(ReturnRequest returnRequest, CancellationToken cancellationToken)
+    // Burada kararı onaylanmış yeni refund veya teslim alınmış eski refund stoklarını transaction içinde yalnız bir kez geri ekliyorum.
+    public async Task RestockRefundAsync(ReturnRequest returnRequest, CancellationToken cancellationToken)
     {
-        if (returnRequest.Type != ReturnType.Refund || returnRequest.Status != ReturnRequestStatus.Received)
+        if (returnRequest.Type != ReturnType.Refund || !CanApplyInventoryDecision(returnRequest))
         {
-            throw new ConflictException("Only received refund requests can restore stock.");
+            throw new ConflictException("Only physically received approved refund requests can restore stock.");
         }
 
+        var returnedQuantities = GetReturnedQuantities(returnRequest);
         var variants = await _variantRepository.GetByIdsForUpdateAsync(
-            returnRequest.Items.Select(item => item.ProductVariantId),
+            returnedQuantities.Keys,
             cancellationToken);
         var variantsById = variants.ToDictionary(variant => variant.Id);
-        foreach (var item in returnRequest.Items.OrderBy(item => item.ProductVariantId))
+        foreach (var returnedQuantity in returnedQuantities.OrderBy(item => item.Key))
         {
-            if (!variantsById.TryGetValue(item.ProductVariantId, out var variant))
+            if (!variantsById.TryGetValue(returnedQuantity.Key, out var variant))
             {
                 throw new ConflictException("A product variant required for return stock restoration was not found.");
             }
 
             variant.ApplyStockMovement(
-                item.Quantity,
+                returnedQuantity.Value,
                 StockMovementType.SaleReturn,
-                "Return request received.",
+                "Refund return approved.",
                 returnRequest.OrderId,
                 returnRequest.Id);
         }
     }
 
-    // Burada tamamlanacak değişimin iade stok girişini ve replacement stok çıkışını aynı transaction içinde bir kez uyguluyorum.
+    // Burada onaylanan yeni veya tamamlanan eski değişimin iade girişini ve replacement çıkışını aynı transaction içinde uyguluyorum.
     public async Task FulfillExchangeAsync(ReturnRequest returnRequest, CancellationToken cancellationToken)
     {
-        if (returnRequest.Type != ReturnType.Exchange || returnRequest.Status != ReturnRequestStatus.Received)
+        if (returnRequest.Type != ReturnType.Exchange || !CanApplyInventoryDecision(returnRequest))
         {
-            throw new ConflictException("Only received exchange requests can fulfill replacement stock.");
+            throw new ConflictException("Only physically received approved exchange requests can fulfill replacement stock.");
         }
 
         var replacementIds = returnRequest.Items
@@ -111,17 +112,18 @@ public sealed class ReturnInventoryService
             }
         }
 
-        foreach (var item in returnRequest.Items.OrderBy(item => item.ProductVariantId))
+        var returnedQuantities = GetReturnedQuantities(returnRequest);
+        foreach (var returnedQuantity in returnedQuantities.OrderBy(item => item.Key))
         {
-            if (!variantsById.TryGetValue(item.ProductVariantId, out var returnedVariant))
+            if (!variantsById.TryGetValue(returnedQuantity.Key, out var returnedVariant))
             {
                 throw new ConflictException("A product variant required for return stock restoration was not found.");
             }
 
             returnedVariant.ApplyStockMovement(
-                item.Quantity,
+                returnedQuantity.Value,
                 StockMovementType.SaleReturn,
-                "Exchange return received and fulfilled.",
+                "Exchange return approved and fulfilled.",
                 returnRequest.OrderId,
                 returnRequest.Id);
         }
@@ -135,6 +137,33 @@ public sealed class ReturnInventoryService
                 "Exchange replacement fulfilled.",
                 returnRequest.OrderId,
                 returnRequest.Id);
+        }
+    }
+
+    // Burada stok etkisinin yalnız yeni teslim-sonrası onayda veya eski onay-önce completion dalında çalışmasına izin veriyorum.
+    private static bool CanApplyInventoryDecision(ReturnRequest returnRequest)
+    {
+        return returnRequest.ReceivedAt.HasValue &&
+               returnRequest.ApprovedAt.HasValue &&
+               (returnRequest.Status == ReturnRequestStatus.Approved ||
+                returnRequest.IsLegacyReceivedAwaitingCompletion() ||
+                (returnRequest.Status == ReturnRequestStatus.Completed && returnRequest.CompletedAt.HasValue));
+    }
+
+    // Burada aynı varyanta ait iade kalemlerini tek stok hareketine güvenli biçimde topluyorum.
+    private static IReadOnlyDictionary<Guid, int> GetReturnedQuantities(ReturnRequest returnRequest)
+    {
+        try
+        {
+            return returnRequest.Items
+                .GroupBy(item => item.ProductVariantId)
+                .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+        }
+        catch (OverflowException exception)
+        {
+            throw new ConflictException(
+                "Returned quantity exceeds the supported stock range.",
+                exception);
         }
     }
 }

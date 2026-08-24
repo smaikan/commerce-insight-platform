@@ -140,12 +140,17 @@ public sealed class ReturnRequest : AuditableEntity
         return item;
     }
 
-    // Burada yalnız bekleyen ve kalem içeren iade talebini yöneticinin onayına taşıyorum.
+    // Burada yalnız fiziksel olarak teslim alınmış ve karar bekleyen talebi onaylı sonuca taşıyorum.
     public void Approve(DateTime utcNow, string? decisionNote = null)
     {
         EnsureUtc(utcNow);
+        if (!IsAwaitingDecision())
+        {
+            throw new ReturnStatusTransitionException("Only received return requests awaiting a decision can be approved.");
+        }
+
         EnsureHasItems();
-        EnsureStatus(ReturnRequestStatus.Requested, "Only requested return requests can be approved.");
+        EnsureNotBefore(utcNow, ReceivedAt!.Value, "Return approval time cannot be before receipt time.");
         Status = ReturnRequestStatus.Approved;
         DecisionNote = NormalizeOptionalNote(decisionNote, MaximumDecisionNoteLength, "Decision note");
         ApprovedAt = utcNow;
@@ -153,11 +158,16 @@ public sealed class ReturnRequest : AuditableEntity
         MarkAsUpdated();
     }
 
-    // Burada yalnız bekleyen iade talebini gerekçesiyle reddediyorum.
+    // Burada yalnız fiziksel olarak teslim alınmış ve karar bekleyen talebi gerekçesiyle reddediyorum.
     public void Reject(DateTime utcNow, string? decisionNote = null)
     {
         EnsureUtc(utcNow);
-        EnsureStatus(ReturnRequestStatus.Requested, "Only requested return requests can be rejected.");
+        if (!IsAwaitingDecision())
+        {
+            throw new ReturnStatusTransitionException("Only received return requests awaiting a decision can be rejected.");
+        }
+
+        EnsureNotBefore(utcNow, ReceivedAt!.Value, "Return rejection time cannot be before receipt time.");
         Status = ReturnRequestStatus.Rejected;
         DecisionNote = NormalizeOptionalNote(decisionNote, MaximumDecisionNoteLength, "Decision note");
         RejectedAt = utcNow;
@@ -165,22 +175,44 @@ public sealed class ReturnRequest : AuditableEntity
         MarkAsUpdated();
     }
 
-    // Burada yalnız onaylı talebi fiziksel ürünler teslim alındığında stok geri yükleme adımına geçiriyorum.
+    // Burada yeni talebi karar öncesi teslim alıyor, yalnız eski onaylı kayıtların önceki teslim alma yolunu uyumlu tutuyorum.
     public void Receive(DateTime utcNow)
     {
         EnsureUtc(utcNow);
-        EnsureStatus(ReturnRequestStatus.Approved, "Only approved return requests can be received.");
+        if (Status == ReturnRequestStatus.Requested)
+        {
+            EnsureHasItems();
+            Status = ReturnRequestStatus.Received;
+            ReceivedAt = utcNow;
+            RefreshConcurrencyToken();
+            MarkAsUpdated();
+            return;
+        }
+
+        if (Status != ReturnRequestStatus.Approved || !ApprovedAt.HasValue || ReceivedAt.HasValue)
+        {
+            throw new ReturnStatusTransitionException(
+                "Only requested return requests or legacy approved requests awaiting receipt can be received.");
+        }
+
+        EnsureNotBefore(utcNow, ApprovedAt.Value, "Return receipt time cannot be before legacy approval time.");
         Status = ReturnRequestStatus.Received;
         ReceivedAt = utcNow;
         RefreshConcurrencyToken();
         MarkAsUpdated();
     }
 
-    // Burada teslim alınmış iade veya değişim talebinin mali ya da lojistik kapanışını bir kez tamamlıyorum.
+    // Burada yalnız eski onay-önce akışından kalan teslim alınmış kaydı geriye dönük uyumluluk için tamamlıyorum.
     public void Complete(DateTime utcNow)
     {
         EnsureUtc(utcNow);
-        EnsureStatus(ReturnRequestStatus.Received, "Only received return requests can be completed.");
+        if (!IsLegacyReceivedAwaitingCompletion())
+        {
+            throw new ReturnStatusTransitionException(
+                "Only legacy received return requests that were approved before receipt can be completed.");
+        }
+
+        EnsureNotBefore(utcNow, ReceivedAt!.Value, "Return completion time cannot be before receipt time.");
         Status = ReturnRequestStatus.Completed;
         CompletedAt = utcNow;
         RefreshConcurrencyToken();
@@ -193,10 +225,32 @@ public sealed class ReturnRequest : AuditableEntity
         return Status is not ReturnRequestStatus.Rejected;
     }
 
-    // Burada talebin tamamlanmış bir geri ödeme olarak sipariş miktarına sayılıp sayılmayacağını bildiriyorum.
+    // Burada talebin yeni onaylı veya eski tamamlanmış bir geri ödeme sonucu olup olmadığını bildiriyorum.
     public bool IsCompletedRefund()
     {
-        return Type == ReturnType.Refund && Status == ReturnRequestStatus.Completed;
+        return Type == ReturnType.Refund && RepresentsApprovedOutcome();
+    }
+
+    // Burada yeni yaşam döngüsünde fiziksel teslim alınmış talebin henüz karar beklediğini bildiriyorum.
+    public bool IsAwaitingDecision()
+    {
+        return Status == ReturnRequestStatus.Received &&
+               ReceivedAt.HasValue &&
+               !ApprovedAt.HasValue &&
+               !RejectedAt.HasValue;
+    }
+
+    // Burada sipariş durumuna yansıtılacak yeni veya eski uyumlu onay sonucunu tek kuralla tanımlıyorum.
+    public bool RepresentsApprovedOutcome()
+    {
+        return (Status == ReturnRequestStatus.Approved && ApprovedAt.HasValue) ||
+               (Status is ReturnRequestStatus.Received or ReturnRequestStatus.Completed && ApprovedAt.HasValue);
+    }
+
+    // Burada yalnız eski onay-önce yaşam döngüsünün completion bekleyen teslim alınmış kaydını ayırt ediyorum.
+    public bool IsLegacyReceivedAwaitingCompletion()
+    {
+        return Status == ReturnRequestStatus.Received && ApprovedAt.HasValue && ReceivedAt.HasValue;
     }
 
     // Burada talebin en az bir kalem taşıdığını geçiş kurallarından önce doğruluyorum.
@@ -208,10 +262,10 @@ public sealed class ReturnRequest : AuditableEntity
         }
     }
 
-    // Burada durum geçişinin yalnız beklenen önceki durumdan yapılmasını sağlıyorum.
-    private void EnsureStatus(ReturnRequestStatus expectedStatus, string message)
+    // Burada yaşam döngüsü zamanlarının önceki olayın öncesine yazılmasını engelliyorum.
+    private static void EnsureNotBefore(DateTime utcNow, DateTime previousUtc, string message)
     {
-        if (Status != expectedStatus)
+        if (utcNow < previousUtc)
         {
             throw new DomainException(message);
         }

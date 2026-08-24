@@ -79,18 +79,30 @@ public sealed class ReturnsController : ControllerBase
     public async Task<ActionResult<ReturnRequestDto>> GetByIdForAdmin(Guid id, CancellationToken cancellationToken) =>
         Ok(await _sender.Send(new GetReturnRequestByIdForAdminQuery(id), cancellationToken));
 
-    // Burada yöneticinin bekleyen iade veya değişim talebini onaylamasını sağlıyorum.
+    // Burada yöneticinin fiziksel teslim alınmış iade veya değişim talebini onaylamasını sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpPost("{id:guid}/approve")]
+    [ProducesResponseType(typeof(ReturnRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ReturnRequestDto>> Approve(
         Guid id,
         ReturnRequestDecisionRequest request,
         CancellationToken cancellationToken) =>
         Ok(await _sender.Send(new ApproveReturnRequestCommand(id, request.DecisionNote), cancellationToken));
 
-    // Burada yöneticinin bekleyen iade veya değişim talebini reddetmesini sağlıyorum.
+    // Burada yöneticinin fiziksel teslim alınmış iade veya değişim talebini reddetmesini sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpPost("{id:guid}/reject")]
+    [ProducesResponseType(typeof(ReturnRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ReturnRequestDto>> Reject(
         Guid id,
         ReturnRequestDecisionRequest request,
@@ -100,12 +112,24 @@ public sealed class ReturnsController : ControllerBase
     // Burada yöneticinin fiziksel olarak gelen iade veya değişim ürününü teslim almasını sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpPost("{id:guid}/receive")]
+    [ProducesResponseType(typeof(ReturnRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ReturnRequestDto>> Receive(Guid id, CancellationToken cancellationToken) =>
         Ok(await _sender.Send(new ReceiveReturnRequestCommand(id), cancellationToken));
 
-    // Burada yöneticinin refund veya exchange talebini iş akışının son adımında kapatmasını sağlıyorum.
+    // Burada yalnız eski yaşam döngüsündeki refund veya exchange kaydının completion uyumluluğunu sağlıyorum.
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpPost("{id:guid}/complete")]
+    [ProducesResponseType(typeof(ReturnRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ReturnRequestDto>> Complete(Guid id, CancellationToken cancellationToken) =>
         Ok(await _sender.Send(new CompleteReturnRequestCommand(id), cancellationToken));
 }

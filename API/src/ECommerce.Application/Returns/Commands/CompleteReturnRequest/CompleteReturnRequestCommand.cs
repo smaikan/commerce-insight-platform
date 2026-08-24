@@ -3,5 +3,5 @@ using MediatR;
 
 namespace ECommerce.Application.Returns.Commands.CompleteReturnRequest;
 
-// Burada teslim alınmış iade veya değişim talebinin mali ya da lojistik kapanış isteğini taşıyorum.
+// Burada eski yaşam döngüsünden kalan teslim alınmış kaydın uyumlu completion isteğini taşıyorum.
 public sealed record CompleteReturnRequestCommand(Guid ReturnRequestId) : IRequest<ReturnRequestDto>;

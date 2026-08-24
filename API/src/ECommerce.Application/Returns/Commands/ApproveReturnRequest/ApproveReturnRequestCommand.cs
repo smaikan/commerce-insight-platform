@@ -3,5 +3,5 @@ using MediatR;
 
 namespace ECommerce.Application.Returns.Commands.ApproveReturnRequest;
 
-// Burada yöneticinin bekleyen iade veya değişim talebini onaylama isteğini taşıyorum.
+// Burada yöneticinin teslim alınmış ve karar bekleyen iade veya değişim talebini onaylama isteğini taşıyorum.
 public sealed record ApproveReturnRequestCommand(Guid ReturnRequestId, string? DecisionNote = null) : IRequest<ReturnRequestDto>;

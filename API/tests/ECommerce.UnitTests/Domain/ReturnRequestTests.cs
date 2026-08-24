@@ -7,24 +7,81 @@ namespace ECommerce.UnitTests.Domain;
 
 public sealed class ReturnRequestTests
 {
-    // Burada refund talebinin sipariş snapshot tutarını koruyup onay-teslim-tamamlama geçişlerini uyguladığını doğruluyorum.
+    // Burada refund talebinin sipariş snapshot tutarını koruyup teslim-onay yaşam döngüsünü uyguladığını doğruluyorum.
     [Fact]
-    public void Refund_Request_Should_Calculate_Refund_Total_And_Complete_Its_Lifecycle()
+    public void Refund_Request_Should_Calculate_Refund_Total_And_Approve_After_Receipt()
     {
         var utcNow = new DateTime(2026, 7, 25, 12, 0, 0, DateTimeKind.Utc);
         var (order, item) = CreateOrderWithItem();
         var returnRequest = new ReturnRequest(order.Id, 7, "RET-DOMAIN-REFUND", ReturnType.Refund, " Defective item ");
 
         returnRequest.AddItem(item, 1);
-        returnRequest.Approve(utcNow, " Approved ");
-        returnRequest.Receive(utcNow.AddMinutes(1));
-        returnRequest.Complete(utcNow.AddMinutes(2));
+        returnRequest.Receive(utcNow);
+        returnRequest.Approve(utcNow.AddMinutes(1), " Approved ");
 
         returnRequest.CustomerNote.Should().Be("Defective item");
         returnRequest.DecisionNote.Should().Be("Approved");
         returnRequest.RefundTotal.Should().Be(10m);
-        returnRequest.Status.Should().Be(ReturnRequestStatus.Completed);
+        returnRequest.Status.Should().Be(ReturnRequestStatus.Approved);
+        returnRequest.ReceivedAt.Should().Be(utcNow);
+        returnRequest.ApprovedAt.Should().Be(utcNow.AddMinutes(1));
+        returnRequest.CompletedAt.Should().BeNull();
         returnRequest.IsCompletedRefund().Should().BeTrue();
+    }
+
+    // Burada yeni talebin fiziksel teslim alınmadan onay veya ret kararı alamadığını doğruluyorum.
+    [Fact]
+    public void Requested_Return_Should_Reject_Decision_Transitions_Before_Receipt()
+    {
+        var utcNow = new DateTime(2026, 7, 25, 12, 0, 0, DateTimeKind.Utc);
+        var (order, item) = CreateOrderWithItem();
+        var returnRequest = new ReturnRequest(order.Id, 7, "RET-DOMAIN-PRE-RECEIPT", ReturnType.Refund);
+        returnRequest.AddItem(item, 1);
+
+        Action approve = () => returnRequest.Approve(utcNow);
+        Action reject = () => returnRequest.Reject(utcNow);
+
+        approve.Should().Throw<ReturnStatusTransitionException>();
+        reject.Should().Throw<ReturnStatusTransitionException>();
+        returnRequest.Status.Should().Be(ReturnRequestStatus.Requested);
+    }
+
+    // Burada teslim alınmış karar bekleyen talebin reddedildiğinde stok etkisiz terminal duruma geçtiğini doğruluyorum.
+    [Fact]
+    public void Received_Return_Should_Allow_Rejection_And_Disallow_Legacy_Completion()
+    {
+        var utcNow = new DateTime(2026, 7, 25, 12, 0, 0, DateTimeKind.Utc);
+        var (order, item) = CreateOrderWithItem();
+        var returnRequest = new ReturnRequest(order.Id, 7, "RET-DOMAIN-REJECT", ReturnType.Refund);
+        returnRequest.AddItem(item, 1);
+        returnRequest.Receive(utcNow);
+
+        Action complete = () => returnRequest.Complete(utcNow.AddMinutes(1));
+        complete.Should().Throw<ReturnStatusTransitionException>();
+
+        returnRequest.Reject(utcNow.AddMinutes(1), "Rejected after inspection");
+
+        returnRequest.Status.Should().Be(ReturnRequestStatus.Rejected);
+        returnRequest.RejectedAt.Should().Be(utcNow.AddMinutes(1));
+        returnRequest.ReceivedAt.Should().Be(utcNow);
+    }
+
+    // Burada eski onay-önce kaydın teslim ve completion yolunun yalnız geriye dönük uyumluluk kapsamında sürdüğünü doğruluyorum.
+    [Fact]
+    public void Legacy_Approved_Return_Should_Still_Receive_And_Complete()
+    {
+        var utcNow = new DateTime(2026, 7, 25, 12, 0, 0, DateTimeKind.Utc);
+        var (order, item) = CreateOrderWithItem();
+        var returnRequest = new ReturnRequest(order.Id, 7, "RET-DOMAIN-LEGACY", ReturnType.Exchange);
+        returnRequest.AddItem(item, 1, Guid.NewGuid());
+        SetPrivateProperty(returnRequest, nameof(ReturnRequest.Status), ReturnRequestStatus.Approved);
+        SetPrivateProperty(returnRequest, nameof(ReturnRequest.ApprovedAt), utcNow);
+
+        returnRequest.Receive(utcNow.AddMinutes(1));
+        returnRequest.Complete(utcNow.AddMinutes(2));
+
+        returnRequest.Status.Should().Be(ReturnRequestStatus.Completed);
+        returnRequest.RepresentsApprovedOutcome().Should().BeTrue();
     }
 
     // Burada exchange talebinin replacement varyantı olmadan oluşturulmasını engellediğini doğruluyorum.
@@ -73,5 +130,11 @@ public sealed class ReturnRequestTests
         var item = order.AddItem(12, Guid.NewGuid(), "Return Product", "RETURN-SKU", 10m, 1);
         order.EnsureItemsMatchSubTotal();
         return (order, item);
+    }
+
+    // Burada yalnız geçmiş yaşam döngüsü kaydını temsil etmek için private EF alanını test fixture'ında ayarlıyorum.
+    private static void SetPrivateProperty<T>(ReturnRequest returnRequest, string propertyName, T value)
+    {
+        typeof(ReturnRequest).GetProperty(propertyName)!.SetValue(returnRequest, value);
     }
 }
