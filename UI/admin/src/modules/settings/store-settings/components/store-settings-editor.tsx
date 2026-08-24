@@ -100,7 +100,7 @@ export function StoreSettingsEditor({ initialSettings }: { initialSettings: Admi
                   type="button"
                   aria-pressed={active}
                   onClick={() => setActiveSection(section.key)}
-                  className={`min-h-12 rounded-lg px-3 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-focus ${active ? "bg-primary-soft text-primary-hover" : "text-muted hover:bg-surface hover:text-foreground"}`}
+                  className={`min-h-12 cursor-pointer rounded-lg px-3 py-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus ${active ? "bg-primary-soft text-primary-hover" : "text-muted hover:bg-surface hover:text-foreground"}`}
                 >
                   <span className="flex items-center gap-2 text-sm font-semibold">
                     {section.label}
@@ -127,7 +127,7 @@ export function StoreSettingsEditor({ initialSettings }: { initialSettings: Admi
               <div role="alert" className="mx-4 mb-4 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm sm:mx-5">
                 <p className="font-semibold text-foreground">Ayarlar güncellendi</p>
                 <p className="mt-1 leading-5 text-muted">{result.message}</p>
-                <button type="button" disabled={pending} onClick={() => loadCurrent(result.currentSettings)} className="mt-3 min-h-9 rounded-lg border border-warning/50 bg-surface px-3 text-xs font-semibold text-foreground hover:bg-surface-subtle disabled:opacity-60">
+                <button type="button" disabled={pending} onClick={() => loadCurrent(result.currentSettings)} className="mt-3 min-h-9 cursor-pointer rounded-lg border border-warning/50 bg-surface px-3 text-xs font-semibold text-foreground transition-colors hover:bg-surface-subtle disabled:cursor-not-allowed disabled:opacity-60">
                   Güncel ayarları yükle
                 </button>
               </div>
@@ -142,7 +142,7 @@ export function StoreSettingsEditor({ initialSettings }: { initialSettings: Admi
               <div aria-live="polite" className="min-h-5 text-sm">
                 {result?.status === "success" ? <p className="font-medium text-success">{result.message}</p> : dirtySections.has(activeSection) ? <p className="text-muted">Kaydedilmemiş değişiklikler var.</p> : <p className="text-muted">Bu bölüm güncel.</p>}
               </div>
-              <button type="submit" disabled={pending || !dirtySections.has(activeSection)} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="submit" disabled={pending || !dirtySections.has(activeSection)} className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">
                 {pending ? "Kaydediliyor…" : "Değişiklikleri kaydet"}
               </button>
             </footer>

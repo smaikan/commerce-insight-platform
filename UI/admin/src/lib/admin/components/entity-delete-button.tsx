@@ -36,7 +36,7 @@ export function EntityDeleteButton({ entityName, title, description, confirmLabe
 
   return (
     <>
-      <button type="button" onClick={() => { setResult(undefined); setOpen(true); }} aria-label={`${entityName} kaydını sil`} className="inline-flex min-h-9 items-center rounded-lg border border-danger/30 bg-surface-strong px-3 text-xs font-semibold text-danger hover:bg-danger/10">Sil</button>
+      <button type="button" onClick={() => { setResult(undefined); setOpen(true); }} aria-label={`${entityName} kaydını sil`} className="inline-flex min-h-9 cursor-pointer items-center rounded-lg border border-danger/30 bg-surface-strong px-3 text-xs font-semibold text-danger transition-colors hover:bg-danger/10">Sil</button>
       <ConfirmDialog open={open} title={title} description={description} confirmLabel={confirmLabel} pending={pending} error={result?.status === "error" ? result.message : undefined} onCancel={() => { if (!pending) { setOpen(false); setResult(undefined); } }} onConfirm={confirmDelete} />
     </>
   );

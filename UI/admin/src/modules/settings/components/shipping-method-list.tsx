@@ -25,13 +25,13 @@ export function ShippingMethodList({ page, query }: { page: ShippingMethodPage; 
                   <td className="px-3 py-3 text-right tabular-nums text-muted">{method.displayOrder}</td>
                   <td className="px-3 py-3"><SettingsStatusBadge active={method.isActive} /></td>
                   <td className="px-3 py-3 text-xs text-muted">{formatSettingsDate(method.updatedAt ?? method.createdAt)}</td>
-                  <td className="px-5 py-3"><div className="flex items-start justify-end gap-2"><Link href={`/settings/shipping-methods/${method.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-border-strong bg-surface-strong px-3 text-xs font-semibold text-foreground hover:bg-surface-subtle">Düzenle</Link><ActivationButton kind="shipping" id={method.id} isActive={method.isActive} /></div></td>
+                  <td className="px-5 py-3"><div className="flex items-start justify-end gap-2"><Link href={`/settings/shipping-methods/${method.id}`} className="inline-flex min-h-9 cursor-pointer items-center rounded-lg border border-border-strong bg-surface-strong px-3 text-xs font-semibold text-foreground transition-colors hover:bg-surface-subtle">Düzenle</Link><ActivationButton kind="shipping" id={method.id} isActive={method.isActive} /></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      ) : <div className="px-5 py-12 text-center"><p className="font-semibold text-foreground">Henüz kargo yöntemi yok</p><p className="mt-1 text-sm text-muted">Checkout sırasında teslimat seçeneği sunmak için ilk yöntemi oluşturun.</p><Link href="/settings/shipping-methods/new" className="mt-4 inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover">Kargo yöntemi ekle</Link></div>}
+      ) : <div className="px-5 py-12 text-center"><p className="font-semibold text-foreground">Henüz kargo yöntemi yok</p><p className="mt-1 text-sm text-muted">Checkout sırasında teslimat seçeneği sunmak için ilk yöntemi oluşturun.</p><Link href="/settings/shipping-methods/new" className="mt-4 inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover">Kargo yöntemi ekle</Link></div>}
       <SettingsPagination basePath="/settings/shipping-methods" query={query} totalCount={page.totalCount} totalPages={page.totalPages} />
     </section>
   );

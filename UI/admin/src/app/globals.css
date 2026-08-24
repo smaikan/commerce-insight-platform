@@ -70,8 +70,30 @@ body {
 
 button,
 a,
-summary {
+summary,
+select,
+[role="button"],
+[role="tab"],
+[role="menuitem"],
+[role="option"],
+input[type="checkbox"],
+input[type="radio"],
+input[type="submit"],
+input[type="button"],
+input[type="file"],
+label[for],
+label:has(input[type="checkbox"]),
+label:has(input[type="radio"]),
+label:has(input[type="file"]) {
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
 }
 
 :focus-visible {

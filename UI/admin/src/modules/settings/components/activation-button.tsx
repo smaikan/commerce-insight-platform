@@ -15,7 +15,7 @@ export function ActivationButton({ kind, id, isActive }: { kind: "shipping" | "t
           type="submit"
           disabled={pending}
           aria-label={`${kind === "shipping" ? "Kargo yöntemi" : "Vergi oranı"} ${isActive ? "pasifleştir" : "etkinleştir"}`}
-          className="min-h-9 rounded-lg border border-border-strong bg-surface-strong px-3 text-xs font-semibold text-foreground hover:bg-surface-subtle disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-9 cursor-pointer rounded-lg border border-border-strong bg-surface-strong px-3 text-xs font-semibold text-foreground transition-colors hover:bg-surface-subtle disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending ? "Güncelleniyor…" : isActive ? "Pasifleştir" : "Etkinleştir"}
         </button>

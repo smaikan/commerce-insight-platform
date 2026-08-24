@@ -75,7 +75,7 @@ export function AdminPagination({
                 defaultValue={pageNumber}
                 className="min-h-11 w-16 rounded-lg border border-border-strong bg-surface-strong px-2 text-center text-sm font-semibold tabular-nums text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-focus/30 sm:min-h-9"
               />
-              <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border-strong bg-surface-strong px-3 text-sm font-semibold text-foreground hover:bg-surface-subtle sm:min-h-9">
+              <button type="submit" className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-border-strong bg-surface-strong px-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-subtle sm:min-h-9">
                 Git
               </button>
             </form>
@@ -112,7 +112,7 @@ function PageLink({
       {content}
     </span>
   ) : (
-    <Link href={href} className={`${className} border-border-strong bg-surface-strong text-foreground hover:bg-surface-subtle`}>
+    <Link href={href} className={`${className} cursor-pointer border-border-strong bg-surface-strong text-foreground transition-colors hover:bg-surface-subtle`}>
       {content}
     </Link>
   );

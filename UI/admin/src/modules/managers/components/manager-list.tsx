@@ -49,7 +49,7 @@ function ManagerFilters({ query }: { query: ManagerQuery }) {
           {[20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
         </select>
       </label>
-      <button type="submit" className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:min-h-9">Ara</button>
+      <button type="submit" className="min-h-10 cursor-pointer rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:min-h-9">Ara</button>
     </form>
   );
 }

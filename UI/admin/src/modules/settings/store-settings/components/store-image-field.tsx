@@ -65,7 +65,7 @@ export function StoreImageField({ id, label, hint, slot, value, disabled, error,
           <label htmlFor={id} className="text-sm font-semibold text-foreground">{label}</label>
           <p className="mt-0.5 text-xs leading-5 text-muted">{hint}</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <label className={`inline-flex min-h-9 items-center justify-center rounded-lg border border-border-strong bg-surface px-3 text-xs font-semibold text-foreground hover:bg-surface-subtle ${disabled || uploading ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
+            <label className={`inline-flex min-h-9 items-center justify-center rounded-lg border border-border-strong bg-surface px-3 text-xs font-semibold text-foreground transition-colors hover:bg-surface-subtle ${disabled || uploading ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
               {uploading ? "Görsel yükleniyor…" : value ? "Değiştir" : "Görsel yükle"}
               <input
                 id={id}
@@ -77,7 +77,7 @@ export function StoreImageField({ id, label, hint, slot, value, disabled, error,
               />
             </label>
             {value ? (
-              <button type="button" disabled={disabled || uploading} onClick={() => onChange(null)} className="min-h-9 rounded-lg px-3 text-xs font-semibold text-danger hover:bg-danger/10 disabled:opacity-60">
+              <button type="button" disabled={disabled || uploading} onClick={() => onChange(null)} className="min-h-9 cursor-pointer rounded-lg px-3 text-xs font-semibold text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60">
                 Kaldır
               </button>
             ) : null}

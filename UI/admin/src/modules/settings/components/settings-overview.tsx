@@ -14,8 +14,8 @@ export function SettingsOverview() {
           <div className="divide-y divide-border">
             {group.options.map((option) =>
               option.href ? (
-                <Link key={option.title} href={option.href} className="group flex min-h-20 items-center gap-3 px-4 py-3 hover:bg-surface-subtle/70 sm:px-5">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/5 text-primary" aria-hidden="true">
+                <Link key={option.title} href={option.href} className="group flex min-h-20 cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-subtle/70 sm:px-5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/5 text-primary transition-colors group-hover:border-primary/40 group-hover:bg-primary/10" aria-hidden="true">
                     <ArrowIcon />
                   </span>
                   <span className="min-w-0 flex-1">

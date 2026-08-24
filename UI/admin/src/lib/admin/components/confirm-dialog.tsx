@@ -62,8 +62,8 @@ export function ConfirmDialog({ open, title, description, confirmLabel, confirmT
         <p id="confirm-description" className="mt-2 text-sm leading-6 text-muted">{description}</p>
         {error ? <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-900" role="alert">{error}</p> : null}
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button ref={cancelRef} type="button" disabled={pending} onClick={onCancel} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-border-strong bg-surface-strong px-4 text-sm font-semibold text-foreground hover:bg-surface-subtle disabled:opacity-60">Vazgeç</button>
-          <button type="button" disabled={pending} onClick={onConfirm} className={`inline-flex min-h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 ${confirmTone === "primary" ? "bg-primary" : "bg-danger"}`}>{pending ? pendingLabel : confirmLabel}</button>
+          <button ref={cancelRef} type="button" disabled={pending} onClick={onCancel} className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-lg border border-border-strong bg-surface-strong px-4 text-sm font-semibold text-foreground transition-colors hover:bg-surface-subtle disabled:cursor-not-allowed disabled:opacity-60">Vazgeç</button>
+          <button type="button" disabled={pending} onClick={onConfirm} className={`inline-flex min-h-10 cursor-pointer items-center justify-center rounded-lg px-4 text-sm font-semibold text-white transition-colors hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 ${confirmTone === "primary" ? "bg-primary" : "bg-danger"}`}>{pending ? pendingLabel : confirmLabel}</button>
         </div>
       </section>
     </div>

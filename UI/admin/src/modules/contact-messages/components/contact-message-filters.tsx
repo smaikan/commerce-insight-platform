@@ -52,8 +52,8 @@ export function ContactMessageFilters({ query, admins }: { query: ContactMessage
       </div>
       {query.dateError ? <p id="contact-date-error" role="alert" className="mt-3 text-sm font-semibold text-danger">{query.dateError}</p> : null}
       <div className="mt-4 flex flex-wrap justify-end gap-2">
-        {hasContactMessageFilters(query) ? <Link href="/contact-messages" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-border-strong bg-surface-strong px-4 text-sm font-semibold text-foreground hover:bg-surface-subtle">Filtreleri temizle</Link> : null}
-        <button type="submit" className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">Uygula</button>
+        {hasContactMessageFilters(query) ? <Link href="/contact-messages" className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-lg border border-border-strong bg-surface-strong px-4 text-sm font-semibold text-foreground transition-colors hover:bg-surface-subtle">Filtreleri temizle</Link> : null}
+        <button type="submit" className="min-h-10 cursor-pointer rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">Uygula</button>
       </div>
     </form>
   );

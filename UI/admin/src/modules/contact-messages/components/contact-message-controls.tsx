@@ -90,7 +90,7 @@ export function ContactMessageControls({ messageId, initialSnapshot, admins }: {
             {contactMessageStatusTransitions(snapshot.status).map((value) => <option key={value} value={value}>{contactMessageStatusLabel(value)}</option>)}
           </select>
         </label>
-        <button type="button" onClick={submitStatus} disabled={pending || statusTarget === "" || statusConflict} className="mt-2 min-h-10 w-full rounded-lg bg-primary px-3 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">{pendingOperation === "status" ? "Kaydediliyor…" : "Durumu güncelle"}</button>
+        <button type="button" onClick={submitStatus} disabled={pending || statusTarget === "" || statusConflict} className="mt-2 min-h-10 w-full cursor-pointer rounded-lg bg-primary px-3 text-sm font-semibold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">{pendingOperation === "status" ? "Kaydediliyor…" : "Durumu güncelle"}</button>
         <MutationFeedback ref={statusAlertRef} result={statusResult} onAccept={() => acceptConflict(statusResult, setStatusResult)} admins={admins} />
       </section>
 
@@ -104,7 +104,7 @@ export function ContactMessageControls({ messageId, initialSnapshot, admins }: {
             {admins.map((admin) => <option key={admin.id} value={admin.id}>{assignableAdminLabel(admin)}</option>)}
           </select>
         </label>
-        <button type="button" onClick={submitAssignment} disabled={pending || assignmentConflict || assigneeTarget === (snapshot.assignedAdminUserId ?? "")} className="mt-2 min-h-10 w-full rounded-lg border border-border-strong bg-surface-strong px-3 text-sm font-semibold text-foreground hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60">{pendingOperation === "assignment" ? "Kaydediliyor…" : "Atamayı kaydet"}</button>
+        <button type="button" onClick={submitAssignment} disabled={pending || assignmentConflict || assigneeTarget === (snapshot.assignedAdminUserId ?? "")} className="mt-2 min-h-10 w-full cursor-pointer rounded-lg border border-border-strong bg-surface-strong px-3 text-sm font-semibold text-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60">{pendingOperation === "assignment" ? "Kaydediliyor…" : "Atamayı kaydet"}</button>
         <MutationFeedback ref={assignmentAlertRef} result={assignmentResult} onAccept={() => acceptConflict(assignmentResult, setAssignmentResult)} admins={admins} />
       </section>
     </div>

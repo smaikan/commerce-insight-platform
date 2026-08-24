@@ -18,7 +18,7 @@ export function BrandActivationButton({ id, isActive, name }: { id: string; isAc
           type="submit"
           disabled={pending}
           aria-label={`${name} markasını ${isActive ? "pasifleştir" : "etkinleştir"}`}
-          className="min-h-9 rounded-lg border border-border-strong bg-surface-strong px-3 text-xs font-semibold text-foreground hover:bg-surface-subtle disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-9 cursor-pointer rounded-lg border border-border-strong bg-surface-strong px-3 text-xs font-semibold text-foreground transition-colors hover:bg-surface-subtle disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending ? "Güncelleniyor…" : isActive ? "Pasifleştir" : "Etkinleştir"}
         </button>
