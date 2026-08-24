@@ -26,7 +26,7 @@ public sealed class RequestedBusinessRuleTests
         var validator = new UpdateProductVariantStockCommandValidator();
 
         var result = validator.TestValidate(new UpdateProductVariantStockCommand(
-            Guid.NewGuid(),
+            "SKU-INT-MIN",
             int.MinValue,
             StockMovementType.ManualAdjustment,
             "Invalid adjustment"));
@@ -56,7 +56,7 @@ public sealed class RequestedBusinessRuleTests
         var validator = new UpdateProductVariantStockCommandValidator();
 
         var result = validator.TestValidate(new UpdateProductVariantStockCommand(
-            Guid.NewGuid(),
+            "SKU-OPERATIONAL",
             -1,
             StockMovementType.Sale,
             "Order movement cannot be manual."));
@@ -71,12 +71,29 @@ public sealed class RequestedBusinessRuleTests
         var validator = new UpdateProductVariantStockCommandValidator();
 
         var result = validator.TestValidate(new UpdateProductVariantStockCommand(
-            Guid.NewGuid(),
+            "SKU-NULL-REASON",
             3,
             StockMovementType.Purchase,
             Reason: null));
 
         result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    // Burada tekli stok hareketinde boş varyant SKU'sunu reddediyorum.
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void StockValidator_Should_Reject_Empty_Product_Variant_Sku(string productVariantSku)
+    {
+        var validator = new UpdateProductVariantStockCommandValidator();
+
+        var result = validator.TestValidate(new UpdateProductVariantStockCommand(
+            productVariantSku,
+            3,
+            StockMovementType.Purchase,
+            Reason: null));
+
+        result.ShouldHaveValidationErrorFor(command => command.ProductVariantSku);
     }
 
     // Burada ürün ve varyant sayaçlarının int sınırını aşınca bozulmadan long olarak devam ettiğini doğruluyorum.

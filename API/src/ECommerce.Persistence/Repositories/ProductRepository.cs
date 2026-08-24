@@ -38,7 +38,7 @@ public sealed class ProductRepository : IProductRepository
             .Include(product => product.Type)
             .Include(product => product.Brand)
             .Include(product => product.TaxRate)
-            .Include(product => product.Variants)
+            .Include(product => product.Variants.Where(variant => variant.DeletedAtUtc == null))
             .Include(product => product.Images)
             .Include(product => product.ProductCollections)
                 .ThenInclude(productCollection => productCollection.Collection)
@@ -63,7 +63,7 @@ public sealed class ProductRepository : IProductRepository
             .Include(product => product.Type)
             .Include(product => product.Brand)
             .Include(product => product.TaxRate)
-            .Include(product => product.Variants)
+            .Include(product => product.Variants.Where(variant => variant.DeletedAtUtc == null))
             .Include(product => product.Images)
             .Include(product => product.ProductCollections)
                 .ThenInclude(productCollection => productCollection.Collection)
@@ -79,7 +79,7 @@ public sealed class ProductRepository : IProductRepository
     {
         return _context.Products
             .Include(product => product.TaxRate)
-            .Include(product => product.Variants)
+            .Include(product => product.Variants.Where(variant => variant.DeletedAtUtc == null))
             .Include(product => product.Images)
             .FirstOrDefaultAsync(
                 product => product.Id == id && product.DeletedAtUtc == null,
@@ -106,7 +106,7 @@ public sealed class ProductRepository : IProductRepository
         CancellationToken cancellationToken = default)
     {
         return await _context.Products
-            .Include(product => product.Variants)
+            .Include(product => product.Variants.Where(variant => variant.DeletedAtUtc == null))
             .Where(product => product.DeletedAtUtc == null && product.TaxRateId == taxRateId)
             .OrderBy(product => product.Id)
             .ToListAsync(cancellationToken);
@@ -122,7 +122,7 @@ public sealed class ProductRepository : IProductRepository
             .Include(product => product.Images)
             .Include(product => product.BundleItems)
             .Include(product => product.TaxRate)
-            .Include(product => product.Variants)
+            .Include(product => product.Variants.Where(variant => variant.DeletedAtUtc == null))
             .FirstOrDefaultAsync(
                 product => product.Id == id && product.DeletedAtUtc == null,
                 cancellationToken);
@@ -146,7 +146,7 @@ public sealed class ProductRepository : IProductRepository
             .Include(product => product.Type)
             .Include(product => product.Brand)
             .Include(product => product.TaxRate)
-            .Include(product => product.Variants)
+            .Include(product => product.Variants.Where(variant => variant.DeletedAtUtc == null))
             .Include(product => product.ProductTags)
                 .ThenInclude(productTag => productTag.Tag)
             .AsSplitQuery();
@@ -244,7 +244,7 @@ public sealed class ProductRepository : IProductRepository
             .Include(product => product.Type)
             .Include(product => product.Brand)
             .Include(product => product.TaxRate)
-            .Include(product => product.Variants)
+            .Include(product => product.Variants.Where(variant => variant.DeletedAtUtc == null))
             .Include(product => product.Images)
             .Include(product => product.ProductCollections)
                 .ThenInclude(productCollection => productCollection.Collection)
@@ -373,7 +373,7 @@ public sealed class ProductRepository : IProductRepository
 
         var existingSkus = await _context.ProductVariants
             .AsNoTracking()
-            .Where(variant => normalizedSkus.Contains(variant.Sku))
+            .Where(variant => variant.DeletedAtUtc == null && normalizedSkus.Contains(variant.Sku))
             .Select(variant => variant.Sku)
             .ToListAsync(cancellationToken);
 

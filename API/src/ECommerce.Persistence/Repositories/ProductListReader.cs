@@ -63,6 +63,7 @@ public sealed class ProductListReader : IProductListReader
                 product.RatingCount,
                 product.ReviewCount,
                 product.Variants
+                    .Where(variant => variant.DeletedAtUtc == null)
                     .OrderBy(variant => variant.Name)
                     .ThenBy(variant => variant.Sku)
                     .Select(variant => new ProductVariantProjection(
@@ -81,7 +82,8 @@ public sealed class ProductListReader : IProductListReader
                         variant.Stock,
                         variant.AddToCartCount,
                         variant.PurchaseCount,
-                        variant.IsActive))
+                        variant.IsActive,
+                        variant.ConcurrencyToken))
                     .ToList(),
                 product.ProductTags
                     .Where(productTag => productTag.Tag != null)
@@ -202,7 +204,8 @@ public sealed class ProductListReader : IProductListReader
                 variant.Id, PublicIdCodec.EncodeProductId(variant.ProductId), variant.Name, variant.Value,
                 variant.VariantOptionNameId, variant.VariantOptionValueId, variant.Sku,
                 variant.Barcode, variant.Material, variant.Price, variant.NetPrice, variant.CompareAtPrice,
-                variant.Stock, variant.AddToCartCount, variant.PurchaseCount, variant.IsActive)).ToList(),
+                variant.Stock, variant.AddToCartCount, variant.PurchaseCount, variant.IsActive,
+                variant.ConcurrencyToken)).ToList(),
             product.Tags.Select(tag => new TagDto(tag.Id, tag.Name, tag.Url, tag.IsActive)).ToList(),
             [],
             [],
@@ -232,7 +235,7 @@ public sealed class ProductListReader : IProductListReader
     private sealed record ProductVariantProjection(Guid Id, long ProductId, string Name, string Value,
         Guid? VariantOptionNameId, Guid? VariantOptionValueId, string Sku,
         string? Barcode, string? Material, decimal Price, decimal NetPrice, decimal? CompareAtPrice,
-        int Stock, long AddToCartCount, long PurchaseCount, bool IsActive);
+        int Stock, long AddToCartCount, long PurchaseCount, bool IsActive, Guid ConcurrencyToken);
 
     // Burada ürün liste görünümündeki etiket alanlarını taşıyorum.
     private sealed record TagProjection(Guid Id, string Name, string Url, bool IsActive);

@@ -2,6 +2,7 @@ using ECommerce.Application.Accounting.CostLayers;
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Identifiers;
+using ECommerce.Application.Common.Security;
 using ECommerce.Application.Products.Variants.Commands.CreateProductVariant;
 using ECommerce.Application.Products.Variants.Commands.DeleteProductVariant;
 using ECommerce.Application.Products.Variants.Commands.SetProductVariantActivation;
@@ -60,22 +61,27 @@ public sealed class ProductVariantCommandHandlerTests
         var handler = new DeleteProductVariantCommandHandler(
             variantRepository.Object,
             productRepository.Object,
-            unitOfWork.Object);
+            unitOfWork.Object,
+            Mock.Of<IDateTimeProvider>());
 
         Func<Task> act = () => handler.Handle(new DeleteProductVariantCommand(variant.Id), CancellationToken.None);
 
         await act.Should().ThrowAsync<ConflictException>()
             .WithMessage("A product must have at least one variant.");
-        variantRepository.Verify(repository => repository.Remove(It.IsAny<ProductVariant>()), Times.Never);
+        unitOfWork.Verify(
+            item => item.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
-    // Burada stok hareketi audit geçmişi bulunan varyantın fiziksel olarak silinmesini engelliyorum.
+    // Burada stok hareketi bulunan varyantın geçmişi korunarak mantıksal silinebildiğini doğruluyorum.
     [Fact]
-    public async Task DeleteProductVariant_Should_Reject_Variant_With_Stock_Movement_History()
+    public async Task DeleteProductVariant_Should_Soft_Delete_Variant_With_Stock_Movement_History()
     {
         var variantRepository = new Mock<IProductVariantRepository>();
         var productRepository = new Mock<IProductRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
+        var deletedAtUtc = new DateTime(2026, 8, 22, 16, 0, 0, DateTimeKind.Utc);
+        var product = new Product("Product", "product", "PRODUCT-MAIN").WithId(1);
         var variant = new ProductVariant(1, "Standard", "SKU-AUDIT", 100m, 1);
         variantRepository
             .Setup(repository => repository.GetByIdForUpdateAsync(
@@ -87,28 +93,30 @@ public sealed class ProductVariantCommandHandlerTests
                 variant.ProductId,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(2);
-        variantRepository
-            .Setup(repository => repository.HasStockMovementsAsync(
-                variant.Id,
+        productRepository
+            .Setup(repository => repository.GetByIdForUpdateAsync(
+                variant.ProductId,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+            .ReturnsAsync(product);
+        unitOfWork
+            .Setup(item => item.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
         var handler = new DeleteProductVariantCommandHandler(
             variantRepository.Object,
             productRepository.Object,
-            unitOfWork.Object);
+            unitOfWork.Object,
+            Mock.Of<IDateTimeProvider>(clock => clock.UtcNow == deletedAtUtc));
 
-        Func<Task> act = () => handler.Handle(
+        await handler.Handle(
             new DeleteProductVariantCommand(variant.Id),
             CancellationToken.None);
 
-        await act.Should().ThrowAsync<ConflictException>()
-            .WithMessage("*stock movement history*");
-        variantRepository.Verify(
-            repository => repository.Remove(It.IsAny<ProductVariant>()),
-            Times.Never);
+        variant.DeletedAtUtc.Should().Be(deletedAtUtc);
+        variant.IsActive.Should().BeFalse();
+        variant.StockMovements.Should().ContainSingle();
         unitOfWork.Verify(
             item => item.SaveChangesAsync(It.IsAny<CancellationToken>()),
-            Times.Never);
+            Times.Once);
     }
 
     // Burada mevcut ürüne yeni varyant oluşturulduğunu doğruluyorum.
@@ -333,7 +341,7 @@ public sealed class ProductVariantCommandHandlerTests
         var variant = new ProductVariant(1, "Standard", "SKU-1", 100, 8);
 
         variantRepository
-            .Setup(repository => repository.GetByIdForUpdateAsync(variant.Id, It.IsAny<CancellationToken>()))
+            .Setup(repository => repository.GetBySkuForUpdateAsync(variant.Sku, It.IsAny<CancellationToken>()))
             .ReturnsAsync(variant);
 
         unitOfWork
@@ -344,7 +352,7 @@ public sealed class ProductVariantCommandHandlerTests
 
         var result = await handler.Handle(
             new UpdateProductVariantStockCommand(
-                variant.Id,
+                variant.Sku,
                 7,
                 StockMovementType.ManualAdjustment,
                 "Manual correction"),
@@ -368,15 +376,15 @@ public sealed class ProductVariantCommandHandlerTests
         var variantRepository = new Mock<IProductVariantRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
         var variant = new ProductVariant(1, "Standard", "SKU-1", 100, 8);
-        variantRepository.Setup(repository => repository.GetByIdForUpdateAsync(
-                variant.Id, It.IsAny<CancellationToken>()))
+        variantRepository.Setup(repository => repository.GetBySkuForUpdateAsync(
+                variant.Sku, It.IsAny<CancellationToken>()))
             .ReturnsAsync(variant);
         unitOfWork.Setup(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         var handler = new UpdateProductVariantStockCommandHandler(variantRepository.Object, unitOfWork.Object);
 
         var result = await handler.Handle(
             new UpdateProductVariantStockCommand(
-                variant.Id,
+                $"  {variant.Sku}  ",
                 -2,
                 StockMovementType.Damage,
                 "Damaged item"),

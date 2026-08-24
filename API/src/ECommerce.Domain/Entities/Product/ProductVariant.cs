@@ -28,6 +28,8 @@ public sealed class ProductVariant : AuditableEntity
     public long AddToCartCount { get; private set; }
     public long PurchaseCount { get; private set; }
     public bool IsActive { get; private set; }
+    public DateTime? DeletedAtUtc { get; private set; }
+    public bool IsDeleted => DeletedAtUtc.HasValue;
     public Guid ConcurrencyToken { get; private set; }
 
     public ICollection<ProductVariantDailyMetric> DailyMetrics { get; private set; } = new List<ProductVariantDailyMetric>();
@@ -144,6 +146,19 @@ public sealed class ProductVariant : AuditableEntity
         MarkAsChanged();
     }
 
+    // Burada varyantı stok ve işlem geçmişini koruyarak katalogdan kaldırıyorum.
+    public void SoftDelete(DateTime deletedAtUtc)
+    {
+        if (deletedAtUtc.Kind != DateTimeKind.Utc)
+        {
+            throw new DomainException("Product variant deletion time must be UTC.");
+        }
+
+        DeletedAtUtc = deletedAtUtc;
+        IsActive = false;
+        MarkAsChanged();
+    }
+
     // Burada varyantın vergi dahil ve vergi hariç fiyatlarını birlikte güncelliyorum.
     public void UpdatePrice(decimal price, decimal? compareAtPrice, decimal? netPrice = null)
     {
@@ -182,6 +197,13 @@ public sealed class ProductVariant : AuditableEntity
         string? material)
     {
         UpdateDetails(name, Value, sku, barcode, material);
+    }
+
+    // Burada atomik toplu güncellemenin ara aşamasında yalnız SKU değerini güvenli biçimde değiştiriyorum.
+    public void ChangeSku(string sku)
+    {
+        SetSku(sku);
+        MarkAsChanged();
     }
 
     // Burada varyantın merkezi ad ve değer kayıtlarıyla metin alanlarının tutarlılığını kuruyorum.

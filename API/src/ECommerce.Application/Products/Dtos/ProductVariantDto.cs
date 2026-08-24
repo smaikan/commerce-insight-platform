@@ -19,7 +19,8 @@ public sealed record ProductVariantDto(
     int Stock,
     long AddToCartCount,
     long PurchaseCount,
-    bool IsActive);
+    bool IsActive,
+    Guid ConcurrencyToken);
 
 public static class ProductVariantDtoMapping
 {
@@ -42,6 +43,7 @@ public static class ProductVariantDtoMapping
             variant.Stock,
             variant.AddToCartCount,
             variant.PurchaseCount,
-            variant.IsActive);
+            variant.IsActive,
+            variant.ConcurrencyToken);
     }
 }

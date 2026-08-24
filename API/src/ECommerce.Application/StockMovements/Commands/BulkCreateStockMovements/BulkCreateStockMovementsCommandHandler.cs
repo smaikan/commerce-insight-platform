@@ -37,29 +37,31 @@ public sealed class BulkCreateStockMovementsCommandHandler
         BulkCreateStockMovementsCommand request,
         CancellationToken cancellationToken)
     {
-        var requestedVariantIds = request.Movements
-            .Select(item => item.ProductVariantId)
-            .Distinct()
-            .OrderBy(id => id)
+        var requestedVariantSkus = request.Movements
+            .Select(item => item.ProductVariantSku.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(sku => sku, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
-        var variants = await _variantRepository.GetByIdsForUpdateAsync(
-            requestedVariantIds,
+        var variants = await _variantRepository.GetBySkusForUpdateAsync(
+            requestedVariantSkus,
             cancellationToken);
 
-        if (variants.Count != requestedVariantIds.Length)
+        if (variants.Count != requestedVariantSkus.Length)
         {
             throw new NotFoundException("One or more product variants were not found.");
         }
 
-        var variantsById = variants.ToDictionary(variant => variant.Id);
+        var variantsBySku = variants.ToDictionary(
+            variant => variant.Sku,
+            StringComparer.OrdinalIgnoreCase);
         var createdMovements = new List<StockMovementDto>(request.Movements.Count);
 
         foreach (var item in request.Movements)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var movement = variantsById[item.ProductVariantId].ApplyStockMovement(
+            var movement = variantsBySku[item.ProductVariantSku.Trim()].ApplyStockMovement(
                 item.QuantityDelta,
                 item.Type,
                 item.Reason);

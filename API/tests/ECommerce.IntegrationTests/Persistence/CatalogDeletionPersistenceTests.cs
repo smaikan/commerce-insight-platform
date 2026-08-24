@@ -11,6 +11,45 @@ namespace ECommerce.IntegrationTests.Persistence;
 
 public sealed class CatalogDeletionPersistenceTests
 {
+    // Burada stok hareketli bir varyantın mantıksal silinip hareket geçmişinin korunabildiğini doğruluyorum.
+    [Fact]
+    public async Task Variant_Soft_Delete_Should_Hide_Variant_And_Preserve_Stock_History()
+    {
+        await using var connection = await CreateOpenConnectionAsync();
+        var options = CreateOptions(connection);
+        var deletedAtUtc = new DateTime(2026, 8, 22, 16, 0, 0, DateTimeKind.Utc);
+        Guid deletedVariantId;
+        long productId;
+
+        await using (var context = new AppDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+            var product = CreateProduct("Variant delete", "variant-delete", "VARIANT-DELETE", "VARIANT-A");
+            var deletedVariant = product.Variants.Single();
+            deletedVariant.ApplyStockMovement(2, StockMovementType.ManualAdjustment, "Deletion audit test");
+            product.Variants.Add(new ProductVariant(product, "Second", "VARIANT-B", 120m, 0));
+            context.Products.Add(product);
+            await context.SaveChangesAsync();
+            deletedVariantId = deletedVariant.Id;
+            productId = product.Id;
+
+            var trackedVariant = await new ProductVariantRepository(context).GetByIdForUpdateAsync(deletedVariantId);
+            trackedVariant!.SoftDelete(deletedAtUtc);
+            await context.SaveChangesAsync();
+        }
+
+        await using var readContext = new AppDbContext(options);
+        var repository = new ProductVariantRepository(readContext);
+        (await repository.GetByIdAsync(deletedVariantId)).Should().BeNull();
+        var variants = await repository.GetByProductIdAsync(productId, 1, 20);
+        variants.Items.Should().ContainSingle(item => item.Sku == "VARIANT-B");
+        (await readContext.StockMovements.CountAsync(item => item.ProductVariantId == deletedVariantId))
+            .Should().Be(1);
+        var persistedVariant = await readContext.ProductVariants.SingleAsync(item => item.Id == deletedVariantId);
+        persistedVariant.DeletedAtUtc.Should().Be(deletedAtUtc);
+        persistedVariant.IsActive.Should().BeFalse();
+    }
+
     // Burada soft delete sonrasında ürünün katalogdan gizlenip stok geçmişinin korunduğunu doğruluyorum.
     [Fact]
     public async Task Product_Soft_Delete_Should_Hide_Catalog_Graph_And_Preserve_Stock_History()

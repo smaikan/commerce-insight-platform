@@ -73,11 +73,11 @@ Public canlı arama başlık, marka, tür, koleksiyon, etiket ve MainSku alanlar
 | POST | `/api/product-variants/by-product/{productPublicId}` | Admin | Varyant + opening stock |
 | PUT | `/api/product-variants/{id}` | Admin | Varyant alanları ve gerekirse stock count adjustment |
 | PATCH | `/api/product-variants/{id}/price` | Admin | `{ "price": 499.9, "compareAtPrice": 599.9 }` |
-| POST | `/api/product-variants/{id}/stock-movements` | Admin | Signed stok düzeltmesi |
+| POST | `/api/product-variants/stock-movements` | Admin | Body'deki `productVariantSku` ile signed stok düzeltmesi |
 | PATCH | `/api/product-variants/{id}/activation` | Admin | `{ "isActive": true }` |
-| DELETE | `/api/product-variants/{id}` | Admin | History yoksa sil; history varsa engellenebilir |
+| DELETE | `/api/product-variants/{id}` | Admin | Mantıksal silme; stok hareketi geçmişi korunur |
 
-Stok doğrudan güncellenmez; StockMovement ile değişir. `QuantityDelta` signed gönderilir. Ürün varyantı fiyatı KDV dahil katalog fiyatıdır.
+Stok doğrudan güncellenmez; StockMovement ile değişir. Tekli ve bulk manuel hareketlerde varyant `productVariantSku` ile eşleştirilir, `QuantityDelta` signed gönderilir. Ürün varyantı fiyatı KDV dahil katalog fiyatıdır. Varyant silme işlemi stok hareketi olup olmadığına bakmadan çalışır; varyantı pasifleştirip normal katalog ve yönetim sorgularından gizler, stok hareketlerini silmez. Bir ürünün son kalan varyantı silinemez.
 
 ## Marka, koleksiyon, ürün tipi, etiket
 

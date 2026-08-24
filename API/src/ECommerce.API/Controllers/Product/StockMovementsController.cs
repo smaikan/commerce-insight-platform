@@ -8,6 +8,7 @@ using ECommerce.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace ECommerce.API.Controllers.Product;
 
@@ -25,6 +26,13 @@ public sealed class StockMovementsController : ControllerBase
     }
 
     [HttpPost("bulk")]
+    [ProducesResponseType(typeof(BulkCreateStockMovementsResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     // Burada yöneticinin birden çok stok hareketini tek atomik operasyon olarak girmesini sağlıyorum.
     public async Task<ActionResult<BulkCreateStockMovementsResultDto>> CreateBulk(
         BulkCreateStockMovementsRequest request,
@@ -43,9 +51,9 @@ public sealed class StockMovementsController : ControllerBase
     private static BulkStockMovementItem MapBulkMovement(BulkStockMovementRequest? item)
     {
         return item is null
-            ? new BulkStockMovementItem(Guid.Empty, 0, default, null)
+            ? new BulkStockMovementItem(string.Empty, 0, default, null)
             : new BulkStockMovementItem(
-                item.ProductVariantId,
+                item.ProductVariantSku,
                 item.QuantityDelta,
                 item.Type,
                 item.Reason);
@@ -76,9 +84,9 @@ public sealed class StockMovementsController : ControllerBase
 public sealed record BulkCreateStockMovementsRequest(
     IReadOnlyList<BulkStockMovementRequest> Movements);
 
-// Burada toplu listedeki tek varyant hareketinin imzalı miktarını ve varsa açıklamasını taşıyorum.
+// Burada toplu listedeki tek varyant hareketinin SKU'sunu, imzalı miktarını ve varsa açıklamasını taşıyorum.
 public sealed record BulkStockMovementRequest(
-    Guid ProductVariantId,
+    [property: Required, MaxLength(100)] string ProductVariantSku,
     int QuantityDelta,
     StockMovementType Type,
     string? Reason = null);

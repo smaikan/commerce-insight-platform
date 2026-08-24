@@ -9,8 +9,9 @@ public sealed class UpdateProductVariantStockCommandValidator : AbstractValidato
     // Burada stok hareketinin izinli yönetim türü, yönü ve açıklamasıyla tutarlı olduğunu doğruluyorum.
     public UpdateProductVariantStockCommandValidator()
     {
-        RuleFor(command => command.Id)
-            .NotEmpty();
+        RuleFor(command => command.ProductVariantSku)
+            .NotEmpty()
+            .MaximumLength(100);
 
         RuleFor(command => command.QuantityDelta)
             .NotEqual(0)

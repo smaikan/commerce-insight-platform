@@ -42,3 +42,20 @@ public sealed class InvalidPasswordResetTokenException : ApiContractException
     {
     }
 }
+
+// Burada batch dışındaki SKU sahipliği çakışmasını alan bazlı ve kararlı API koduyla temsil ediyorum.
+public sealed class ProductVariantSkuConflictException : ApiContractException
+{
+    public IReadOnlyDictionary<string, string[]> Errors { get; }
+
+    // Burada çakışan batch satırlarını istemcinin alanlarla eşleyebileceği güvenli hata sözleşmesini hazırlıyorum.
+    public ProductVariantSkuConflictException(IReadOnlyDictionary<string, string[]> errors)
+        : base(
+            409,
+            "product_variant_sku_conflict",
+            "Product variant SKU conflict",
+            "One or more variant SKU values are already in use outside this batch.")
+    {
+        Errors = errors;
+    }
+}

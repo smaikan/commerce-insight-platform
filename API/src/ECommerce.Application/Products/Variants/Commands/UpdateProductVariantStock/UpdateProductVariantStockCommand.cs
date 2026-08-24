@@ -6,7 +6,7 @@ namespace ECommerce.Application.Products.Variants.Commands.UpdateProductVariantS
 
 // Burada yönetim kaynaklı imzalı stok hareketi isteğini türü ve gerekçesiyle taşıyorum.
 public sealed record UpdateProductVariantStockCommand(
-    Guid Id,
+    string ProductVariantSku,
     int QuantityDelta,
     StockMovementType Type,
     string? Reason = null) : IRequest<ProductVariantDto>;

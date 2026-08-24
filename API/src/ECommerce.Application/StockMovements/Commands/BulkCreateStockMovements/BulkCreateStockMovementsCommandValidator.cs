@@ -30,8 +30,9 @@ internal sealed class BulkStockMovementItemValidator : AbstractValidator<BulkSto
     // Burada toplu listedeki hareketin varyantını, türünü, yönünü ve gerekçesini doğruluyorum.
     public BulkStockMovementItemValidator()
     {
-        RuleFor(item => item.ProductVariantId)
-            .NotEmpty();
+        RuleFor(item => item.ProductVariantSku)
+            .NotEmpty()
+            .MaximumLength(100);
 
         RuleFor(item => item.QuantityDelta)
             .NotEqual(0)

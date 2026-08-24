@@ -179,7 +179,7 @@ public sealed class AccountingProductSnapshotReader : IAccountingProductSnapshot
         CancellationToken cancellationToken = default)
     {
         return _context.ProductVariants.AsNoTracking()
-            .Where(variant => variant.Id == variantId)
+            .Where(variant => variant.Id == variantId && variant.DeletedAtUtc == null)
             .Select(variant => new ProductVariantSnapshot(
                 variant.ProductId,
                 variant.Id,

@@ -22,7 +22,9 @@ public sealed class UpdateProductVariantStockCommandHandler : IRequestHandler<Up
     // Burada imzalı stok hareketini varyantın tek ledger girişinden uygulayıp bakiyeyi güncelliyorum.
     public async Task<ProductVariantDto> Handle(UpdateProductVariantStockCommand request, CancellationToken cancellationToken)
     {
-        var variant = await _variantRepository.GetByIdForUpdateAsync(request.Id, cancellationToken);
+        var variant = await _variantRepository.GetBySkuForUpdateAsync(
+            request.ProductVariantSku.Trim(),
+            cancellationToken);
 
         if (variant is null)
         {

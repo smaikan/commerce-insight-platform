@@ -1,7 +1,10 @@
 using ECommerce.API.Security;
 using ECommerce.API.Routing;
+using ECommerce.API.ErrorHandling;
+using ECommerce.API.OutputCaching;
 using ECommerce.Application.Products.Dtos;
 using ECommerce.Application.Products.Variants.Commands.CreateProductVariant;
+using ECommerce.Application.Products.Variants.Commands.BulkUpdateProductVariants;
 using ECommerce.Application.Products.Variants.Commands.DeleteProductVariant;
 using ECommerce.Application.Products.Variants.Commands.SetProductVariantActivation;
 using ECommerce.Application.Products.Variants.Commands.UpdateProductVariant;
@@ -13,11 +16,13 @@ using ECommerce.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace ECommerce.API.Controllers.Product;
 
 [ApiController]
 [Route("api/product-variants")]
+[ServiceFilter(typeof(ProductOutputCacheInvalidationFilter))]
 public sealed class ProductVariantsController : ControllerBase
 {
     private readonly ISender _sender;
@@ -65,6 +70,36 @@ public sealed class ProductVariantsController : ControllerBase
             request.Barcode, request.Material, request.IsActive, request.StockAdjustmentReason), cancellationToken));
 
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [HttpPut("by-product/{productId}/bulk")]
+    [ProducesResponseType(typeof(IReadOnlyList<ProductVariantDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProductVariantBulkProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProductVariantBulkProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    // Burada aynı ürüne ait varyantları tek atomik batch komutuna iletiyorum.
+    public async Task<ActionResult<IReadOnlyList<ProductVariantDto>>> BulkUpdate(
+        string productId,
+        BulkUpdateProductVariantsRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await _sender.Send(new BulkUpdateProductVariantsCommand(
+            ApiPublicIdParser.ParseProductId(productId),
+            request.Variants.Select(item => new BulkUpdateProductVariantItem(
+                item.Id,
+                item.Name,
+                item.Value,
+                item.Sku,
+                item.Price,
+                item.Stock,
+                item.ExpectedConcurrencyToken,
+                item.CompareAtPrice,
+                item.Barcode,
+                item.Material,
+                item.IsActive,
+                item.StockAdjustmentReason)).ToList()), cancellationToken));
+
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpPatch("{id:guid}/price")]
     // Burada yalnız varyant fiyatlarını yönetici yetkisiyle güncelliyorum.
     public async Task<ActionResult<ProductVariantDto>> UpdatePrice(
@@ -74,14 +109,20 @@ public sealed class ProductVariantsController : ControllerBase
         Ok(await _sender.Send(new UpdateProductVariantPriceCommand(id, request.Price, request.CompareAtPrice), cancellationToken));
 
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-    [HttpPost("{id:guid}/stock-movements")]
-    // Burada yönetici kaynaklı imzalı stok hareketini türü ve gerekçesiyle kaydediyorum.
+    [HttpPost("stock-movements")]
+    [ProducesResponseType(typeof(ProductVariantDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    // Burada yönetici kaynaklı imzalı stok hareketini varyant SKU'su, türü ve gerekçesiyle kaydediyorum.
     public async Task<ActionResult<ProductVariantDto>> AdjustStock(
-        Guid id,
         AdjustStockRequest request,
         CancellationToken cancellationToken) =>
         Ok(await _sender.Send(new UpdateProductVariantStockCommand(
-            id,
+            request.ProductVariantSku,
             request.QuantityDelta,
             request.Type,
             request.Reason), cancellationToken));
@@ -97,6 +138,7 @@ public sealed class ProductVariantsController : ControllerBase
 
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     // Burada son varyant korumasını Application katmanında işleterek varyantı siliyorum.
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
@@ -114,11 +156,29 @@ public sealed record UpdateProductVariantRequest(
     string Name, string Value, string Sku, decimal Price, int Stock, decimal? CompareAtPrice = null,
     string? Barcode = null, string? Material = null, bool IsActive = true,
     string? StockAdjustmentReason = null);
+// Burada atomik varyant güncellemesinin bütün satırlarını tek request gövdesinde taşıyorum.
+public sealed record BulkUpdateProductVariantsRequest(
+    IReadOnlyList<BulkUpdateProductVariantRequestItem> Variants);
+// Burada batch içindeki bir varyantın hedef değerleriyle beklenen concurrency tokenını taşıyorum.
+public sealed record BulkUpdateProductVariantRequestItem(
+    Guid Id,
+    [property: Required, MaxLength(150)] string Name,
+    [property: Required, MaxLength(150)] string Value,
+    [property: Required, MaxLength(100)] string Sku,
+    [property: Range(typeof(decimal), "0.01", "79228162514264337593543950335")] decimal Price,
+    [property: Range(0, int.MaxValue)] int Stock,
+    Guid ExpectedConcurrencyToken,
+    decimal? CompareAtPrice = null,
+    [property: MaxLength(100)] string? Barcode = null,
+    [property: MaxLength(120)] string? Material = null,
+    bool IsActive = true,
+    [property: MaxLength(500)] string? StockAdjustmentReason = null);
 // Burada varyant fiyat güncelleme isteğini taşıyorum.
 public sealed record UpdateVariantPriceRequest(decimal Price, decimal? CompareAtPrice = null);
 
-// Burada imzalı stok farkını, hareket türünü ve varsa açıklamasını taşıyorum.
+// Burada varyant SKU'suyla imzalı stok farkını, hareket türünü ve varsa açıklamasını taşıyorum.
 public sealed record AdjustStockRequest(
+    [property: Required, MaxLength(100)] string ProductVariantSku,
     int QuantityDelta,
     StockMovementType Type,
     string? Reason = null);

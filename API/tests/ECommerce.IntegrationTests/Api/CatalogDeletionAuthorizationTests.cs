@@ -1,5 +1,6 @@
 using System.Reflection;
 using ECommerce.API.Controllers.Product;
+using ECommerce.API.OutputCaching;
 using ECommerce.API.Security;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authorization;
@@ -14,6 +15,7 @@ public sealed class CatalogDeletionAuthorizationTests
     [Theory]
     [InlineData(typeof(ProductsController), nameof(ProductsController.Delete), "{id}")]
     [InlineData(typeof(ProductImagesController), nameof(ProductImagesController.Delete), "{id:guid}")]
+    [InlineData(typeof(ProductVariantsController), nameof(ProductVariantsController.Delete), "{id:guid}")]
     [InlineData(typeof(BrandsController), nameof(BrandsController.Delete), "{id:guid}")]
     [InlineData(typeof(CollectionsController), nameof(CollectionsController.Delete), "{id:guid}")]
     [InlineData(typeof(ProductTypesController), nameof(ProductTypesController.Delete), "{id:guid}")]
@@ -32,5 +34,15 @@ public sealed class CatalogDeletionAuthorizationTests
             .Should().ContainSingle(attribute => attribute.Template == route);
         method.GetCustomAttributes<ProducesResponseTypeAttribute>(inherit: true)
             .Should().ContainSingle(attribute => attribute.StatusCode == StatusCodes.Status204NoContent);
+    }
+
+    // Burada varyant mutasyonlarının başarılı yanıttan sonra ortak ürün output cache etiketini temizleyen filtreye bağlı olduğunu doğruluyorum.
+    [Fact]
+    public void ProductVariant_Endpoints_Should_Invalidate_Product_Output_Cache()
+    {
+        typeof(ProductVariantsController)
+            .GetCustomAttributes<ServiceFilterAttribute>(inherit: true)
+            .Should().ContainSingle(attribute =>
+                attribute.ServiceType == typeof(ProductOutputCacheInvalidationFilter));
     }
 }

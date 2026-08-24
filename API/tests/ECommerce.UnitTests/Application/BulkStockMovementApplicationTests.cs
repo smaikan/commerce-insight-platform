@@ -19,12 +19,12 @@ public sealed class BulkStockMovementApplicationTests
         var command = new BulkCreateStockMovementsCommand(
         [
             new BulkStockMovementItem(
-                Guid.NewGuid(),
+                "SKU-VALID-1",
                 12,
                 StockMovementType.Purchase,
                 "Tedarikçi teslimatı"),
             new BulkStockMovementItem(
-                Guid.NewGuid(),
+                "SKU-VALID-2",
                 -2,
                 StockMovementType.Damage,
                 "Hasarlı ürün")
@@ -43,7 +43,7 @@ public sealed class BulkStockMovementApplicationTests
         var command = new BulkCreateStockMovementsCommand(
         [
             new BulkStockMovementItem(
-                Guid.NewGuid(),
+                "SKU-NULL-REASON",
                 -1,
                 StockMovementType.Damage,
                 Reason: null)
@@ -52,6 +52,27 @@ public sealed class BulkStockMovementApplicationTests
         var result = validator.TestValidate(command);
 
         result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    // Burada toplu hareket satırında boş varyant SKU'sunu reddediyorum.
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Validator_Should_Reject_Empty_Product_Variant_Sku(string productVariantSku)
+    {
+        var validator = new BulkCreateStockMovementsCommandValidator();
+        var command = new BulkCreateStockMovementsCommand(
+        [
+            new BulkStockMovementItem(
+                productVariantSku,
+                1,
+                StockMovementType.Purchase,
+                "Mal kabul")
+        ]);
+
+        var result = validator.TestValidate(command);
+
+        result.ShouldHaveValidationErrorFor("Movements[0].ProductVariantSku");
     }
 
     // Burada hiç hareket içermeyen toplu isteğin reddedildiğini doğruluyorum.
@@ -85,8 +106,8 @@ public sealed class BulkStockMovementApplicationTests
     {
         var validator = new BulkCreateStockMovementsCommandValidator();
         var movements = Enumerable.Range(0, 501)
-            .Select(_ => new BulkStockMovementItem(
-                Guid.NewGuid(),
+            .Select(index => new BulkStockMovementItem(
+                $"SKU-LIMIT-{index}",
                 1,
                 StockMovementType.Purchase,
                 "Toplu stok girişi"))
@@ -106,7 +127,7 @@ public sealed class BulkStockMovementApplicationTests
         var command = new BulkCreateStockMovementsCommand(
         [
             new BulkStockMovementItem(
-                Guid.NewGuid(),
+                "SKU-OPERATIONAL",
                 -1,
                 StockMovementType.Sale,
                 "Manuel satış hareketi")
@@ -127,7 +148,7 @@ public sealed class BulkStockMovementApplicationTests
         var command = new BulkCreateStockMovementsCommand(
         [
             new BulkStockMovementItem(
-                Guid.NewGuid(),
+                "SKU-DIRECTION",
                 -3,
                 StockMovementType.Purchase,
                 "Ters yönlü tedarik girişi")
@@ -147,8 +168,8 @@ public sealed class BulkStockMovementApplicationTests
         var firstVariant = new ProductVariant(1, "Small", "SKU-BULK-1", 100m, 10);
         var secondVariant = new ProductVariant(1, "Large", "SKU-BULK-2", 120m, 4);
         var repository = new Mock<IProductVariantRepository>();
-        repository.Setup(item => item.GetByIdsForUpdateAsync(
-                It.IsAny<IEnumerable<Guid>>(),
+        repository.Setup(item => item.GetBySkusForUpdateAsync(
+                It.IsAny<IEnumerable<string>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([firstVariant, secondVariant]);
         var unitOfWork = new RecordingUnitOfWork();
@@ -158,17 +179,17 @@ public sealed class BulkStockMovementApplicationTests
         var command = new BulkCreateStockMovementsCommand(
         [
             new BulkStockMovementItem(
-                firstVariant.Id,
+                $"  {firstVariant.Sku}  ",
                 5,
                 StockMovementType.Purchase,
                 "Mal kabul"),
             new BulkStockMovementItem(
-                firstVariant.Id,
+                firstVariant.Sku.ToLowerInvariant(),
                 -2,
                 StockMovementType.Damage,
                 "Hasarlı koli"),
             new BulkStockMovementItem(
-                secondVariant.Id,
+                secondVariant.Sku,
                 3,
                 StockMovementType.TransferIn,
                 "Depolar arası transfer")
@@ -195,10 +216,11 @@ public sealed class BulkStockMovementApplicationTests
                 movement.StockAfterMovement == 7);
         unitOfWork.TransactionCallCount.Should().Be(1);
         unitOfWork.SaveCallCount.Should().Be(1);
-        repository.Verify(item => item.GetByIdsForUpdateAsync(
-            It.Is<IEnumerable<Guid>>(ids =>
-                ids.Distinct().OrderBy(id => id)
-                    .SequenceEqual(new[] { firstVariant.Id, secondVariant.Id }.OrderBy(id => id))),
+        repository.Verify(item => item.GetBySkusForUpdateAsync(
+            It.Is<IEnumerable<string>>(skus =>
+                skus.SequenceEqual(
+                    new[] { firstVariant.Sku, secondVariant.Sku },
+                    StringComparer.OrdinalIgnoreCase)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -207,10 +229,10 @@ public sealed class BulkStockMovementApplicationTests
     public async Task Handler_Should_Not_Apply_Or_Save_When_Any_Variant_Is_Missing()
     {
         var existingVariant = new ProductVariant(1, "Standard", "SKU-BULK-MISSING", 90m, 8);
-        var missingVariantId = Guid.NewGuid();
+        const string missingVariantSku = "SKU-BULK-NOT-FOUND";
         var repository = new Mock<IProductVariantRepository>();
-        repository.Setup(item => item.GetByIdsForUpdateAsync(
-                It.IsAny<IEnumerable<Guid>>(),
+        repository.Setup(item => item.GetBySkusForUpdateAsync(
+                It.IsAny<IEnumerable<string>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([existingVariant]);
         var unitOfWork = new RecordingUnitOfWork();
@@ -220,12 +242,12 @@ public sealed class BulkStockMovementApplicationTests
         var command = new BulkCreateStockMovementsCommand(
         [
             new BulkStockMovementItem(
-                existingVariant.Id,
+                existingVariant.Sku,
                 4,
                 StockMovementType.Purchase,
                 "Mal kabul"),
             new BulkStockMovementItem(
-                missingVariantId,
+                missingVariantSku,
                 -1,
                 StockMovementType.Damage,
                 "Bulunamayan varyant")

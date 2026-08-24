@@ -74,7 +74,7 @@ public sealed class ProductEngagementRepository : IProductEngagementRepository
             .Include(product => product.Type)
             .Include(product => product.Brand)
             .Include(product => product.TaxRate)
-            .Include(product => product.Variants)
+            .Include(product => product.Variants.Where(variant => variant.DeletedAtUtc == null))
             .Include(product => product.Images)
             .Include(product => product.ProductCollections)
                 .ThenInclude(productCollection => productCollection.Collection)

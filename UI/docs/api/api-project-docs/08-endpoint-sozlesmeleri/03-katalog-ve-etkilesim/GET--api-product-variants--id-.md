@@ -36,7 +36,7 @@ Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, 
     "stock":  1,
     "addToCartCount":  1,
     "purchaseCount":  1,
-    "isActive":  true
+    "isActive":  true,
+    "concurrencyToken":  "00000000-0000-0000-0000-000000000004"
 }
 ```
-

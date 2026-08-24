@@ -35,7 +35,8 @@ Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, 
       "price": 2500,
       "netPrice": 2083.33,
       "stock": 12,
-      "isActive": true
+      "isActive": true,
+      "concurrencyToken": "00000000-0000-0000-0000-000000000004"
     }
   ],
   "pageNumber": 1,
@@ -43,4 +44,3 @@ Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, 
   "totalCount": 1
 }
 ```
-

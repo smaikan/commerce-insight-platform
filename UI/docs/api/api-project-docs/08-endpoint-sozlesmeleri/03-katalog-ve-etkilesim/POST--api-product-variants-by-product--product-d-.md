@@ -62,7 +62,7 @@ Aşağıdaki örnek alan adlarını camelCase ile gönderin.
     "stock":  1,
     "addToCartCount":  1,
     "purchaseCount":  1,
-    "isActive":  true
+    "isActive":  true,
+    "concurrencyToken":  "00000000-0000-0000-0000-000000000004"
 }
 ```
-

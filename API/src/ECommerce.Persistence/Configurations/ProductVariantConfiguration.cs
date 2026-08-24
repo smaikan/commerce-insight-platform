@@ -50,6 +50,8 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
         builder.Property(variant => variant.ConcurrencyToken)
             .IsConcurrencyToken();
 
+        builder.Property(variant => variant.DeletedAtUtc);
+
         builder.HasOne(variant => variant.Product)
             .WithMany(product => product.Variants)
             .HasForeignKey(variant => variant.ProductId)
@@ -79,9 +81,11 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(variant => variant.Sku)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[DeletedAtUtc] IS NULL");
 
         builder.HasIndex(variant => variant.ProductId);
+        builder.HasIndex(variant => variant.DeletedAtUtc);
         builder.HasIndex(variant => variant.VariantOptionNameId);
         builder.HasIndex(variant => variant.VariantOptionValueId);
         builder.HasIndex(variant => variant.Barcode);

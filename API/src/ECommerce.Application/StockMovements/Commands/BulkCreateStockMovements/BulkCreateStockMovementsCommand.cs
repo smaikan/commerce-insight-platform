@@ -6,7 +6,7 @@ namespace ECommerce.Application.StockMovements.Commands.BulkCreateStockMovements
 
 // Burada toplu istekteki tek bir imzalı stok hareketini taşıyorum.
 public sealed record BulkStockMovementItem(
-    Guid ProductVariantId,
+    string ProductVariantSku,
     int QuantityDelta,
     StockMovementType Type,
     string? Reason);

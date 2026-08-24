@@ -21,3 +21,7 @@ Her satılabilir `ProductVariant` frontend tarafından tekil veya en fazla üç 
 - Yeni bir varyant gönderildiğinde bulunmayan ad ve değer otomatik kaydedilir; aynı ad/değer çifti tekrar kullanılır.
 
 Birleştirilmiş örnek: `name: "Ebat / Renk"`, `value: "100x150 / Kırmızı"`. Bu metinler ProductVariant üzerinde aynen kalır; merkezi tablolara ise `Ebat`, `Renk`, `100x150` ve `Kırmızı` ayrı kayıtlar olarak yazılır. Aynı varyantta en fazla üç parça kabul edilir.
+
+## Atomik SKU takası
+
+Mevcut varyantların SKU değerleri birbirleriyle değiştirilecekse ayrı `PUT /api/product-variants/{id}` çağrıları yapılmaz. Admin istemcisi [atomik batch güncelleme sözleşmesini](08-endpoint-sozlesmeleri/03-katalog-ve-etkilesim/PUT--api-product-variants-by-product--product-d--bulk.md) kullanır. Bütün `ProductVariantDto` cevapları güncel `concurrencyToken` taşır; batch satırları bu değeri `expectedConcurrencyToken` alanında geri gönderir.
