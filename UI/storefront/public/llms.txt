@@ -1,0 +1,16 @@
+# ELEVEN Accessory
+
+> ELEVEN, modern ve lüks takı, çanta, güneş gözlüğü ve aksesuar koleksiyonları sunan e-ticaret mağazasıdır.
+
+## Ana Sayfalar ve Alışveriş
+- [Ana Sayfa](https://www.serhateleven.com.tr): Yeni sezon vitrinleri, öne çıkan modeller ve duyurular.
+- [Tüm Ürünler / Katalog](https://www.serhateleven.com.tr/products): Tüm takı ve aksesuar modelleri, fiyatlar ve filtreler.
+- [Kategoriler](https://www.serhateleven.com.tr/categories): Kolye, küpe, bileklik, yüzük, çanta ve gözlük kategorileri.
+- [Koleksiyonlar](https://www.serhateleven.com.tr/collections): Yeni sezon, trend ve özel tasarım seçkileri.
+- [İletişim](https://www.serhateleven.com.tr/contact): Müşteri destek, mağaza çalışma saatleri ve iletişim kanalları.
+
+## Yasal Bilgiler ve Müşteri Hakları
+- [KVKK ve Gizlilik Politikası](https://www.serhateleven.com.tr/privacy-policy): Kişisel verilerin işlenmesi, saklanması ve haklar.
+- [Mesafeli Satış Sözleşmesi](https://www.serhateleven.com.tr/distance-sales-agreement): Sipariş, kargo, teslimat ve cayma hakkı koşulları.
+- [Üyelik Sözleşmesi](https://www.serhateleven.com.tr/membership-agreement): Hesap kullanımı, güvenliği ve sorumluluklar.
+- [Üyelik KVKK Aydınlatma Metni](https://www.serhateleven.com.tr/membership-privacy-notice): Üyelik sürecindeki veri işleme detayları.
