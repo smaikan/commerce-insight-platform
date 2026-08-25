@@ -116,15 +116,7 @@ export function OrderConfirmation({ orderId, currency, accessMode }: { orderId: 
       </div>
 
       {isCancelled ? (
-        <section className="mt-7 rounded-xl border border-danger/25 bg-danger/5 px-5 py-5" aria-labelledby="confirmation-payment-title">
-          <h2 id="confirmation-payment-title" className="text-base font-bold text-danger">Sipariş iptal edildi</h2>
-          <p className="mt-2 text-sm leading-6 text-ink-muted">
-            {paidOrderWasReversed
-              ? "Ödeme iptali veya iadesi ödeme kuruluşu tarafından kabul edildi. Tutarın kartınıza yansıma süresi bankanıza göre değişebilir; stok ve kupon kayıtları güncellendi."
-              : "Ödeme tahsil edilmeden sipariş iptal edildi; stok rezervasyonu ve kupon kullanımı bırakıldı. Sepetinizdeki güncel ürünleri yeniden kontrol edebilirsiniz."}
-          </p>
-          <Link href="/checkout" className="focus-ring mt-4 inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-700 px-5 text-sm font-bold text-white hover:bg-brand-950">Sepete dön</Link>
-        </section>
+        <CancellationCompletedNotice paidOrderWasReversed={paidOrderWasReversed} />
       ) : paymentState === "paid" ? (
         <section className="mt-7 rounded-xl border border-brand-700/25 bg-surface-subtle px-5 py-4 text-sm leading-6 text-ink" role="status">
           Ödemeniz doğrulandı. Siparişiniz hazırlanma sürecine geçtiğinde durum bilgisi burada ve e-posta bildirimlerinizde güncellenecek.
@@ -162,6 +154,20 @@ export function OrderConfirmation({ orderId, currency, accessMode }: { orderId: 
         <Link href="/products" className="focus-ring inline-flex min-h-12 items-center justify-center rounded-lg border border-brand-700 px-6 text-sm font-bold text-brand-700 hover:bg-surface-subtle">Alışverişe devam et</Link>
       </div>
     </main>
+  );
+}
+
+// Burada tamamlanan iptali yeni bir alışveriş adımına yönlendirmeden yalnız finansal sonucuyla açıklıyorum.
+export function CancellationCompletedNotice({ paidOrderWasReversed }: { paidOrderWasReversed: boolean }) {
+  return (
+    <section className="mt-7 rounded-xl border border-danger/25 bg-danger/5 px-5 py-5" aria-labelledby="confirmation-payment-title">
+      <h2 id="confirmation-payment-title" className="text-base font-bold text-danger">Sipariş iptal edildi</h2>
+      <p className="mt-2 text-sm leading-6 text-ink-muted">
+        {paidOrderWasReversed
+          ? "Ödeme iptali veya iadesi ödeme kuruluşu tarafından kabul edildi. Tutarın kartınıza yansıma süresi bankanıza göre değişebilir; stok ve kupon kayıtları güncellendi."
+          : "Ödeme tahsil edilmeden sipariş iptal edildi; stok rezervasyonu ve kupon kullanımı bırakıldı. Siparişiniz artık işlem görmeyecek."}
+      </p>
+    </section>
   );
 }
 

@@ -10,7 +10,7 @@ export function OrderCancellationControl({
   orderId,
   orderStatus,
   accessMode,
-  label = "Siparişi iptal et ve sepete dön",
+  label = "Siparişi iptal et",
   onCancelled,
   onOrderUpdated,
 }: {

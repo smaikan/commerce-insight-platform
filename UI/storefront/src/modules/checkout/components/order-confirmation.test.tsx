@@ -2,7 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import type { GuestOrder } from "@/modules/checkout/types";
-import { GuestOrderItems } from "@/modules/checkout/components/order-confirmation";
+import { CancellationCompletedNotice, GuestOrderItems } from "@/modules/checkout/components/order-confirmation";
+import { OrderCancellationControl } from "@/modules/checkout/components/order-cancellation-control";
 
 // Burada guest sipariş bileşenini generated OrderItemDto snapshot alanlarıyla besliyorum.
 const item: GuestOrder["items"][number] = {
@@ -39,5 +40,28 @@ describe("guest order item snapshots", () => {
     expect(html).not.toContain("Varsayılan");
     expect(html).not.toContain("undefined");
     expect(html).not.toContain("Renk:");
+  });
+});
+
+describe("order confirmation cancellation actions", () => {
+  it("labels the cancellation action without promising a cart redirect", () => {
+    const html = renderToStaticMarkup(
+      <OrderCancellationControl
+        orderId="bb49d4c3-9752-4116-9179-657c8d6259b0"
+        orderStatus={1}
+        accessMode="guest"
+      />,
+    );
+
+    expect(html).toContain("Siparişi iptal et");
+    expect(html).not.toContain("Siparişi iptal et ve sepete dön");
+  });
+
+  it("does not offer a cart action after cancellation completes", () => {
+    const html = renderToStaticMarkup(<CancellationCompletedNotice paidOrderWasReversed={false} />);
+
+    expect(html).toContain("Sipariş iptal edildi");
+    expect(html).not.toContain("Sepete dön");
+    expect(html).not.toContain('href="/checkout"');
   });
 });
