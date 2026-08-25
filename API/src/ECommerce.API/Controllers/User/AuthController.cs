@@ -5,6 +5,7 @@ using ECommerce.Application.Auth.Commands.RefreshToken;
 using ECommerce.Application.Auth.Commands.RegisterUser;
 using ECommerce.Application.Auth.Commands.ResetPassword;
 using ECommerce.Application.Auth.Dtos;
+using ECommerce.API.Security;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,11 @@ public sealed class AuthController : ControllerBase
 
     // Burada yeni kullanıcı kaydını Application katmanına iletip oluşturulan kullanıcıyı döndürüyorum.
     [HttpPost("register")]
+    [EnableRateLimiting(RateLimitPolicies.AuthRegister)]
+    [ProducesResponseType<RegisterUserResultDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<RegisterUserResultDto>> Register(
         RegisterUserCommand command,
         CancellationToken cancellationToken) =>
@@ -31,12 +37,23 @@ public sealed class AuthController : ControllerBase
 
     // Burada giriş isteğine istemci bağlamını ekleyip yeni token çiftini döndürüyorum.
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimitPolicies.AuthLogin)]
+    [ProducesResponseType<AuthResultDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<AuthResultDto>> Login(LoginRequest request, CancellationToken cancellationToken) =>
         Ok(await _sender.Send(new LoginCommand(
             request.Email, request.Password, GetClientIpAddress(), request.DeviceName), cancellationToken));
 
     // Burada refresh token rotasyonunu istemci bağlamıyla Application katmanına iletiyorum.
     [HttpPost("refresh-token")]
+    [EnableRateLimiting(RateLimitPolicies.AuthRefresh)]
+    [ProducesResponseType<AuthResultDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<AuthResultDto>> RefreshToken(
         RefreshTokenRequest request,
         CancellationToken cancellationToken) =>
@@ -45,6 +62,8 @@ public sealed class AuthController : ControllerBase
 
     // Burada mevcut refresh token oturumunu iptal edip boş başarı cevabı döndürüyorum.
     [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Logout(LogoutRequest request, CancellationToken cancellationToken)
     {
         await _sender.Send(new LogoutCommand(request.RefreshToken, GetClientIpAddress()), cancellationToken);

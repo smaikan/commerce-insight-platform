@@ -413,28 +413,50 @@ builder.Services.AddRateLimiter(options =>
             QueueLimit = 0,
             AutoReplenishment = true
         }));
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+
+    // Burada BFF'nin tek upstream IP'sini paylaşan login isteklerini refresh trafiğinden ayrı bir güvenlik kotasında tutuyorum.
+    options.AddPolicy(RateLimitPolicies.AuthLogin, httpContext =>
     {
-        var path = httpContext.Request.Path.Value ?? string.Empty;
-        var isSensitiveAuthPath = path.Equals("/api/auth/login", StringComparison.OrdinalIgnoreCase) ||
-            path.Equals("/api/auth/register", StringComparison.OrdinalIgnoreCase) ||
-            path.Equals("/api/auth/refresh-token", StringComparison.OrdinalIgnoreCase);
-
         var clientKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        if (isSensitiveAuthPath)
-        {
-            return RateLimitPartition.GetFixedWindowLimiter(
-                $"auth:{clientKey}",
-                _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 5,
-                    Window = TimeSpan.FromMinutes(1),
-                    QueueLimit = 0,
-                    AutoReplenishment = true
-                });
-        }
+        return RateLimitPartition.GetFixedWindowLimiter(
+            $"auth-login:{clientKey}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
 
-        return RateLimitPartition.GetNoLimiter("non-sensitive-endpoint");
+    // Burada hesap oluşturma trafiğinin login kotasını tüketmesini engelleyip ayrı bir kötüye kullanım sınırı uyguluyorum.
+    options.AddPolicy(RateLimitPolicies.AuthRegister, httpContext =>
+    {
+        var clientKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            $"auth-register:{clientKey}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+
+    // Burada yüksek entropili refresh token isteklerine BFF kullanıcılarını birbirinden düşürmeyecek ayrı ve coarse bir kapasite tanıyorum.
+    options.AddPolicy(RateLimitPolicies.AuthRefresh, httpContext =>
+    {
+        var clientKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            $"auth-refresh:{clientKey}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
     });
 });
 

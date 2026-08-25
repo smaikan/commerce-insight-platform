@@ -144,6 +144,25 @@ public sealed class ApiPipelineTests
         loginRequiredProperties.Should().Contain("password");
         loginRequiredProperties.Should().NotContain("deviceName");
 
+        // Burada auth başarı ve rate-limit cevaplarının üretilen OpenAPI sözleşmesinde açıkça yayınlandığını doğruluyorum.
+        var authContracts = new[]
+        {
+            (Path: "/api/auth/register", Success: "201"),
+            (Path: "/api/auth/login", Success: "200"),
+            (Path: "/api/auth/refresh-token", Success: "200")
+        };
+        foreach (var contract in authContracts)
+        {
+            var responses = paths.GetProperty(contract.Path).GetProperty("post").GetProperty("responses");
+            responses.TryGetProperty(contract.Success, out _).Should().BeTrue();
+            responses.TryGetProperty("429", out _).Should().BeTrue();
+        }
+        paths.GetProperty("/api/auth/logout")
+            .GetProperty("post")
+            .GetProperty("responses")
+            .TryGetProperty("204", out _)
+            .Should().BeTrue();
+
         var createProductSchema = schemas.GetProperty("CreateProductCommand");
         createProductSchema.GetProperty("properties").TryGetProperty("mainSku", out _).Should().BeTrue();
         AssertOptionalStringArrayProperty(createProductSchema, "collections");
@@ -441,6 +460,38 @@ public sealed class ApiPipelineTests
 
             responses.Take(5).Should().OnlyContain(response => response.StatusCode != HttpStatusCode.TooManyRequests);
             responses[5].StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        }
+        finally
+        {
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
+        }
+    }
+
+    // Burada BFF'den gelen refresh yoğunluğunun parola giriş kotasını tüketip geçerli kullanıcıyı 429'a düşürmediğini doğruluyorum.
+    [Fact]
+    public async Task Refresh_Traffic_Should_Not_Consume_Login_Rate_Limit()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+        var responses = new List<HttpResponseMessage>();
+
+        try
+        {
+            for (var attempt = 0; attempt < 6; attempt++)
+            {
+                responses.Add(await client.PostAsync("/api/auth/refresh-token", content: null));
+            }
+
+            using var loginResponse = await client.PostAsync("/api/auth/login", content: null);
+
+            responses.Should().OnlyContain(response => response.StatusCode != HttpStatusCode.TooManyRequests);
+            loginResponse.StatusCode.Should().NotBe(HttpStatusCode.TooManyRequests);
         }
         finally
         {
