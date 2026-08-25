@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { siteConfig } from "@/lib/site-config";
-import { ApiError } from "@/lib/api/problem";
 import { clearSessionCookies } from "@/lib/auth/cookies";
 import { safeReturnTo } from "@/lib/auth/policy";
+import { refreshFailureDecision } from "@/lib/auth/refresh-failure";
 import { refreshAdminSession } from "@/lib/auth/session";
 
 // Burada süresi dolan access cookie için refresh tokenı tek kez döndürüp yalnız doğrulanmış Admin oturumunu güvenli hedefe taşıyorum.
@@ -12,14 +12,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     await refreshAdminSession();
     return noStoreRedirect(new URL(returnTo, siteConfig.url));
   } catch (error) {
-    const reason = error instanceof ApiError && error.problem.status === 403
-      ? "forbidden"
-      : error instanceof ApiError && error.problem.status >= 500
-        ? "verification_failed"
-        : "session_expired";
+    const decision = refreshFailureDecision(error);
+    if (decision.clearCookies) await clearSessionCookies();
 
-    if (!(error instanceof ApiError) || error.problem.status < 500) await clearSessionCookies();
-    return noStoreRedirect(new URL(`/login?reason=${reason}`, siteConfig.url));
+    const loginUrl = new URL("/login", siteConfig.url);
+    loginUrl.searchParams.set("reason", decision.reason);
+    loginUrl.searchParams.set("returnTo", returnTo);
+    if (decision.retryAfter) loginUrl.searchParams.set("retryAfter", String(decision.retryAfter));
+
+    const response = noStoreRedirect(loginUrl);
+    if (decision.retryAfter) response.headers.set("Retry-After", String(decision.retryAfter));
+    return response;
   }
 }
 

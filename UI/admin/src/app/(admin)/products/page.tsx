@@ -6,7 +6,7 @@ import { getProductListOptions, getProducts } from "@/modules/products/api";
 import { ProductFilters } from "@/modules/products/components/product-filters";
 import { ProductPagination } from "@/modules/products/components/product-pagination";
 import { ProductTable } from "@/modules/products/components/product-table";
-import { parseProductListQuery } from "@/modules/products/query";
+import { buildProductListHref, parseProductListQuery } from "@/modules/products/query";
 
 export const metadata: Metadata = { title: "Ürünler" };
 
@@ -16,9 +16,10 @@ export default async function ProductsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const session = await requireAdminPageSession("/products");
   const params = await searchParams;
   const query = parseProductListQuery(params);
+  // Burada sayfa, filtre ve sıralama durumunu auth yenilemesinden sonra aynı liste görünümüne dönmek için koruyorum.
+  const session = await requireAdminPageSession(buildProductListHref(query, query.pageNumber));
   const [page, options] = await Promise.all([
     getProducts(query, session),
     getProductListOptions(session),

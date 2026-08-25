@@ -1,20 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { adminCookieNames } from "./constants";
+import { adminCookieNames, PROTECTED_ADMIN_PREFIXES } from "./constants";
 import { isProtectedAdminPath, safeReturnTo, sessionCookiePolicy, validateLoginForm } from "./policy";
 
 describe("auth policy", () => {
   // Burada yalnız bilinen admin route öneklerinin Proxy tarafından korumalı kabul edildiğini doğruluyorum.
   it("classifies protected admin paths", () => {
-    expect(isProtectedAdminPath("/dashboard")).toBe(true);
-    expect(isProtectedAdminPath("/products/P00001")).toBe(true);
-    expect(isProtectedAdminPath("/contact-messages/11111111-1111-4111-8111-111111111111")).toBe(true);
+    for (const prefix of PROTECTED_ADMIN_PREFIXES) {
+      expect(isProtectedAdminPath(prefix)).toBe(true);
+      expect(isProtectedAdminPath(`${prefix}/nested-route`)).toBe(true);
+    }
     expect(isProtectedAdminPath("/login")).toBe(false);
     expect(isProtectedAdminPath("/productivity")).toBe(false);
+    expect(isProtectedAdminPath("/accounting-preview")).toBe(false);
   });
 
   // Burada dış origin, protokol göreli, ters slash ve auth döngüsü hedeflerinin dashboard'a kapatıldığını doğruluyorum.
   it("accepts only safe same-origin return targets", () => {
     expect(safeReturnTo("/products?pageNumber=2")).toBe("/products?pageNumber=2");
+    expect(safeReturnTo("/accounting/payments?pageNumber=3&type=2"))
+      .toBe("/accounting/payments?pageNumber=3&type=2");
     expect(safeReturnTo("https://evil.example/steal")).toBe("/dashboard");
     expect(safeReturnTo("//evil.example/steal")).toBe("/dashboard");
     expect(safeReturnTo("/\\evil.example")).toBe("/dashboard");

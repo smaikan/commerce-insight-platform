@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { ADMIN_RETURN_TO_HEADER } from "@/lib/auth/constants";
+import { safeReturnTo } from "@/lib/auth/policy";
 import { requireAdminPageSession } from "@/lib/auth/session";
 import { AdminShell } from "@/modules/admin-shell/components/admin-shell";
 import { getAdminStoreSettings } from "@/modules/settings/api";
@@ -16,7 +19,9 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await requireAdminPageSession("/dashboard");
+  // Burada Proxy'nin doğruladığı tam route ve query bilgisini 401 sonrası oturum yenileme dönüş hedefi olarak koruyorum.
+  const returnTo = safeReturnTo((await headers()).get(ADMIN_RETURN_TO_HEADER));
+  const session = await requireAdminPageSession(returnTo);
   // Burada yönetim kabuğunun geçici uygulama adını gerçek StoreSettings kimliğiyle değiştiriyorum.
   const settings = await getAdminStoreSettings(session);
   return (

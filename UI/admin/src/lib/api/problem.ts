@@ -42,6 +42,18 @@ export function normalizeApiProblem(value: unknown, status: number, retryAfter?:
   };
 }
 
+// Burada Retry-After değerini saniye veya HTTP tarihi biçiminden güvenli ve sınırlı bir bekleme süresine çeviriyorum.
+export function retryAfterSeconds(value: string | undefined, now = Date.now()): number | undefined {
+  if (!value) return undefined;
+
+  const seconds = /^\d+$/.test(value.trim())
+    ? Number(value)
+    : Math.ceil((Date.parse(value) - now) / 1000);
+
+  if (!Number.isFinite(seconds) || seconds <= 0) return undefined;
+  return Math.min(Math.ceil(seconds), 300);
+}
+
 // Burada yalnız string dizileri taşıyan doğrulama hata sözlüğünü istemciye aktarıyorum.
 function isFieldErrorMap(value: unknown): value is Record<string, string[]> {
   return Boolean(

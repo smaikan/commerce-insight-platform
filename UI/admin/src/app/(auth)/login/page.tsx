@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { retryAfterSeconds } from "@/lib/api/problem";
 import { siteConfig } from "@/lib/site-config";
 import { getOptionalAdminSession } from "@/lib/auth/session";
 import { safeReturnTo } from "@/lib/auth/policy";
@@ -19,7 +20,7 @@ export default async function LoginPage({
 
   const params = await searchParams;
   const returnTo = safeReturnTo(singleParam(params.returnTo));
-  const notice = loginNotice(singleParam(params.reason));
+  const notice = loginNotice(singleParam(params.reason), singleParam(params.retryAfter));
   // Burada API erişilemezse girişi engellemeden nötr yapılandırma adına geri dönüyorum.
   const store = await getPublicStoreSettings().catch(() => ({
     displayName: siteConfig.name,
@@ -46,11 +47,17 @@ function singleParam(value: string | string[] | undefined): string | undefined {
 }
 
 // Burada route nedenlerini hassas auth ayrıntısı ifşa etmeyen kullanıcı mesajlarına çeviriyorum.
-function loginNotice(reason: string | undefined): string | undefined {
+function loginNotice(reason: string | undefined, retryAfter: string | undefined): string | undefined {
   if (reason === "logged_out") return "Oturumunuz güvenli biçimde kapatıldı.";
   if (reason === "forbidden") return "Bu panel yalnızca aktif yönetici hesaplarına açıktır.";
   if (reason === "session_expired") return "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.";
   if (reason === "session_required") return "Devam etmek için yönetici hesabınızla giriş yapın.";
   if (reason === "verification_failed") return "Oturum şu anda doğrulanamıyor. Lütfen tekrar deneyin.";
+  if (reason === "refresh_rate_limited") {
+    const waitSeconds = retryAfterSeconds(retryAfter);
+    return waitSeconds
+      ? `Oturumunuz korunuyor. Yenileme trafiği kısa süreli sınırlandı; ${waitSeconds} saniye sonra tekrar deneyin.`
+      : "Oturumunuz korunuyor. Yenileme trafiği kısa süreli sınırlandı; lütfen biraz sonra tekrar deneyin.";
+  }
   return undefined;
 }
