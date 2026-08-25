@@ -22,8 +22,9 @@ export function SalesDocumentForm({ mode, orderId, initialDraft, customers, vari
 
   useEffect(() => {
     if (state.status === "error") errorRef.current?.focus();
-    if (state.refresh) router.refresh();
-    if (state.redirectHref) { router.replace(state.redirectHref); router.refresh(); }
+    // Burada route değişimi gereken başarıyla yalnız mevcut veriyi yenileyen sonucu birbirinden ayırıyorum.
+    if (state.redirectHref) router.replace(state.redirectHref);
+    else if (state.refresh) router.refresh();
     submitGuard.current = false;
   }, [router, state]);
 

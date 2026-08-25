@@ -16,10 +16,10 @@ export function CurrentAccountForm({ account }: { account?: CurrentAccount }) {
   const draft = state.draft;
   const formKey = draft ? JSON.stringify(draft) : "initial";
 
+  // Burada başarılı kayıt sonucunu tek route geçişiyle yetkili cari detayına taşıyorum.
   useEffect(() => {
     if (state.redirectHref) {
       router.replace(state.redirectHref);
-      router.refresh();
     }
   }, [router, state.redirectHref]);
 

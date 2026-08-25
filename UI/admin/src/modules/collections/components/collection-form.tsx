@@ -122,7 +122,6 @@ export function CollectionForm({ collection, mode }: CollectionFormProps) {
   useEffect(() => {
     if (state.status !== "success" || !state.collectionId) return;
     router.replace(`/collections/${encodeURIComponent(state.collectionId)}?${isCreate ? "created" : "updated"}=1`);
-    router.refresh();
   }, [isCreate, router, state.collectionId, state.status]);
 
   // Burada bileşen kapandığında tarayıcıdaki geçici görsel URL'sini serbest bırakıyorum.

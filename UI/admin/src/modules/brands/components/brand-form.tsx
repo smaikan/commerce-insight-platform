@@ -78,7 +78,6 @@ export function BrandForm({ brand }: { brand?: Brand }) {
   useEffect(() => {
     if (!state.redirectHref) return;
     router.replace(state.redirectHref);
-    router.refresh();
   }, [router, state.redirectHref]);
 
   return (

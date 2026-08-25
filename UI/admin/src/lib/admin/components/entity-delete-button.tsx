@@ -29,8 +29,9 @@ export function EntityDeleteButton({ entityName, title, description, confirmLabe
     setResult(response);
     if (response.status === "success") {
       setOpen(false);
+      // Burada yeni bir route'a geçerken ikinci bir refresh başlatmıyor, yerinde kalan işlemi ise güncel veriden yeniden okuyorum.
       if (response.redirectHref) router.push(response.redirectHref);
-      router.refresh();
+      else router.refresh();
     }
   };
 

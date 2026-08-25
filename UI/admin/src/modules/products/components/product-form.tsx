@@ -17,7 +17,10 @@ import {
 } from "@/modules/products/types";
 import { VariantEditor } from "@/modules/products/components/variant-editor";
 import { editableVariantRevision } from "@/modules/products/variant-editing";
-import { isProductActionAwaitingResult } from "@/modules/products/product-save-state";
+import {
+  isProductActionAwaitingResult,
+  navigateAfterSuccessfulProductSave,
+} from "@/modules/products/product-save-state";
 import { ProductMediaEditor } from "@/modules/products/components/product-media-editor";
 import { TagEditor } from "@/modules/products/components/tag-editor";
 import { CollectionSelector } from "@/modules/products/components/collection-selector";
@@ -96,8 +99,7 @@ export function ProductForm({
     setMediaDraft({ localMedia: [], mainKey: null, orderedKeys: [] });
     setMediaEditorRevision((current) => current + 1);
     setFormDirty(false);
-    router.replace(`/products/${encodeURIComponent(productId)}?${mode === "create" ? "created" : "saved"}=1`);
-    router.refresh();
+    navigateAfterSuccessfulProductSave(router, productId, mode);
   }, [mode, router, setFormDirty]);
 
   // Burada ürün kaydı oluştuktan sonra yeni dosyaları Cloudinary'ye yükleyip API görsel kayıtlarını tamamlıyorum.

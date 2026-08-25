@@ -16,7 +16,8 @@ export function SalesInvoiceEditForm({ invoice, initialDraft, variants, lookupTr
   const sequence = useRef(initialDraft.lines.length + 1);
   const [draft, setDraft] = useState(initialDraft);
   const [state, action, pending] = useActionState<SalesFormState<SalesInvoiceEditDraft>, FormData>(updateSalesInvoiceAction.bind(null, invoice.id), { status: "idle" });
-  useEffect(() => { if (state.status === "error") errorRef.current?.focus(); if (state.refresh) router.refresh(); if (state.redirectHref) { router.replace(state.redirectHref); router.refresh(); } guard.current = false; }, [router, state]);
+  // Burada satış faturası sonucunda route geçişi ile çakışma yenilemesini aynı anda başlatmıyorum.
+  useEffect(() => { if (state.status === "error") errorRef.current?.focus(); if (state.redirectHref) router.replace(state.redirectHref); else if (state.refresh) router.refresh(); guard.current = false; }, [router, state]);
   function updateLine(key: string, patch: Partial<SalesLineDraft>): void { setDraft((current) => ({ ...current, lines: current.lines.map((line) => line.key === key ? { ...line, ...patch } : line) })); }
   function addLine(): void { const number = Math.max(0, ...draft.lines.map((line) => Number(line.lineNumber) || 0)) + 1; setDraft((current) => ({ ...current, lines: [...current.lines, newSalesLine(number, `new-${sequence.current++}`)] })); }
   return <form action={action} onSubmit={(event) => { if (guard.current) event.preventDefault(); else guard.current = true; }} className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">

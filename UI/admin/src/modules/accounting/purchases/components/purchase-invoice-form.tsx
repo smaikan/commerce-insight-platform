@@ -20,8 +20,9 @@ export function PurchaseInvoiceForm({ initialDraft, suppliers, variants, lookupT
   // Burada başarısız server action'ın güvenli taslağını dinamik satır editörüne geri yüklüyorum.
   useEffect(() => {
     if (state.status === "error") errorRef.current?.focus();
-    if (state.refresh) router.refresh();
-    if (state.redirectHref) { router.replace(state.redirectHref); router.refresh(); }
+    // Burada yönlendirme ve yerinde veri yenilemeyi aynı sonuç için birlikte çalıştırmıyorum.
+    if (state.redirectHref) router.replace(state.redirectHref);
+    else if (state.refresh) router.refresh();
     submitGuardRef.current = false;
   }, [router, state]);
 

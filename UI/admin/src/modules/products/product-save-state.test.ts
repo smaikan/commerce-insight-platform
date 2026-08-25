@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { isProductActionAwaitingResult } from "./product-save-state";
+import { describe, expect, it, vi } from "vitest";
+import { isProductActionAwaitingResult, navigateAfterSuccessfulProductSave } from "./product-save-state";
 import type { ProductActionState } from "./types";
 
 describe("product save state", () => {
@@ -18,5 +18,28 @@ describe("product save state", () => {
     };
 
     expect(isProductActionAwaitingResult(true, returnedState, submittedState)).toBe(false);
+  });
+
+  it("treats a completed action token as authoritative even if state references match", () => {
+    const completedState: ProductActionState = {
+      status: "success",
+      productId: "P00042",
+      completionToken: "completed",
+    };
+
+    expect(isProductActionAwaitingResult(true, completedState, completedState)).toBe(false);
+  });
+
+  it("navigates once to the revalidated product page after a successful save", () => {
+    const navigator = {
+      replace: vi.fn(),
+      refresh: vi.fn(),
+    };
+
+    navigateAfterSuccessfulProductSave(navigator, "P00042", "edit");
+
+    expect(navigator.replace).toHaveBeenCalledOnce();
+    expect(navigator.replace).toHaveBeenCalledWith("/products/P00042?saved=1");
+    expect(navigator.refresh).not.toHaveBeenCalled();
   });
 });

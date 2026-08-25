@@ -72,7 +72,6 @@ export function ProductRowActions({ id, title, status }: { id: string; title: st
     if (response.status === "success") {
       setConfirmDelete(false);
       router.push(response.redirectHref || "/products");
-      router.refresh();
     }
   };
 
