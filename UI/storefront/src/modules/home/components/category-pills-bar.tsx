@@ -68,7 +68,7 @@ export function CategoryPillsBar({ categories }: { categories: CategoryShowcaseI
                   </div>
                 )}
               </div>
-              <span className="line-clamp-1 text-xs font-semibold text-ink group-hover/pill:text-brand-700 transition-colors">
+              <span className="w-full whitespace-normal text-xs font-semibold leading-4 text-ink transition-colors group-hover/pill:text-brand-700">
                 {category.name}
               </span>
             </Link>

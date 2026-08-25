@@ -18,9 +18,9 @@ describe("CategoryPillsBar", () => {
           },
           {
             id: "2",
-            name: "Kolye",
+            name: "Zarif Kolyeler",
             href: "/category/kolye",
-            imageAlt: "Kolye",
+            imageAlt: "Zarif Kolyeler",
             imageUrl: null,
             productCount: 4,
           },
@@ -32,7 +32,9 @@ describe("CategoryPillsBar", () => {
     expect(html).toContain('href="/category/bileklik"');
     expect(html).toContain('href="/category/kolye"');
     expect(html).toContain("Bileklik");
-    expect(html).toContain("Kolye");
+    expect(html).toContain("Zarif Kolyeler");
+    expect(html).toContain("whitespace-normal");
+    expect(html).not.toContain("line-clamp-1");
   });
 
   it("returns null when categories array is empty", () => {
