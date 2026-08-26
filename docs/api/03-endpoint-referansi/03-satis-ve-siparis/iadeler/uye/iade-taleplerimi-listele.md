@@ -1,0 +1,50 @@
+# GET /api/returns/mine
+
+- Görev alanı: **Satış ve sipariş → İade ve değişim → Üye işlemleri**.
+- İşlev: İade taleplerimi listeler.
+- Operation ID: `GET-/api/returns/mine`
+- Yetki: **User**.
+- Content-Type: request body varsa `application/json` gönderin.
+- Hata: 400 validation/domain, 401 authentication, 403 policy, 404 kaynak, 409 conflict/concurrency. Ortak gövde `ProblemDetails`tir.
+
+## Parametreler
+
+| Ad | Konum | Zorunlu | Şema |
+| --- | --- | --- | --- |
+| `PageNumber` | query | Hayır | integer (int32) |
+| `PageSize` | query | Hayır | integer (int32) |
+| `Type` | query | Hayır |  |
+| `Status` | query | Hayır |  |
+| `CreatedFromUtc` | query | Hayır | string (date-time) |
+| `CreatedToUtc` | query | Hayır | string (date-time) |
+
+## Request body
+
+Bu operasyon JSON request body almaz. Gerekli tüm değerleri yukarıdaki path, query veya header parametreleriyle gönderin.
+
+## Başarılı response (200)
+
+```json
+{
+  "items": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "returnNumber": "string",
+      "orderId": "00000000-0000-0000-0000-000000000001",
+      "type": 0,
+      "status": 0,
+      "refundTotal": 1,
+      "itemCount": 1,
+      "createdAt": "2026-07-29T12:00:00Z",
+      "completedAt": "2026-07-29T12:00:00Z"
+    }
+  ],
+  "pageNumber": 1,
+  "pageSize": 1,
+  "totalCount": 1,
+  "totalPages": 1,
+  "hasPreviousPage": true,
+  "hasNextPage": true
+}
+```
+
