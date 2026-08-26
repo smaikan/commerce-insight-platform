@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CATALOG_SORT_LABELS,
   catalogHref,
   catalogCanonicalHref,
   catalogHrefWithoutFilter,
@@ -10,6 +11,12 @@ import {
 } from "./query";
 
 describe("catalog query", () => {
+  // Burada sıralama etiketlerinin API'deki gerçek alanları kullanıcıya doğru anlattığını doğruluyorum.
+  it("uses accurate customer-facing sort labels", () => {
+    expect(CATALOG_SORT_LABELS["display-order"]).toBe("Görüntüleme sırası");
+    expect(CATALOG_SORT_LABELS.title).toBe("Alfabetik");
+  });
+
   // Burada geçersiz URL değerlerinin güvenli katalog varsayılanlarına döndüğünü doğruluyorum.
   it("normalizes invalid page and sort values", () => {
     expect(parseCatalogView({ page: "-4", sort: "unknown" })).toEqual({ page: 1, sort: "newest" });

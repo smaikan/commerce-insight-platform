@@ -10,8 +10,8 @@ export const CATALOG_PAGE_SIZE = 24;
 export const CATALOG_SORT_LABELS: Record<CatalogSort, string> = {
   newest: "En yeni",
   popular: "Çok Satanlar",
-  "display-order": "Önerilen sıra",
-  title: "Ada göre",
+  "display-order": "Görüntüleme sırası",
+  title: "Alfabetik",
 };
 
 const SORT_QUERY: Record<CatalogSort, Pick<PublishedProductQuery, "SortBy" | "Descending">> = {

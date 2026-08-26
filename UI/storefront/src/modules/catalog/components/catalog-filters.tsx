@@ -48,22 +48,22 @@ export function CatalogFilters({
     <section aria-labelledby="catalog-filters-heading" className="my-4">
       <h2 id="catalog-filters-heading" className="sr-only">Ürünleri filtrele</h2>
       <details className="group rounded-2xl border border-line/80 bg-surface/90 shadow-xs transition-all">
-        <summary className="focus-ring flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-5 text-sm font-bold text-ink [&::-webkit-details-marker]:hidden">
-          <span className="flex min-w-0 items-center gap-3">
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 shrink-0 text-brand-700" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+        <summary className="focus-ring flex min-h-12 sm:min-h-14 cursor-pointer list-none items-center justify-between gap-2.5 sm:gap-4 px-4 sm:px-5 text-xs sm:text-sm font-bold text-ink [&::-webkit-details-marker]:hidden">
+          <span className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 sm:size-5 shrink-0 text-brand-700" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
               <path d="M4 6h16M7 12h10M10 18h4" />
             </svg>
             <span className="tracking-tight">Detaylı Filtreler</span>
             {activeFilters.length > 0 ? (
-              <span className="rounded-full bg-brand-950 px-2.5 py-0.5 text-[0.6875rem] font-bold text-white shadow-xs">
+              <span className="shrink-0 rounded-full bg-brand-950 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white shadow-xs sm:px-2.5 sm:py-0.5 sm:text-[0.6875rem] sm:font-bold">
                 {activeFilters.length} seçili
               </span>
             ) : null}
           </span>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-ink-muted group-open:hidden">Filtreleri Göster</span>
-            <span className="text-xs text-ink-muted hidden group-open:inline">Kapat</span>
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 shrink-0 text-ink-muted transition-transform duration-300 group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <span className="text-[11px] sm:text-xs text-ink-muted group-open:hidden">Filtreleri Göster</span>
+            <span className="text-[11px] sm:text-xs text-ink-muted hidden group-open:inline">Kapat</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-3.5 sm:size-4 shrink-0 text-ink-muted transition-transform duration-300 group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="m6 9 6 6 6-6" />
             </svg>
           </div>
