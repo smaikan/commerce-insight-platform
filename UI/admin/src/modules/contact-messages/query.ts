@@ -74,6 +74,34 @@ export function buildContactMessageListHref(query: ContactMessageListQuery, page
   return queryString ? `/contact-messages?${queryString}` : "/contact-messages";
 }
 
+// Burada durum sekmesi tıklandığında mevcut filtreleri koruyarak URL üretiyorum.
+export function buildContactStatusTabHref(query: ContactMessageListQuery, status?: ContactMessageStatus): string {
+  const updatedQuery: ContactMessageListQuery = {
+    ...query,
+    pageNumber: 1,
+    status,
+  };
+  return buildContactMessageListHref(updatedQuery, 1);
+}
+
+// Burada tek bir filtrenin kaldırılmasıyla oluşan yeni URL'i üretiyorum.
+export function buildRemoveContactMessageFilterHref(
+  query: ContactMessageListQuery,
+  filterKey: "search" | "status" | "subject" | "assignedAdminUserId" | "createdFromUtc" | "createdToUtc" | "dateRange",
+): string {
+  const updatedQuery: ContactMessageListQuery = {
+    ...query,
+    pageNumber: 1,
+  };
+  if (filterKey === "dateRange") {
+    updatedQuery.createdFromUtc = undefined;
+    updatedQuery.createdToUtc = undefined;
+  } else {
+    updatedQuery[filterKey] = undefined;
+  }
+  return buildContactMessageListHref(updatedQuery, 1);
+}
+
 // Burada liste satırından detaya giderken aynı belgelenmiş filtre parametrelerini taşıyorum.
 export function buildContactMessageDetailHref(messageId: string, query: ContactMessageListQuery): string {
   const listHref = buildContactMessageListHref(query);
