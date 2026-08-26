@@ -10,9 +10,11 @@ import type {
   Product,
   ProductFormOptions,
   ProductImage,
+  ProductListOptions,
   ProductListQuery,
   ProductType,
   ProductVariant,
+  Tag,
   TaxRate,
 } from "@/modules/products/types";
 
@@ -86,18 +88,28 @@ export function getProducts(query: ProductListQuery, session: AdminSession): Pro
   if (query.search) params.set("Search", query.search);
   if (query.typeId) params.set("TypeId", query.typeId);
   if (query.brandId) params.set("BrandId", query.brandId);
+  if (query.collectionId) params.set("CollectionId", query.collectionId);
+  if (query.tagId) params.set("TagId", query.tagId);
   if (query.status !== undefined) params.set("Status", String(query.status));
   if (query.isFeatured !== undefined) params.set("IsFeatured", String(query.isFeatured));
   return apiRequest(`/api/products?${params.toString()}`, { accessToken: session.accessToken });
 }
 
-// Burada filtre seçenekleri için belgelenen ilk 100 ürün tipi ve markayı birlikte getiriyorum.
-export async function getProductListOptions(session: AdminSession): Promise<{ productTypes: ProductType[]; brands: Brand[] }> {
-  const [types, brands] = await Promise.all([
+// Burada filtre seçenekleri için ürün tipleri, markalar, koleksiyonlar ve etiketleri paralel getiriyorum.
+export async function getProductListOptions(session: AdminSession): Promise<ProductListOptions> {
+  const [typesResult, brandsResult, collectionsResult, tagsResult] = await Promise.allSettled([
     apiRequest<PagedResult<ProductType>>("/api/product-types?PageNumber=1&PageSize=100", { accessToken: session.accessToken }),
     apiRequest<PagedResult<Brand>>("/api/brands?PageNumber=1&PageSize=100", { accessToken: session.accessToken }),
+    apiRequest<PagedResult<Collection>>("/api/collections?PageNumber=1&PageSize=100", { accessToken: session.accessToken }),
+    apiRequest<PagedResult<Tag>>("/api/tags?PageNumber=1&PageSize=100", { accessToken: session.accessToken }),
   ]);
-  return { productTypes: types.items, brands: brands.items };
+
+  return {
+    productTypes: typesResult.status === "fulfilled" ? typesResult.value.items : [],
+    brands: brandsResult.status === "fulfilled" ? brandsResult.value.items : [],
+    collections: collectionsResult.status === "fulfilled" ? collectionsResult.value.items : [],
+    tags: tagsResult.status === "fulfilled" ? tagsResult.value.items : [],
+  };
 }
 
 // Burada ürün detayını public ürün kimliğiyle ve cache paylaşmadan getiriyorum.

@@ -39,7 +39,13 @@ export default async function ProductsPage({
       {params.deleted === "1" ? <p className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900" role="status">Ürün arşive taşındı ve mağazadan kaldırıldı.</p> : null}
 
       <section aria-label="Ürün listesi" className="overflow-hidden rounded-xl border border-border bg-surface">
-        <ProductFilters query={query} productTypes={options.productTypes} brands={options.brands} />
+        <ProductFilters
+          query={query}
+          productTypes={options.productTypes}
+          brands={options.brands}
+          collections={options.collections}
+          tags={options.tags}
+        />
         <ProductTable page={page} query={query} />
         <ProductPagination page={page} query={query} />
       </section>

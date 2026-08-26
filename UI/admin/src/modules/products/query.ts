@@ -34,6 +34,8 @@ export function parseProductListQuery(searchParams: SearchParams): ProductListQu
     search: clean(first(searchParams.search), 250),
     typeId: optionalUuid(first(searchParams.typeId)),
     brandId: optionalUuid(first(searchParams.brandId)),
+    collectionId: optionalUuid(first(searchParams.collectionId)),
+    tagId: optionalUuid(first(searchParams.tagId)),
     status: enumNumber(first(searchParams.status), [0, 1, 2, 3]),
     isFeatured: optionalBoolean(first(searchParams.isFeatured)),
     sortBy: sort.sortBy,
@@ -49,6 +51,8 @@ export function buildProductListHref(query: ProductListQuery, pageNumber: number
   if (query.search) params.set("search", query.search);
   if (query.typeId) params.set("typeId", query.typeId);
   if (query.brandId) params.set("brandId", query.brandId);
+  if (query.collectionId) params.set("collectionId", query.collectionId);
+  if (query.tagId) params.set("tagId", query.tagId);
   if (query.status !== undefined) params.set("status", String(query.status));
   if (query.isFeatured !== undefined) params.set("isFeatured", String(query.isFeatured));
   const sort = productSortOptions.find(
@@ -58,12 +62,50 @@ export function buildProductListHref(query: ProductListQuery, pageNumber: number
   return `/products?${params.toString()}`;
 }
 
+// Burada tek bir filtrenin kaldırılmasıyla oluşan yeni URL'i üretiyorum.
+export function buildRemoveProductFilterHref(
+  query: ProductListQuery,
+  filterKey: "search" | "typeId" | "brandId" | "collectionId" | "tagId" | "status" | "isFeatured",
+): string {
+  const updatedQuery: ProductListQuery = {
+    ...query,
+    pageNumber: 1,
+    [filterKey]: undefined,
+  };
+  return buildProductListHref(updatedQuery, 1);
+}
+
+// Burada durum ve görünüm sekmeleri (Tümü, Aktif, Taslak, Pasif, Arşivlenmiş, Öne Çıkanlar) arasında filtreleri koruyarak geçiş URL'i üretiyorum.
+export function buildProductStatusTabHref(
+  query: ProductListQuery,
+  tab: "all" | "active" | "draft" | "passive" | "archived" | "featured",
+): string {
+  const updatedQuery: ProductListQuery = {
+    ...query,
+    pageNumber: 1,
+    status:
+      tab === "draft"
+        ? 0
+        : tab === "active"
+          ? 1
+          : tab === "passive"
+            ? 2
+            : tab === "archived"
+              ? 3
+              : undefined,
+    isFeatured: tab === "featured" ? true : undefined,
+  };
+  return buildProductListHref(updatedQuery, 1);
+}
+
 // Burada liste üzerinde etkin bir filtre bulunup bulunmadığını boş durum metni için belirliyorum.
 export function hasProductFilters(query: ProductListQuery): boolean {
   return Boolean(
     query.search ||
       query.typeId ||
       query.brandId ||
+      query.collectionId ||
+      query.tagId ||
       query.status !== undefined ||
       query.isFeatured !== undefined,
   );

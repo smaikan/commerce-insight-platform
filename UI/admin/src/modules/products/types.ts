@@ -8,6 +8,7 @@ export type Brand = components["schemas"]["BrandDto"];
 export type ProductType = components["schemas"]["ProductTypeDto"];
 export type TaxRate = components["schemas"]["TaxRateDto"];
 export type Collection = components["schemas"]["CollectionDto"];
+export type Tag = components["schemas"]["TagDto"];
 export type ProductStatus = components["schemas"]["ProductStatus"];
 export type ProductSortBy = components["schemas"]["ProductSortBy"];
 
@@ -18,10 +19,20 @@ export type ProductListQuery = {
   search?: string;
   typeId?: string;
   brandId?: string;
+  collectionId?: string;
+  tagId?: string;
   status?: ProductStatus;
   isFeatured?: boolean;
   sortBy: ProductSortBy;
   descending: boolean;
+};
+
+// Burada ürün listesi filtre çubuğu için gerekli referans seçeneklerini tanımlıyorum.
+export type ProductListOptions = {
+  productTypes: ProductType[];
+  brands: Brand[];
+  collections: Collection[];
+  tags: Tag[];
 };
 
 export type ProductFormOptions = {
