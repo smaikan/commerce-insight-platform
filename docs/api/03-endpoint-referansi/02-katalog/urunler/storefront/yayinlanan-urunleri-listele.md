@@ -15,7 +15,7 @@
 | `CollectionId` | query | Hayır | Koleksiyon GUID filtresi. |
 | `TagId` | query | Hayır | Etiket GUID filtresi. |
 | `Search` | query | Hayır | Normalize edildikten sonra 2–100 karakter; başlık, marka, tür, koleksiyon, etiket ve MainSku üzerinde arama. |
-| `SortBy` | query | Hayır | `Newest=0`, `Popularity=1`, `DisplayOrder=2`, `Title=3`. Gönderilmezse StoreSettings `defaultProductSort`. |
+| `SortBy` | query | Hayır | `Newest=0`, `Popularity=1`, `DisplayOrder=2`, `Title=3`, `BestSelling=4`. Gönderilmezse StoreSettings `defaultProductSort`. |
 | `Descending` | query | Hayır | Gönderilmezse StoreSettings `defaultProductSortDescending`. |
 
 ## Başarılı response (200)
@@ -62,3 +62,5 @@
 Dört sınıflandırma filtresi birlikte gönderilebilir ve AND mantığıyla uygulanır. Endpoint her durumda yalnız `Status=Active` ve `IsActive=true` ürünleri döndürür. StoreSettings tercihlerine göre stoksuz ve/veya fiyat gösterebilen aktif varyantı olmayan ürünler SQL'de sayfalama öncesinde elenir; `totalCount` filtrelenmiş toplamdır. Boş GUID değerleri 400 validation hatasıdır; eşleşmeyen geçerli GUID boş sayfalı sonuç üretir. `showCompareAtPrice` görünüm tercihidir; API `compareAtPrice` verisini response'tan kaldırmaz.
 
 `Search` doluysa sınıflandırma filtreleriyle AND çalışır ve count/items aynı arama filtresini kullanır. `SortBy` gönderilmezse exact başlık → başlık prefix → başlık contains → marka → tür → koleksiyon → etiket → popülerlik/displayOrder/id relevance sırası uygulanır. Explicit `SortBy` gönderilirse katalog sıralaması relevance'ı ezer. `Search` null veya boşsa endpointin önceki filtreleme ve StoreSettings varsayılan sıralama davranışı korunur. Count ve items toplam iki SQL komutudur; N+1 yoktur.
+
+`SortBy=1&Descending=true` ağırlıklı `PopularityScore` değerini, `SortBy=4&Descending=true` ise yalnız kesinleşmiş net satış adedini azalan sıralar. Sıralama sayfalamadan önce SQL'de uygulanır; eşitliklerde `Product.Id ASC` kararlı sırası kullanılır.

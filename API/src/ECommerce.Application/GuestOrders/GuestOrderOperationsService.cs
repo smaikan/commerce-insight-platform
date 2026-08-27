@@ -25,6 +25,7 @@ public sealed class GuestOrderOperationsService
     private readonly IDateTimeProvider _clock;
     private readonly IUnitOfWork _unitOfWork;
     private readonly OrderCancellationService _cancellations;
+    private readonly IAuthoritativeSalesMetricService _salesMetrics;
 
     // Burada guest ödeme, iptal ve iade işlemlerinin mevcut domain servisleriyle ortak bağımlılıklarını hazırlıyorum.
     public GuestOrderOperationsService(
@@ -37,7 +38,8 @@ public sealed class GuestOrderOperationsService
         IOrderNotificationService notifications,
         IDateTimeProvider clock,
         IUnitOfWork unitOfWork,
-        OrderCancellationService cancellations)
+        OrderCancellationService cancellations,
+        IAuthoritativeSalesMetricService salesMetrics)
     {
         _access = access;
         _guestOrders = guestOrders;
@@ -49,6 +51,7 @@ public sealed class GuestOrderOperationsService
         _clock = clock;
         _unitOfWork = unitOfWork;
         _cancellations = cancellations;
+        _salesMetrics = salesMetrics;
     }
 
     // Burada guest sipariş için idempotent ödeme kaydını oluşturup sağlayıcı sonucunu güvenle uygularım.
@@ -261,6 +264,7 @@ public sealed class GuestOrderOperationsService
         {
             payment.MarkAsPaid(result.TransactionId);
             order.ChangeStatus(OrderStatus.Paid, _clock.UtcNow);
+            await _salesMetrics.RecordPaidOrderAsync(order, cancellationToken);
         }
         else
         {

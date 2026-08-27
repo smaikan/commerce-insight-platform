@@ -20,6 +20,7 @@ public sealed class ExpireStockReservationsCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderNotificationService? _notificationService;
     private readonly DefinitivePaymentFailureService _definitivePaymentFailure;
+    private readonly IAuthoritativeSalesMetricService _salesMetrics;
 
     // Burada stok rezervasyonu sonlandırma akışının sipariş, stok, kupon, sağlayıcı, saat ve transaction bağımlılıklarını hazırlıyorum.
     public ExpireStockReservationsCommandHandler(
@@ -29,6 +30,7 @@ public sealed class ExpireStockReservationsCommandHandler
         IDateTimeProvider clock,
         IUnitOfWork unitOfWork,
         DefinitivePaymentFailureService definitivePaymentFailure,
+        IAuthoritativeSalesMetricService salesMetrics,
         IEnumerable<IPaymentGatewayReconciler>? paymentReconcilers = null,
         IOrderNotificationService? notificationService = null)
     {
@@ -40,6 +42,7 @@ public sealed class ExpireStockReservationsCommandHandler
         _unitOfWork = unitOfWork;
         _notificationService = notificationService;
         _definitivePaymentFailure = definitivePaymentFailure;
+        _salesMetrics = salesMetrics;
     }
 
     // Burada süre dolan rezervasyonları önce sağlayıcı dışında çözüp ardından kısa serializable transactionlarla güvenle sonlandırıyorum.
@@ -220,6 +223,7 @@ public sealed class ExpireStockReservationsCommandHandler
             }
 
             order.ChangeStatus(OrderStatus.Paid, utcNow);
+            await _salesMetrics.RecordPaidOrderAsync(order, cancellationToken);
             if (_notificationService is not null)
             {
                 await _notificationService.QueuePaymentResultAsync(order, payment, cancellationToken);

@@ -62,6 +62,19 @@ public sealed class PublishedProductSearchOperationFilter : IOperationFilter
             return;
         }
 
+        if (IsPublishedProductListOperation(context.MethodInfo.Name))
+        {
+            var sortBy = operation.Parameters?.FirstOrDefault(parameter =>
+                string.Equals(parameter.Name, "SortBy", StringComparison.OrdinalIgnoreCase));
+            if (sortBy is not null)
+            {
+                sortBy.Description =
+                    "Sıralama alanı: 0 Newest, 1 Popularity (ağırlıklı PopularityScore), " +
+                    "2 DisplayOrder, 3 Title, 4 BestSelling (kesinleşmiş net satış adedi). " +
+                    "Eşitliklerde Product.Id artan uygulanır.";
+            }
+        }
+
         if (context.MethodInfo.Name == nameof(ProductsController.GetPublishedList))
         {
             var search = operation.Parameters?.FirstOrDefault(parameter =>
@@ -80,5 +93,15 @@ public sealed class PublishedProductSearchOperationFilter : IOperationFilter
                 }
             }
         }
+    }
+
+    // Burada ortak sıralama sözleşmesini kullanan beş public ürün listeleme operasyonunu ayırt ediyorum.
+    private static bool IsPublishedProductListOperation(string methodName)
+    {
+        return methodName is nameof(ProductsController.GetPublishedList) or
+            nameof(ProductsController.GetPublishedByCollection) or
+            nameof(ProductsController.GetPublishedByTag) or
+            nameof(ProductsController.GetPublishedByType) or
+            nameof(ProductsController.GetPublishedByBrand);
     }
 }

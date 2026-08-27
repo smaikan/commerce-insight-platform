@@ -8,9 +8,10 @@ import {
   paymentProblemMessage,
   redirectToPaymentPage,
 } from "@/modules/checkout/client/checkout-api";
+import { SandboxPaymentNotice } from "@/modules/checkout/components/sandbox-payment-notice";
 
 // Burada retry sırasında aynı ödeme intent anahtarını koruyup yeni deneme yalnız açıkça istendiğinde yeni anahtar üretiyorum.
-export function IyzicoPaymentControl({ orderId, newAttempt = false }: { orderId: string; newAttempt?: boolean }) {
+export function IyzicoPaymentControl({ orderId, newAttempt = false, sandboxCardNumber = null }: { orderId: string; newAttempt?: boolean; sandboxCardNumber?: string | null }) {
   const submittingRef = useRef(false);
   const intentKeyRef = useRef<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,7 +36,8 @@ export function IyzicoPaymentControl({ orderId, newAttempt = false }: { orderId:
   }
 
   return (
-    <div>
+    <div className="space-y-3">
+      {sandboxCardNumber ? <SandboxPaymentNotice cardNumber={sandboxCardNumber} /> : null}
       {error ? <p className="mb-3 rounded-lg border border-danger/25 bg-danger/5 px-3 py-3 text-sm leading-5 text-danger" role="alert">{error}</p> : null}
       <button
         type="button"

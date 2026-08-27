@@ -13,7 +13,7 @@ interface FeaturedProductsTabsProps {
   discountedProducts?: PublishedProduct[];
 }
 
-// Burada popüler, yeni gelen ve fırsat ürünlerini sekmeler arasında anında geçişle sunan ürün vitrinini yönetiyorum.
+// Burada çok satan, yeni gelen ve fırsat ürünlerini sekmeler arasında anında geçişle sunan ürün vitrinini yönetiyorum.
 export function FeaturedProductsTabs({
   bestSellers,
   newArrivals,
@@ -21,8 +21,9 @@ export function FeaturedProductsTabs({
 }: FeaturedProductsTabsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("best-sellers");
 
+  // Burada çok satanlar sekmesini katalogdaki net satış sıralamasına bağlayan paylaşılabilir hedefleri tanımlıyorum.
   const tabs: Array<{ key: TabKey; label: string; href: string }> = [
-    { key: "best-sellers", label: "En Çok Satanlar", href: "/products?sort=popular" },
+    { key: "best-sellers", label: "En Çok Satanlar", href: "/products?sort=best-selling" },
     { key: "new-arrivals", label: "Yeni Gelenler", href: "/products?sort=newest" },
     ...(discountedProducts.length > 0
       ? [{ key: "special-offers" as TabKey, label: "Fırsat Ürünleri", href: "/products" }]

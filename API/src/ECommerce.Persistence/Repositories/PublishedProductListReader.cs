@@ -133,6 +133,9 @@ public sealed class PublishedProductListReader : IPublishedProductListReader
         var descending = filter.Descending != false;
         return filter.SortBy switch
         {
+            PublishedProductSortBy.BestSelling => descending
+                ? query.OrderByDescending(product => product.NetSalesQuantity)
+                : query.OrderBy(product => product.NetSalesQuantity),
             PublishedProductSortBy.Popularity => descending
                 ? query.OrderByDescending(product => product.PopularityScore)
                 : query.OrderBy(product => product.PopularityScore),
@@ -187,6 +190,12 @@ public sealed class PublishedProductListReader : IPublishedProductListReader
         IQueryable<StoreSettings> settings) =>
         sortBy switch
         {
+            PublishedProductSortBy.BestSelling => query
+                .OrderByDescending(product =>
+                    (!settings.Any() || settings.Any(item => item.DefaultProductSortDescending))
+                        ? product.NetSalesQuantity : long.MinValue)
+                .ThenBy(product => settings.Any(item => !item.DefaultProductSortDescending)
+                    ? product.NetSalesQuantity : long.MaxValue),
             PublishedProductSortBy.Popularity => query
                 .OrderByDescending(product =>
                     (!settings.Any() || settings.Any(item => item.DefaultProductSortDescending))

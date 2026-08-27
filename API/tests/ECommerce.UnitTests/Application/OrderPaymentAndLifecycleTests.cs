@@ -37,7 +37,8 @@ public sealed class OrderPaymentAndLifecycleTests
             [gateway],
             new StubCurrentUser(7),
             new FixedClock(),
-            unitOfWork.Object);
+            unitOfWork.Object,
+            Mock.Of<IAuthoritativeSalesMetricService>());
         var command = new CreatePaymentCommand(order.Id, PaymentProvider.Fake, "payment_retry_key_0001");
 
         var first = await handler.Handle(command, CancellationToken.None);
@@ -69,7 +70,8 @@ public sealed class OrderPaymentAndLifecycleTests
             [gateway],
             new StubCurrentUser(7),
             new FixedClock(),
-            CreateTransactionalUnitOfWork<PaymentDto>().Object);
+            CreateTransactionalUnitOfWork<PaymentDto>().Object,
+            Mock.Of<IAuthoritativeSalesMetricService>());
         var command = new CreatePaymentCommand(order.Id, PaymentProvider.Fake, "payment_pending_key_0001");
 
         var firstAttempt = handler.Handle(command, CancellationToken.None);
@@ -482,7 +484,8 @@ public sealed class OrderPaymentAndLifecycleTests
             new OrderCouponService(Mock.Of<ICouponRepository>(), new FixedClock()),
             Mock.Of<IOrderNotificationService>(),
             new FixedClock(),
-            unitOfWork);
+            unitOfWork,
+            Mock.Of<IAuthoritativeSalesMetricService>());
     }
 
     private sealed class StubCurrentUser : ICurrentUserService

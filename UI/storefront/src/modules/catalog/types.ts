@@ -36,7 +36,8 @@ export type CatalogFacets = {
   productTypes: PublishedProductFacet[];
 };
 
-export type CatalogSort = "newest" | "popular" | "display-order" | "title";
+// Burada müşteri kataloğunda görünür sıralama seçeneklerini API'nin güncel anlamlarıyla sınırlandırıyorum.
+export type CatalogSort = "newest" | "best-selling" | "popular" | "title";
 
 export type CatalogSearchParams = Record<string, string | string[] | undefined>;
 

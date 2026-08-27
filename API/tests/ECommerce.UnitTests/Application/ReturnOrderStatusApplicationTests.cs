@@ -1,4 +1,5 @@
 using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.Orders.Services;
 using ECommerce.Application.Common.Security;
 using ECommerce.Application.Orders.Commands.ChangeOrderStatus;
 using ECommerce.Application.Orders.Dtos;
@@ -129,12 +130,14 @@ public sealed class ReturnOrderStatusApplicationTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
         var unitOfWork = CreateTransactionalUnitOfWork<ReturnRequestDto>();
+        var salesMetrics = new Mock<IAuthoritativeSalesMetricService>();
         var handler = new ApproveReturnRequestCommandHandler(
             returnRequests.Object,
             orders.Object,
             CreateInventoryService(originalVariant),
             clock,
-            unitOfWork.Object);
+            unitOfWork.Object,
+            salesMetrics.Object);
 
         await handler.Handle(
             new ApproveReturnRequestCommand(returnRequest.Id),
@@ -150,6 +153,10 @@ public sealed class ReturnOrderStatusApplicationTests
             movement.Type == StockMovementType.SaleReturn);
         await repeatedApproval.Should().ThrowAsync<ReturnStatusTransitionException>();
         order.ToSummaryDto().Status.Should().Be(OrderStatus.Refunded);
+        salesMetrics.Verify(metric => metric.ReverseApprovedRefundAsync(
+            order,
+            returnRequest,
+            It.IsAny<CancellationToken>()), Times.Once);
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -177,12 +184,14 @@ public sealed class ReturnOrderStatusApplicationTests
         var orders = new Mock<IOrderRepository>();
         orders.Setup(repository => repository.GetByIdForUpdateAsync(order.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
+        var salesMetrics = new Mock<IAuthoritativeSalesMetricService>();
         var handler = new ApproveReturnRequestCommandHandler(
             returnRequests.Object,
             orders.Object,
             CreateInventoryService(originalVariant, replacementVariant),
             clock,
-            CreateTransactionalUnitOfWork<ReturnRequestDto>().Object);
+            CreateTransactionalUnitOfWork<ReturnRequestDto>().Object,
+            salesMetrics.Object);
 
         await handler.Handle(new ApproveReturnRequestCommand(returnRequest.Id), CancellationToken.None);
 
@@ -190,6 +199,10 @@ public sealed class ReturnOrderStatusApplicationTests
         order.Status.Should().Be(OrderStatus.ReturnApproved);
         originalVariant.Stock.Should().Be(4);
         replacementVariant.Stock.Should().Be(2);
+        salesMetrics.Verify(metric => metric.ReverseApprovedRefundAsync(
+            It.IsAny<Order>(),
+            It.IsAny<ReturnRequest>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // Burada deployment öncesi onaylı exchange kaydının receive-complete uyumluluğunda stokları bir kez uyguladığını doğruluyorum.

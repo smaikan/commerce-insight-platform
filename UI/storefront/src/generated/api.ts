@@ -7646,6 +7646,7 @@ export interface paths {
                     BrandId?: string;
                     CollectionId?: string;
                     TagId?: string;
+                    /** @description Sıralama alanı: 0 Newest, 1 Popularity (ağırlıklı PopularityScore), 2 DisplayOrder, 3 Title, 4 BestSelling (kesinleşmiş net satış adedi). Eşitliklerde Product.Id artan uygulanır. */
                     SortBy?: components["schemas"]["PublishedProductSortBy"];
                     Descending?: boolean;
                     /**
@@ -7776,6 +7777,7 @@ export interface paths {
                 query?: {
                     PageNumber?: number;
                     PageSize?: number;
+                    /** @description Sıralama alanı: 0 Newest, 1 Popularity (ağırlıklı PopularityScore), 2 DisplayOrder, 3 Title, 4 BestSelling (kesinleşmiş net satış adedi). Eşitliklerde Product.Id artan uygulanır. */
                     SortBy?: components["schemas"]["PublishedProductSortBy"];
                     Descending?: boolean;
                 };
@@ -7820,6 +7822,7 @@ export interface paths {
                 query?: {
                     PageNumber?: number;
                     PageSize?: number;
+                    /** @description Sıralama alanı: 0 Newest, 1 Popularity (ağırlıklı PopularityScore), 2 DisplayOrder, 3 Title, 4 BestSelling (kesinleşmiş net satış adedi). Eşitliklerde Product.Id artan uygulanır. */
                     SortBy?: components["schemas"]["PublishedProductSortBy"];
                     Descending?: boolean;
                 };
@@ -7864,6 +7867,7 @@ export interface paths {
                 query?: {
                     PageNumber?: number;
                     PageSize?: number;
+                    /** @description Sıralama alanı: 0 Newest, 1 Popularity (ağırlıklı PopularityScore), 2 DisplayOrder, 3 Title, 4 BestSelling (kesinleşmiş net satış adedi). Eşitliklerde Product.Id artan uygulanır. */
                     SortBy?: components["schemas"]["PublishedProductSortBy"];
                     Descending?: boolean;
                 };
@@ -7908,6 +7912,7 @@ export interface paths {
                 query?: {
                     PageNumber?: number;
                     PageSize?: number;
+                    /** @description Sıralama alanı: 0 Newest, 1 Popularity (ağırlıklı PopularityScore), 2 DisplayOrder, 3 Title, 4 BestSelling (kesinleşmiş net satış adedi). Eşitliklerde Product.Id artan uygulanır. */
                     SortBy?: components["schemas"]["PublishedProductSortBy"];
                     Descending?: boolean;
                 };
@@ -15045,7 +15050,7 @@ export interface components {
          * Format: int32
          * @enum {integer}
          */
-        PublishedProductSortBy: 0 | 1 | 2 | 3;
+        PublishedProductSortBy: 0 | 1 | 2 | 3 | 4;
         PublishedProductTypeShowcaseItemDto: {
             /** Format: uuid */
             id: string;

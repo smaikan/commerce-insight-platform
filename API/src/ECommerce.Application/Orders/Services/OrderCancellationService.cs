@@ -22,6 +22,7 @@ public sealed class OrderCancellationService
     private readonly IOrderNotificationService _notifications;
     private readonly IDateTimeProvider _clock;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAuthoritativeSalesMetricService _salesMetrics;
 
     // Burada müşteri iptal sagasının sahiplikten bağımsız finansal, stok, kupon ve outbox bağımlılıklarını hazırlıyorum.
     public OrderCancellationService(
@@ -33,7 +34,8 @@ public sealed class OrderCancellationService
         OrderCouponService coupons,
         IOrderNotificationService notifications,
         IDateTimeProvider clock,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IAuthoritativeSalesMetricService salesMetrics)
     {
         _orders = orders;
         _operations = operations;
@@ -44,6 +46,7 @@ public sealed class OrderCancellationService
         _notifications = notifications;
         _clock = clock;
         _unitOfWork = unitOfWork;
+        _salesMetrics = salesMetrics;
     }
 
     // Burada sahibi önceden doğrulanmış siparişi ödeme durumuna göre doğrudan veya saga üzerinden iptal ediyorum.
@@ -523,6 +526,7 @@ public sealed class OrderCancellationService
                 await _coupons.ReleaseForCancellationAsync(order, token);
                 order.ChangeStatus(OrderStatus.Cancelled, _clock.UtcNow);
                 operation.MarkCompleted(operation.ReversalType, _clock.UtcNow);
+                await _salesMetrics.ReverseCancelledOrderAsync(order, token);
                 await _notifications.QueueOrderStatusChangedAsync(order, token);
                 await _notifications.QueuePaymentReversalCompletedAsync(order, payment, operation, token);
                 await _unitOfWork.SaveChangesAsync(token);

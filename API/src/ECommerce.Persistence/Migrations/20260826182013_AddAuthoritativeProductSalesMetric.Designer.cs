@@ -4,6 +4,7 @@ using ECommerce.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,10 +12,12 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ECommerce.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260826182013_AddAuthoritativeProductSalesMetric")]
+    partial class AddAuthoritativeProductSalesMetric
     {
-        // Burada güncel kalıcı modelin authoritative satış metriği şemasını snapshot olarak tanımlıyorum.
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        // Burada authoritative ürün satış metriği migration hedef modelini tanımlıyorum.
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -4246,11 +4249,6 @@ namespace ECommerce.Persistence.Migrations
                     b.Property<Guid>("ReturnRequestId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("SalesMetricReversedQuantity")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -4284,8 +4282,6 @@ namespace ECommerce.Persistence.Migrations
                             t.HasCheckConstraint("CK_ReturnItems_Quantity_Positive", "[Quantity] > 0");
 
                             t.HasCheckConstraint("CK_ReturnItems_RefundTotal_NonNegative", "[RefundTotal] >= 0");
-
-                            t.HasCheckConstraint("CK_ReturnItems_SalesMetricReversedQuantity", "[SalesMetricReversedQuantity] >= 0 AND [SalesMetricReversedQuantity] <= [Quantity]");
 
                             t.HasCheckConstraint("CK_ReturnItems_UnitPrice_Positive", "[UnitPrice] > 0");
                         });

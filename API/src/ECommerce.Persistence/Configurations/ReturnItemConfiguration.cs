@@ -15,6 +15,9 @@ public sealed class ReturnItemConfiguration : IEntityTypeConfiguration<ReturnIte
             tableBuilder.HasCheckConstraint("CK_ReturnItems_UnitPrice_Positive", "[UnitPrice] > 0");
             tableBuilder.HasCheckConstraint("CK_ReturnItems_LineTotal_Positive", "[LineTotal] > 0");
             tableBuilder.HasCheckConstraint("CK_ReturnItems_RefundTotal_NonNegative", "[RefundTotal] >= 0");
+            tableBuilder.HasCheckConstraint(
+                "CK_ReturnItems_SalesMetricReversedQuantity",
+                "[SalesMetricReversedQuantity] >= 0 AND [SalesMetricReversedQuantity] <= [Quantity]");
         });
 
         builder.HasKey(item => item.Id);
@@ -37,6 +40,10 @@ public sealed class ReturnItemConfiguration : IEntityTypeConfiguration<ReturnIte
 
         builder.Property(item => item.RefundTotal)
             .HasPrecision(18, 2)
+            .IsRequired();
+
+        builder.Property(item => item.SalesMetricReversedQuantity)
+            .HasDefaultValue(0)
             .IsRequired();
 
         builder.HasOne(item => item.OrderItem)

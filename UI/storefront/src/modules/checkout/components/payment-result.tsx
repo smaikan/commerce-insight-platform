@@ -20,7 +20,7 @@ type ResultState =
   | { kind: "error"; message: string };
 
 // Burada ödeme dönüş parametrelerini yalnız yön bulma ipucu sayıp gerçek sonucu owner-scoped sipariş GET'iyle sınırlı süre boyunca doğruluyorum.
-export function PaymentResult({ orderId }: { orderId: string }) {
+export function PaymentResult({ orderId, sandboxCardNumber }: { orderId: string; sandboxCardNumber: string | null }) {
   const [state, setState] = useState<ResultState>({ kind: "loading" });
   const [refreshVersion, setRefreshVersion] = useState(0);
 
@@ -65,7 +65,7 @@ export function PaymentResult({ orderId }: { orderId: string }) {
   if (state.paymentState === "failed") {
     return (
       <PaymentResultShell title="Ödeme tamamlanamadı" message="Kart bilgileri mağazaya aktarılmadı. Siparişiniz için güvenli ödeme sayfasında yeni bir deneme başlatabilirsiniz." orderId={orderId} tone="danger">
-        <IyzicoPaymentControl orderId={orderId} newAttempt />
+        <IyzicoPaymentControl orderId={orderId} newAttempt sandboxCardNumber={sandboxCardNumber} />
       </PaymentResultShell>
     );
   }

@@ -3,6 +3,7 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Security;
 using ECommerce.Application.Returns.Dtos;
 using ECommerce.Application.Returns.Services;
+using ECommerce.Application.Orders.Services;
 using ECommerce.Domain.Enums;
 using MediatR;
 
@@ -16,6 +17,7 @@ public sealed class ApproveReturnRequestCommandHandler : IRequestHandler<Approve
     private readonly IDateTimeProvider _clock;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderNotificationService? _notificationService;
+    private readonly IAuthoritativeSalesMetricService _salesMetrics;
 
     // Burada iade onayının iade, sipariş, stok, UTC saat ve transaction bağımlılıklarını hazırlıyorum.
     public ApproveReturnRequestCommandHandler(
@@ -24,6 +26,7 @@ public sealed class ApproveReturnRequestCommandHandler : IRequestHandler<Approve
         ReturnInventoryService inventoryService,
         IDateTimeProvider clock,
         IUnitOfWork unitOfWork,
+        IAuthoritativeSalesMetricService salesMetrics,
         IOrderNotificationService? notificationService = null)
     {
         _returnRequestRepository = returnRequestRepository;
@@ -31,6 +34,7 @@ public sealed class ApproveReturnRequestCommandHandler : IRequestHandler<Approve
         _inventoryService = inventoryService;
         _clock = clock;
         _unitOfWork = unitOfWork;
+        _salesMetrics = salesMetrics;
         _notificationService = notificationService;
     }
 
@@ -68,6 +72,11 @@ public sealed class ApproveReturnRequestCommandHandler : IRequestHandler<Approve
             returnRequest.OrderId,
             cancellationToken);
         ReturnOrderStatusSynchronizer.Synchronize(order, returnRequests);
+        if (returnRequest.Type == ReturnType.Refund)
+        {
+            await _salesMetrics.ReverseApprovedRefundAsync(order, returnRequest, cancellationToken);
+        }
+
         if (_notificationService is not null)
         {
             await _notificationService.QueueReturnStatusChangedAsync(

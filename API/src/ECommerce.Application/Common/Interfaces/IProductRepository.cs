@@ -32,6 +32,11 @@ public interface IProductRepository
         IEnumerable<long> ids,
         CancellationToken cancellationToken = default);
 
+    // Burada soft-delete edilmiş ürünler dahil satış metriği güncellenecek ürünleri takipli getirme sözleşmesini tanımlıyorum.
+    Task<IReadOnlyList<Product>> GetByIdsForSalesMetricUpdateAsync(
+        IEnumerable<long> ids,
+        CancellationToken cancellationToken = default);
+
     // Burada ürünü ilişkileriyle güncelleme için getirme sözleşmesini tanımlıyorum.
     Task<Product?> GetWithRelationsForUpdateAsync(long id, CancellationToken cancellationToken = default);
 

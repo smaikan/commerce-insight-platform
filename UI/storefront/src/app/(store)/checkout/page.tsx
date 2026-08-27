@@ -6,7 +6,7 @@ import { getAccountAddresses } from "@/modules/account/api";
 import { withAccountSession } from "@/modules/account/session";
 import { getActiveShippingMethods } from "@/modules/checkout/api";
 import { CheckoutForm } from "@/modules/checkout/components/checkout-form";
-import { isCheckoutOrderCreationEnabled } from "@/modules/checkout/config";
+import { getSandboxPaymentInfo, isCheckoutOrderCreationEnabled } from "@/modules/checkout/config";
 
 export const metadata: Metadata = {
   title: "Siparişi Tamamla",
@@ -29,6 +29,7 @@ export default async function CheckoutPage() {
       currency={siteConfig.currency}
       turnstileSiteKey={turnstileSiteKey}
       orderCreationEnabled={isCheckoutOrderCreationEnabled()}
+      sandboxCardNumber={getSandboxPaymentInfo()?.cardNumber ?? null}
       accountAddresses={accountAddresses}
     />
   );

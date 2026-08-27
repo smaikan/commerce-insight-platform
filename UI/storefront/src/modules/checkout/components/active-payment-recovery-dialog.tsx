@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { IyzicoPaymentControl } from "@/modules/checkout/components/iyzico-payment-control";
 import { OrderCancellationControl } from "@/modules/checkout/components/order-cancellation-control";
+import { SandboxPaymentNotice } from "@/modules/checkout/components/sandbox-payment-notice";
 
 // Burada iyzico sayfasından ödemeden dönen müşteriyi ikinci sipariş oluşturmadan mevcut ödeme kararıyla buluşturuyorum.
 export function ActivePaymentRecoveryDialog({
@@ -11,12 +12,14 @@ export function ActivePaymentRecoveryDialog({
   orderNumber,
   orderStatus,
   accessMode,
+  sandboxCardNumber,
   onCancelled,
 }: {
   orderId: string;
   orderNumber: string;
   orderStatus: number;
   accessMode: "member" | "guest";
+  sandboxCardNumber: string | null;
   onCancelled: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -62,6 +65,8 @@ export function ActivePaymentRecoveryDialog({
           <p className="mt-1 break-all text-sm font-bold text-brand-950">{orderNumber}</p>
           <p className="mt-2 text-xs leading-5 text-ink-muted">Bu siparişteki ürünler ödeme sonucu kesinleşene kadar sizin için rezerve edilir.</p>
         </div>
+
+        {sandboxCardNumber ? <SandboxPaymentNotice cardNumber={sandboxCardNumber} /> : null}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <IyzicoPaymentControl orderId={orderId} />

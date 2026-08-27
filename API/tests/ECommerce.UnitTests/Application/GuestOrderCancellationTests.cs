@@ -88,7 +88,9 @@ public sealed class GuestOrderCancellationTests
                 new OrderCouponService(Mock.Of<ICouponRepository>(), clock),
                 notifications.Object,
                 clock,
-                unitOfWork.Object));
+                unitOfWork.Object,
+                Mock.Of<IAuthoritativeSalesMetricService>()),
+            Mock.Of<IAuthoritativeSalesMetricService>());
 
         var result = await service.CancelAsync("guest-session", "guest-csrf", order.Id, CancellationToken.None);
 

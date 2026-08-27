@@ -23,7 +23,7 @@ type ConfirmationState =
   | { kind: "error"; message: string };
 
 // Burada guest session grant'iyle alınan authoritative sipariş sonucunu yenilemede de kalıcı bir confirmation ekranında gösteriyorum.
-export function OrderConfirmation({ orderId, currency, accessMode }: { orderId: string; currency: string; accessMode: "member" | "guest" }) {
+export function OrderConfirmation({ orderId, currency, accessMode, sandboxCardNumber }: { orderId: string; currency: string; accessMode: "member" | "guest"; sandboxCardNumber: string | null }) {
   const [state, setState] = useState<ConfirmationState>({ kind: "loading" });
 
   useEffect(() => {
@@ -125,13 +125,13 @@ export function OrderConfirmation({ orderId, currency, accessMode }: { orderId: 
         <section className="mt-7 rounded-xl border border-danger/25 bg-danger/5 px-5 py-5" aria-labelledby="confirmation-payment-title">
           <h2 id="confirmation-payment-title" className="text-base font-bold text-danger">Ödeme tamamlanamadı</h2>
           <p className="mt-2 text-sm leading-6 text-ink-muted">Siparişiniz kayıtlı. Güvenli iyzico sayfasında yeni bir ödeme denemesi başlatabilirsiniz.</p>
-          <div className="mt-4 max-w-sm"><IyzicoPaymentControl orderId={order.id} newAttempt /></div>
+          <div className="mt-4 max-w-md"><IyzicoPaymentControl orderId={order.id} newAttempt sandboxCardNumber={sandboxCardNumber} /></div>
         </section>
       ) : (
         <section className="mt-7 rounded-xl border border-line bg-surface-subtle px-5 py-5" aria-labelledby="confirmation-payment-title">
           <h2 id="confirmation-payment-title" className="text-base font-bold text-ink">Ödeme bekleniyor</h2>
           <p className="mt-2 text-sm leading-6 text-ink-muted">Siparişiniz oluşturuldu; kart bilgilerinizi mağazayla paylaşmadan iyzico’nun güvenli ödeme sayfasına devam edin.</p>
-          <div className="mt-4 max-w-sm"><IyzicoPaymentControl orderId={order.id} /></div>
+          <div className="mt-4 max-w-md"><IyzicoPaymentControl orderId={order.id} sandboxCardNumber={sandboxCardNumber} /></div>
         </section>
       )}
 

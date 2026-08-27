@@ -52,6 +52,10 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(product => product.PopularityScore)
             .IsRequired();
 
+        builder.Property(product => product.NetSalesQuantity)
+            .HasDefaultValue(0L)
+            .IsRequired();
+
         builder.Property(product => product.ConcurrencyToken)
             .IsConcurrencyToken();
 
@@ -136,6 +140,8 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasIndex(product => product.Status);
         builder.HasIndex(product => product.DisplayOrder);
         builder.HasIndex(product => product.PopularityScore);
+        builder.HasIndex(product => new { product.NetSalesQuantity, product.Id })
+            .IsDescending(true, false);
         builder.HasIndex(product => product.DeletedAtUtc);
     }
 }

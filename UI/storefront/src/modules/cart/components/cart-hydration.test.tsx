@@ -66,6 +66,7 @@ describe("cart hydration boundary", () => {
         currency="TRY"
         turnstileSiteKey=""
         orderCreationEnabled={false}
+        sandboxCardNumber={null}
         accountAddresses={null}
       />,
     );

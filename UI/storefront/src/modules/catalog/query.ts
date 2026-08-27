@@ -7,17 +7,19 @@ import type {
 
 export const CATALOG_PAGE_SIZE = 24;
 
+// Burada satış adedi ile popülerlik puanını müşteriye ayrı ve doğru adlarla sunuyorum.
 export const CATALOG_SORT_LABELS: Record<CatalogSort, string> = {
   newest: "En yeni",
-  popular: "Çok Satanlar",
-  "display-order": "Görüntüleme sırası",
+  "best-selling": "Çok Satanlar",
+  popular: "Popülerlik",
   title: "Alfabetik",
 };
 
+// Burada görünür katalog seçeneklerini OpenAPI'deki sabit numeric enum değerlerine eşliyorum.
 const SORT_QUERY: Record<CatalogSort, Pick<PublishedProductQuery, "SortBy" | "Descending">> = {
   newest: { SortBy: 0, Descending: true },
+  "best-selling": { SortBy: 4, Descending: true },
   popular: { SortBy: 1, Descending: true },
-  "display-order": { SortBy: 2, Descending: false },
   title: { SortBy: 3, Descending: false },
 };
 
@@ -35,9 +37,9 @@ export function parseCatalogView(searchParams: CatalogSearchParams): CatalogView
   const rawPage = firstValue(searchParams.page);
   const page = Number.parseInt(rawPage || "1", 10);
   const rawSort = firstValue(searchParams.sort);
-  const sort = isCatalogSort(rawSort) ? rawSort : "newest";
+  const sort = normalizeCatalogSort(rawSort);
   const search = optionalSearch(searchParams.q);
-  const hasExplicitSort = isCatalogSort(rawSort) && (Boolean(search) || rawSort !== "newest");
+  const hasExplicitSort = isRecognizedCatalogSort(rawSort) && (Boolean(search) || sort !== "newest");
 
   const brandId = optionalUuid(searchParams.brand);
   const collectionId = optionalUuid(searchParams.collection);
@@ -145,6 +147,17 @@ function optionalUuid(value: string | string[] | undefined): string | undefined 
 function optionalSearch(value: string | string[] | undefined): string | undefined {
   const candidate = firstValue(value)?.trim().replace(/\s+/g, " ");
   return candidate && candidate.length >= 2 && candidate.length <= 100 ? candidate : undefined;
+}
+
+// Burada kaldırılan görüntüleme sırası URL'lerini yeni Popülerlik seçeneğine geriye dönük uyumlu biçimde taşıyorum.
+function normalizeCatalogSort(value: string | undefined): CatalogSort {
+  if (value === "display-order") return "popular";
+  return isCatalogSort(value) ? value : "newest";
+}
+
+// Burada güncel seçeneklerle eski görüntüleme sırası anahtarını temiz URL yönlendirmesi için tanıyorum.
+function isRecognizedCatalogSort(value: string | undefined): boolean {
+  return value === "display-order" || isCatalogSort(value);
 }
 
 // Burada kullanıcı URL'sindeki sıralama anahtarını desteklenen seçeneklerle sınırlandırıyorum.

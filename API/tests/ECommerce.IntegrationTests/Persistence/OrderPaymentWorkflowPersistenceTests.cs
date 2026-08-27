@@ -152,6 +152,7 @@ public sealed class OrderPaymentWorkflowPersistenceTests
         await context.Database.EnsureCreatedAsync();
         var user = await SeedUserAsync(context, "payment-handler@example.com");
         var order = CreateOrder(user.Id);
+        order.ChangeStatus(OrderStatus.Confirmed, DateTime.UtcNow);
         context.Orders.Add(order);
         await context.SaveChangesAsync();
         var handler = new CreatePaymentCommandHandler(
@@ -159,7 +160,8 @@ public sealed class OrderPaymentWorkflowPersistenceTests
             [new SuccessfulPaymentGateway()],
             new StubCurrentUser(user.Id),
             new FixedClock(),
-            new UnitOfWork(context));
+            new UnitOfWork(context),
+            new AuthoritativeSalesMetricService(new ProductRepository(context)));
 
         var result = await handler.Handle(
             new CreatePaymentCommand(order.Id, PaymentProvider.Fake, "payment_handler_key_0001"),

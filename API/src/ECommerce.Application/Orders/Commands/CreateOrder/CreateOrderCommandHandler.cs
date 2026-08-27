@@ -28,6 +28,7 @@ public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderComma
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderReservationPolicy _reservationPolicy;
     private readonly OrderCheckoutOrchestrator? _checkoutOrchestrator;
+    private readonly IAuthoritativeSalesMetricService? _salesMetrics;
 
     // Burada checkout akışının sepet, katalog, sipariş, metrik ve transaction bağımlılıklarını hazırlıyorum.
     public CreateOrderCommandHandler(
@@ -45,7 +46,8 @@ public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderComma
         IShippingMethodRepository? shippingMethodRepository = null,
         OrderPricingService? pricingService = null,
         IOrderNotificationService? notificationService = null,
-        OrderCheckoutOrchestrator? checkoutOrchestrator = null)
+        OrderCheckoutOrchestrator? checkoutOrchestrator = null,
+        IAuthoritativeSalesMetricService? salesMetrics = null)
     {
         _cartRepository = cartRepository;
         _productRepository = productRepository;
@@ -62,6 +64,7 @@ public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderComma
         _unitOfWork = unitOfWork;
         _reservationPolicy = reservationPolicy ?? DefaultOrderReservationPolicy.Instance;
         _checkoutOrchestrator = checkoutOrchestrator;
+        _salesMetrics = salesMetrics;
     }
 
     // Burada oturum açmış kullanıcının sepetini serializable transaction içinde siparişe dönüştürüyorum.
@@ -248,6 +251,11 @@ public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderComma
         order.EnsureItemsMatchSubTotal();
         StartStockReservationWhenPaymentIsRequired(order);
         MarkAsPaidWhenNoPaymentIsRequired(order);
+        if (order.Status == OrderStatus.Paid && _salesMetrics is not null)
+        {
+            await _salesMetrics.RecordPaidOrderAsync(order, cancellationToken);
+        }
+
         await _orderRepository.AddAsync(order, cancellationToken);
         await _couponService.ConsumeAsync(checkoutCoupon, userId, order, cancellationToken);
         if (_notificationService is not null)

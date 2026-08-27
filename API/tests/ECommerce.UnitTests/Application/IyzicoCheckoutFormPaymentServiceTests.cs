@@ -87,13 +87,16 @@ public sealed class IyzicoCheckoutFormPaymentServiceTests
                 It.Is<CartOwner>(owner => owner.UserId == 7),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(cart);
+        var salesMetrics = new Mock<IAuthoritativeSalesMetricService>();
         var service = CreateService(
             repository.Object,
             gateway,
             unitOfWork.Object,
-            carts: carts.Object);
+            carts: carts.Object,
+            salesMetrics: salesMetrics.Object);
 
         var result = await service.CompleteByTokenAsync("test-token", CancellationToken.None);
+        var replay = await service.CompleteByTokenAsync("test-token", CancellationToken.None);
 
         result.Status.Should().Be(PaymentStatus.Paid);
         payment.Status.Should().Be(PaymentStatus.Paid);
@@ -105,6 +108,10 @@ public sealed class IyzicoCheckoutFormPaymentServiceTests
         cart.IsEmpty.Should().BeTrue();
         gateway.RetrieveCallCount.Should().Be(1);
         gateway.LastRetrieveConversationId.Should().Be(payment.Id.ToString("N"));
+        replay.Status.Should().Be(PaymentStatus.Paid);
+        salesMetrics.Verify(metric => metric.RecordPaidOrderAsync(
+            order,
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // Burada iyzico'nun kalemlere sekiz basamakla dağıttığı tutarın kuruşa dengelenip başarılı ödemeyi reddetmediğini doğruluyorum.
@@ -558,7 +565,8 @@ public sealed class IyzicoCheckoutFormPaymentServiceTests
         IProductVariantRepository? variants = null,
         IOrderNotificationService? notifications = null,
         ICartRepository? carts = null,
-        IDateTimeProvider? clock = null)
+        IDateTimeProvider? clock = null,
+        IAuthoritativeSalesMetricService? salesMetrics = null)
     {
         var guestRepository = Mock.Of<IGuestOrderRepository>();
         var guestAccess = new GuestOrderAccessService(
@@ -594,7 +602,8 @@ public sealed class IyzicoCheckoutFormPaymentServiceTests
             unitOfWork,
             resolvedNotifications,
             carts ?? Mock.Of<ICartRepository>(),
-            new DefinitivePaymentFailureService(inventory, coupons, resolvedNotifications, resolvedClock));
+            new DefinitivePaymentFailureService(inventory, coupons, resolvedNotifications, resolvedClock),
+            salesMetrics ?? Mock.Of<IAuthoritativeSalesMetricService>());
     }
 
     // Burada üye ödeme testinde aynı takipli aggregate'ı döndüren repository mockunu hazırlıyorum.

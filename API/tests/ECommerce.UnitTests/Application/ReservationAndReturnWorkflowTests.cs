@@ -45,7 +45,8 @@ public sealed class ReservationAndReturnWorkflowTests
             coupons,
             clock,
             unitOfWork,
-            CreateDefinitivePaymentFailureService(inventory, coupons, clock));
+            CreateDefinitivePaymentFailureService(inventory, coupons, clock),
+            Mock.Of<IAuthoritativeSalesMetricService>());
 
         var result = await handler.Handle(new ExpireStockReservationsCommand(), CancellationToken.None);
 
@@ -86,7 +87,8 @@ public sealed class ReservationAndReturnWorkflowTests
             coupons,
             clock,
             unitOfWork,
-            CreateDefinitivePaymentFailureService(inventory, coupons, clock));
+            CreateDefinitivePaymentFailureService(inventory, coupons, clock),
+            Mock.Of<IAuthoritativeSalesMetricService>());
 
         var result = await handler.Handle(new ExpireStockReservationsCommand(), CancellationToken.None);
 
@@ -132,6 +134,7 @@ public sealed class ReservationAndReturnWorkflowTests
             clock,
             unitOfWork,
             CreateDefinitivePaymentFailureService(inventory, coupons, clock),
+            Mock.Of<IAuthoritativeSalesMetricService>(),
             [reconciler]);
 
         var result = await handler.Handle(new ExpireStockReservationsCommand(), CancellationToken.None);
@@ -183,6 +186,7 @@ public sealed class ReservationAndReturnWorkflowTests
             clock,
             unitOfWork,
             failureService,
+            Mock.Of<IAuthoritativeSalesMetricService>(),
             [new CancelledPaymentReconciler(PaymentProvider.Fake)]);
 
         var result = await handler.Handle(new ExpireStockReservationsCommand(), CancellationToken.None);
@@ -223,6 +227,7 @@ public sealed class ReservationAndReturnWorkflowTests
             clock,
             unitOfWork,
             CreateDefinitivePaymentFailureService(inventory, coupons, clock),
+            Mock.Of<IAuthoritativeSalesMetricService>(),
             [reconciler]);
 
         var result = await handler.Handle(new ExpireStockReservationsCommand(), CancellationToken.None);

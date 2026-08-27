@@ -3,6 +3,7 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Payments;
 using ECommerce.Application.Common.Security;
 using ECommerce.Application.Orders.Dtos;
+using ECommerce.Application.Orders.Services;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 using MediatR;
@@ -17,6 +18,7 @@ public sealed class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentC
     private readonly IDateTimeProvider _clock;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderNotificationService? _notificationService;
+    private readonly IAuthoritativeSalesMetricService _salesMetrics;
 
     // Burada ödeme denemesi için sipariş, sağlayıcı, kullanıcı, saat ve transaction bağımlılıklarını hazırlıyorum.
     public CreatePaymentCommandHandler(
@@ -25,6 +27,7 @@ public sealed class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentC
         ICurrentUserService currentUser,
         IDateTimeProvider clock,
         IUnitOfWork unitOfWork,
+        IAuthoritativeSalesMetricService salesMetrics,
         IOrderNotificationService? notificationService = null)
     {
         _orderRepository = orderRepository;
@@ -32,6 +35,7 @@ public sealed class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentC
         _currentUser = currentUser;
         _clock = clock;
         _unitOfWork = unitOfWork;
+        _salesMetrics = salesMetrics;
         _notificationService = notificationService;
     }
 
@@ -156,6 +160,7 @@ public sealed class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentC
 
             payment.MarkAsPaid(transactionId);
             order.ChangeStatus(OrderStatus.Paid, _clock.UtcNow);
+            await _salesMetrics.RecordPaidOrderAsync(order, cancellationToken);
         }
         else
         {

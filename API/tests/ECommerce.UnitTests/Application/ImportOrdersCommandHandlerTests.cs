@@ -13,6 +13,7 @@ namespace ECommerce.UnitTests.Application;
 
 public sealed class ImportOrdersCommandHandlerTests
 {
+    // Burada teslim edilmiş import siparişinin stok, eski etkileşim metriği ve lifecycle etkilerini koruduğunu doğruluyorum.
     [Fact]
     public async Task Handle_Should_Import_Delivered_Order_And_Apply_Inventory_And_Metrics_When_Requested()
     {
@@ -51,7 +52,8 @@ public sealed class ImportOrdersCommandHandlerTests
             Mock.Of<IShippingMethodRepository>(),
             metrics.Object,
             new FixedClock(),
-            unitOfWork.Object);
+            unitOfWork.Object,
+            Mock.Of<IAuthoritativeSalesMetricService>());
         var handler = new ImportOrderCommandHandler(processor);
         var request = new ImportedOrderInput(
             "EXT-1001",
@@ -85,6 +87,7 @@ public sealed class ImportOrdersCommandHandlerTests
         unitOfWork.Verify(unit => unit.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // Burada aynı sipariş numarasının tekrar import edilmesinin hiçbir yeni yan etki üretmediğini doğruluyorum.
     [Fact]
     public async Task Handle_Should_Return_Existing_Order_Without_Changing_Stock()
     {
@@ -102,7 +105,8 @@ public sealed class ImportOrdersCommandHandlerTests
             Mock.Of<IShippingMethodRepository>(),
             Mock.Of<IOrderMetricsRecorder>(),
             new FixedClock(),
-            unitOfWork.Object);
+            unitOfWork.Object,
+            Mock.Of<IAuthoritativeSalesMetricService>());
 
         var result = await new ImportOrderCommandHandler(processor).Handle(
             new ImportOrderCommand(new ImportedOrderInput(

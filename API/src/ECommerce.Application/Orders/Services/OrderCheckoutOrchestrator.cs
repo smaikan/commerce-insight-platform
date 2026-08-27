@@ -23,6 +23,7 @@ public sealed class OrderCheckoutOrchestrator
     private readonly IOrderNotificationService _notificationService;
     private readonly IDateTimeProvider _clock;
     private readonly IOrderReservationPolicy _reservationPolicy;
+    private readonly IAuthoritativeSalesMetricService _salesMetrics;
 
     // Burada üye ve guest checkout'un ortak güvenilir sipariş oluşturma bağımlılıklarını hazırlıyorum.
     public OrderCheckoutOrchestrator(
@@ -38,7 +39,8 @@ public sealed class OrderCheckoutOrchestrator
         OrderPricingService pricingService,
         IOrderNotificationService notificationService,
         IDateTimeProvider clock,
-        IOrderReservationPolicy reservationPolicy)
+        IOrderReservationPolicy reservationPolicy,
+        IAuthoritativeSalesMetricService salesMetrics)
     {
         _cartRepository = cartRepository;
         _productRepository = productRepository;
@@ -53,6 +55,7 @@ public sealed class OrderCheckoutOrchestrator
         _notificationService = notificationService;
         _clock = clock;
         _reservationPolicy = reservationPolicy;
+        _salesMetrics = salesMetrics;
     }
 
     // Burada fiyat, kargo, kupon, stok ve snapshot kurallarını tek checkout akışında atomik kayda hazırlıyorum.
@@ -113,6 +116,11 @@ public sealed class OrderCheckoutOrchestrator
         AddItems(order, lines, pricing);
         order.EnsureItemsMatchSubTotal();
         StartReservationOrCompleteFreeOrder(order);
+        if (order.Status == OrderStatus.Paid)
+        {
+            await _salesMetrics.RecordPaidOrderAsync(order, cancellationToken);
+        }
+
         await _orderRepository.AddAsync(order, cancellationToken);
         await _couponService.ConsumeAsync(checkoutCoupon, input.UserId, order, cancellationToken);
         if (order.Status == OrderStatus.Paid)
@@ -339,5 +347,3 @@ public sealed record CheckoutAddressInput(
         address.Id, address.Type, address.Title, address.FirstName, address.LastName,
         address.PhoneNumber, address.City, address.District, address.Neighborhood, address.FullAddress, address.PostalCode);
 }
-
-

@@ -16,6 +16,9 @@ public sealed class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
             tableBuilder.HasCheckConstraint("CK_OrderItems_TotalPrice_Positive", "[TotalPrice] > 0");
             tableBuilder.HasCheckConstraint("CK_OrderItems_Discount_Within_Total", "[DiscountTotal] >= 0 AND [DiscountTotal] <= [TotalPrice]");
             tableBuilder.HasCheckConstraint("CK_OrderItems_Tax_NonNegative", "[TaxTotal] >= 0 AND ([TaxRatePercentage] IS NULL OR ([TaxRatePercentage] >= 0 AND [TaxRatePercentage] <= 100))");
+            tableBuilder.HasCheckConstraint(
+                "CK_OrderItems_SalesMetric_Quantities",
+                "[PaidSalesQuantity] >= 0 AND [PaidSalesQuantity] <= [Quantity] AND [ReversedSalesQuantity] >= 0 AND [ReversedSalesQuantity] <= [PaidSalesQuantity]");
         });
 
         builder.HasKey(item => item.Id);
@@ -60,6 +63,14 @@ public sealed class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
 
         builder.Property(item => item.TaxTotal)
             .HasPrecision(18, 2)
+            .IsRequired();
+
+        builder.Property(item => item.PaidSalesQuantity)
+            .HasDefaultValue(0)
+            .IsRequired();
+
+        builder.Property(item => item.ReversedSalesQuantity)
+            .HasDefaultValue(0)
             .IsRequired();
 
         builder.HasOne<Product>()

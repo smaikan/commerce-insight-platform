@@ -30,6 +30,7 @@ public sealed class Product : AuditableEntity<long>
     public long ClickCount { get; private set; }
     public long TotalAddToCartCount { get; private set; }
     public long TotalPurchaseCount { get; private set; }
+    public long NetSalesQuantity { get; private set; }
     public long FavoriteCount { get; private set; }
     public long PopularityScore { get; private set; }
     public decimal AverageRating { get; private set; }
@@ -124,6 +125,43 @@ public sealed class Product : AuditableEntity<long>
 
         TotalPurchaseCount += quantity;
         PopularityScore += (long)quantity * PurchaseScoreWeight;
+        MarkAsChanged();
+    }
+
+    // Burada kesinleşmiş ücretli satış adedini popülerlik metriğinden bağımsız artırıyorum.
+    public void IncreaseNetSalesQuantity(long quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new DomainException("Net sales quantity must be greater than zero.");
+        }
+
+        try
+        {
+            NetSalesQuantity = checked(NetSalesQuantity + quantity);
+        }
+        catch (OverflowException exception)
+        {
+            throw new DomainException("Net sales quantity exceeds the supported range.", exception);
+        }
+
+        MarkAsChanged();
+    }
+
+    // Burada kesin finansal ters işlem gören satış adedini negatif sonuca izin vermeden azaltıyorum.
+    public void DecreaseNetSalesQuantity(long quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new DomainException("Net sales quantity must be greater than zero.");
+        }
+
+        if (quantity > NetSalesQuantity)
+        {
+            throw new DomainException("Net sales quantity cannot become negative.");
+        }
+
+        NetSalesQuantity -= quantity;
         MarkAsChanged();
     }
 

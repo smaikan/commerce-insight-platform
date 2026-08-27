@@ -1,6 +1,7 @@
 using ECommerce.Application.Common.Exceptions;
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Security;
+using ECommerce.Application.Orders.Services;
 using ECommerce.Application.Returns.Commands.ApproveReturnRequest;
 using ECommerce.Application.Returns.Commands.ReceiveReturnRequest;
 using ECommerce.Application.Returns.Services;
@@ -59,7 +60,8 @@ public sealed class ReturnLifecyclePersistenceTests
                 new OrderRepository(approveContext),
                 new ReturnInventoryService(new ProductVariantRepository(approveContext)),
                 approveClock,
-                new UnitOfWork(approveContext));
+                new UnitOfWork(approveContext),
+                new AuthoritativeSalesMetricService(new ProductRepository(approveContext)));
 
             await handler.Handle(new ApproveReturnRequestCommand(seeded.ReturnRequestId, "Inspected"), CancellationToken.None);
         }
@@ -136,7 +138,8 @@ public sealed class ReturnLifecyclePersistenceTests
                 new OrderRepository(writeContext),
                 new ReturnInventoryService(new ProductVariantRepository(writeContext)),
                 clock,
-                new UnitOfWork(writeContext));
+                new UnitOfWork(writeContext),
+                new AuthoritativeSalesMetricService(new ProductRepository(writeContext)));
 
             Func<Task> approve = () => handler.Handle(
                 new ApproveReturnRequestCommand(seeded.ReturnRequestId),

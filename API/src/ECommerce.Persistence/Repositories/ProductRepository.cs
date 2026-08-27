@@ -100,6 +100,18 @@ public sealed class ProductRepository : IProductRepository
             .ToListAsync(cancellationToken);
     }
 
+    // Burada geçmiş siparişlerin metriği soft-delete edilmiş ürünlerde de düzeltilebilsin diye ürünleri kararlı sırayla takipli getiriyorum.
+    public async Task<IReadOnlyList<Product>> GetByIdsForSalesMetricUpdateAsync(
+        IEnumerable<long> ids,
+        CancellationToken cancellationToken = default)
+    {
+        var productIds = ids.Where(id => id > 0).Distinct().OrderBy(id => id).ToList();
+        return await _context.Products
+            .Where(product => productIds.Contains(product.Id))
+            .OrderBy(product => product.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     // Burada vergi oranı güncellemesinden etkilenen ürünleri ve varyantlarını takipli getiriyorum.
     public async Task<IReadOnlyList<Product>> GetByTaxRateIdForUpdateAsync(
         Guid taxRateId,

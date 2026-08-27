@@ -18,6 +18,7 @@ public sealed class ReturnItem : BaseEntity
     public string VariantSkuSnapshot { get; private set; } = null!;
     public decimal UnitPrice { get; private set; }
     public int Quantity { get; private set; }
+    public int SalesMetricReversedQuantity { get; private set; }
     public decimal LineTotal { get; private set; }
     public decimal RefundTotal { get; private set; }
     public Guid? ReplacementProductVariantId { get; private set; }
@@ -85,6 +86,23 @@ public sealed class ReturnItem : BaseEntity
         LineTotal = CalculateLineTotal(UnitPrice, Quantity);
         RefundTotal = ValidateRefundTotal(returnRequest.Type, refundTotal, LineTotal);
         ReplacementProductVariantId = replacementProductVariantId;
+    }
+
+    // Burada bu iade kaleminin satış metriğine henüz yansıtılmamış adedini hesaplıyorum.
+    public int GetPendingSalesMetricReversalQuantity()
+    {
+        return Quantity - SalesMetricReversedQuantity;
+    }
+
+    // Burada yalnız gerçekten uygulanan satış metriği reversal adedini kalıcı intent işareti olarak kaydediyorum.
+    public void RecordSalesMetricReversal(int quantity)
+    {
+        if (quantity <= 0 || quantity > GetPendingSalesMetricReversalQuantity())
+        {
+            throw new DomainException("Sales metric reversal quantity is invalid for the return item.");
+        }
+
+        SalesMetricReversedQuantity += quantity;
     }
 
     // Burada iade kaleminin ürün bedeli ile adedinden desteklenen para sınırında toplamı hesaplıyorum.

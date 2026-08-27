@@ -13,8 +13,10 @@ import {
 describe("catalog query", () => {
   // Burada sıralama etiketlerinin API'deki gerçek alanları kullanıcıya doğru anlattığını doğruluyorum.
   it("uses accurate customer-facing sort labels", () => {
-    expect(CATALOG_SORT_LABELS["display-order"]).toBe("Görüntüleme sırası");
+    expect(CATALOG_SORT_LABELS["best-selling"]).toBe("Çok Satanlar");
+    expect(CATALOG_SORT_LABELS.popular).toBe("Popülerlik");
     expect(CATALOG_SORT_LABELS.title).toBe("Alfabetik");
+    expect(Object.keys(CATALOG_SORT_LABELS)).not.toContain("display-order");
   });
 
   // Burada geçersiz URL değerlerinin güvenli katalog varsayılanlarına döndüğünü doğruluyorum.
@@ -22,14 +24,33 @@ describe("catalog query", () => {
     expect(parseCatalogView({ page: "-4", sort: "unknown" })).toEqual({ page: 1, sort: "newest" });
   });
 
-  // Burada popüler sıralamanın backend numeric enum ve yön değerine doğru çevrildiğini doğruluyorum.
-  it("maps popular sorting to the documented API query", () => {
+  // Burada çok satanlar sıralamasının kesinleşmiş net satış enumuna ve azalan yöne çevrildiğini doğruluyorum.
+  it("maps best-selling sorting to the documented API query", () => {
+    expect(toPublishedProductQuery({ page: 2, sort: "best-selling" })).toEqual({
+      PageNumber: 2,
+      PageSize: 24,
+      SortBy: 4,
+      Descending: true,
+    });
+  });
+
+  // Burada popülerlik sıralamasının ağırlıklı puan enumuna ve azalan yöne çevrildiğini doğruluyorum.
+  it("maps popularity sorting to the documented API query", () => {
     expect(toPublishedProductQuery({ page: 2, sort: "popular" })).toEqual({
       PageNumber: 2,
       PageSize: 24,
       SortBy: 1,
       Descending: true,
     });
+  });
+
+  // Burada eski görüntüleme sırası bağlantısını Popülerlik seçimine taşıyıp temiz URL yönlendirmesini doğruluyorum.
+  it("migrates legacy display-order links to popularity", () => {
+    const view = parseCatalogView({ sort: "display-order" });
+
+    expect(view).toEqual({ page: 1, sort: "popular", hasExplicitSort: true });
+    expect(catalogHref(view)).toBe("/products?sort=popular");
+    expect(catalogSearchParamsNeedRedirect({ sort: "display-order" }, view)).toBe(true);
   });
 
   // Burada arama metninin API Search alanına taşındığını ve seçim yokken relevance'ı ezebilecek SortBy üretilmediğini doğruluyorum.

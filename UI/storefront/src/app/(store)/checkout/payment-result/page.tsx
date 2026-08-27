@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { isUuid } from "@/lib/validation/identifiers";
 import { PaymentResult } from "@/modules/checkout/components/payment-result";
+import { getSandboxPaymentInfo } from "@/modules/checkout/config";
 
 export const metadata: Metadata = {
   title: "Ödeme sonucu",
@@ -18,5 +19,5 @@ export default async function PaymentResultPage({ searchParams }: PaymentResultP
   const query = await searchParams;
   const orderId = typeof query.orderId === "string" ? query.orderId : "";
   if (!isUuid(orderId)) notFound();
-  return <PaymentResult orderId={orderId} />;
+  return <PaymentResult orderId={orderId} sandboxCardNumber={getSandboxPaymentInfo()?.cardNumber ?? null} />;
 }

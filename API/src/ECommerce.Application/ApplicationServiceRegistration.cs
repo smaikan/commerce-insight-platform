@@ -42,6 +42,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<ICartMetricsRecorder, CartMetricsRecorder>();
         services.AddScoped<StoreSettingsService>();
         services.AddScoped<IOrderMetricsRecorder, OrderMetricsRecorder>();
+        services.AddScoped<IAuthoritativeSalesMetricService, AuthoritativeSalesMetricService>();
         services.AddScoped<ImportedOrderProcessor>();
         services.AddScoped<OrderInventoryService>();
         services.AddScoped<OrderCouponService>();

@@ -77,7 +77,9 @@ public sealed class ImportedOrderProcessor
     private readonly IOrderMetricsRecorder _metricsRecorder;
     private readonly IDateTimeProvider _clock;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAuthoritativeSalesMetricService _salesMetrics;
 
+    // Burada import işlemcisini sipariş, katalog, metrik, saat ve transaction bağımlılıklarıyla hazırlıyorum.
     public ImportedOrderProcessor(
         IOrderRepository orderRepository,
         IUserRepository userRepository,
@@ -86,7 +88,8 @@ public sealed class ImportedOrderProcessor
         IShippingMethodRepository shippingMethodRepository,
         IOrderMetricsRecorder metricsRecorder,
         IDateTimeProvider clock,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IAuthoritativeSalesMetricService salesMetrics)
     {
         _orderRepository = orderRepository;
         _userRepository = userRepository;
@@ -96,6 +99,7 @@ public sealed class ImportedOrderProcessor
         _metricsRecorder = metricsRecorder;
         _clock = clock;
         _unitOfWork = unitOfWork;
+        _salesMetrics = salesMetrics;
     }
 
     public Task<OrderImportResultDto> ImportAsync(ImportedOrderInput input, CancellationToken cancellationToken) =>
@@ -106,6 +110,7 @@ public sealed class ImportedOrderProcessor
             return result;
         }, cancellationToken);
 
+    // Burada tek bir harici siparişi idempotent biçimde doğrulayıp lifecycle ve metrik etkileriyle hazırlıyorum.
     public async Task<OrderImportResultDto> ImportCoreAsync(ImportedOrderInput input, CancellationToken cancellationToken)
     {
         var orderNumber = NormalizeOrderNumber(input.OrderNumber);
@@ -161,6 +166,15 @@ public sealed class ImportedOrderProcessor
         if (input.ApplyInventoryAndMetrics)
         {
             await ApplyFulfillmentEffectsAsync(order, input, variants, cancellationToken);
+        }
+
+        if (RequiresPaidPayment(input.Status))
+        {
+            await _salesMetrics.RecordPaidOrderAsync(order, cancellationToken);
+            if (input.Status == OrderStatus.Refunded)
+            {
+                await _salesMetrics.ReverseCancelledOrderAsync(order, cancellationToken);
+            }
         }
 
         return new OrderImportResultDto(order.ToDto(), true);

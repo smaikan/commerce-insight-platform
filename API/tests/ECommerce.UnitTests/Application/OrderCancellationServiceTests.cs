@@ -41,6 +41,9 @@ public sealed class OrderCancellationServiceTests
             fixture.Payment,
             fixture.Operations.Stored,
             It.IsAny<CancellationToken>()), Times.Once);
+        fixture.SalesMetrics.Verify(metric => metric.ReverseCancelledOrderAsync(
+            fixture.Order,
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // Burada cancel isteği timeout verdiğinde sipariş ve ödeme değişmeden 202 polling operasyonunun döndüğünü doğruluyorum.
@@ -322,6 +325,7 @@ public sealed class OrderCancellationServiceTests
                     [])).ToList())
         };
         var notifications = new Mock<IOrderNotificationService>();
+        var salesMetrics = new Mock<IAuthoritativeSalesMetricService>();
         var service = new OrderCancellationService(
             orders.Object,
             operations,
@@ -331,7 +335,8 @@ public sealed class OrderCancellationServiceTests
             new OrderCouponService(Mock.Of<ICouponRepository>(), clock),
             notifications.Object,
             clock,
-            new ImmediateUnitOfWork());
+            new ImmediateUnitOfWork(),
+            salesMetrics.Object);
         return new CancellationFixture(
             service,
             order,
@@ -340,6 +345,7 @@ public sealed class OrderCancellationServiceTests
             operations,
             gateway,
             notifications,
+            salesMetrics,
             clock);
     }
 
@@ -351,6 +357,7 @@ public sealed class OrderCancellationServiceTests
         InMemoryCancellationOperationRepository Operations,
         RecordingCheckoutFormGateway Gateway,
         Mock<IOrderNotificationService> Notifications,
+        Mock<IAuthoritativeSalesMetricService> SalesMetrics,
         FixedClock Clock);
 
     private sealed class FixedClock : IDateTimeProvider

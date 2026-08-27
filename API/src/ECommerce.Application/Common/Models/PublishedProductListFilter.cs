@@ -22,8 +22,9 @@ public sealed record PublishedProductListFilter(
 // Burada storefront ürün listesinin desteklediği sıralama alanlarını tanımlıyorum.
 public enum PublishedProductSortBy
 {
-    Newest,
-    Popularity,
-    DisplayOrder,
-    Title
+    Newest = 0,
+    Popularity = 1,
+    DisplayOrder = 2,
+    Title = 3,
+    BestSelling = 4
 }

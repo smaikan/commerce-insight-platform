@@ -3,6 +3,7 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.Common.Models;
 using ECommerce.Application.Common.Payments;
 using ECommerce.Application.Common.Security;
+using ECommerce.Application.Orders.Services;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 
@@ -20,6 +21,7 @@ public sealed class CheckoutFormPaymentService : IPendingPaymentCancellationReco
     private readonly IOrderNotificationService _notifications;
     private readonly ICartRepository _carts;
     private readonly DefinitivePaymentFailureService _definitiveFailure;
+    private readonly IAuthoritativeSalesMetricService _salesMetrics;
 
     // Burada üye ve guest hosted ödeme akışının ortak bağımlılıklarını hazırlıyorum.
     public CheckoutFormPaymentService(
@@ -32,7 +34,8 @@ public sealed class CheckoutFormPaymentService : IPendingPaymentCancellationReco
         IUnitOfWork unitOfWork,
         IOrderNotificationService notifications,
         ICartRepository carts,
-        DefinitivePaymentFailureService definitiveFailure)
+        DefinitivePaymentFailureService definitiveFailure,
+        IAuthoritativeSalesMetricService salesMetrics)
     {
         _orders = orders;
         _guestOrders = guestOrders;
@@ -44,6 +47,7 @@ public sealed class CheckoutFormPaymentService : IPendingPaymentCancellationReco
         _notifications = notifications;
         _carts = carts;
         _definitiveFailure = definitiveFailure;
+        _salesMetrics = salesMetrics;
     }
 
     // Burada oturumdaki kullanıcının kendi siparişi için idempotent CheckoutForm oturumu başlatıyorum.
@@ -222,6 +226,11 @@ public sealed class CheckoutFormPaymentService : IPendingPaymentCancellationReco
                     payment,
                     result,
                     transactionCancellationToken);
+                if (payment.Status == PaymentStatus.Paid)
+                {
+                    await _salesMetrics.RecordPaidOrderAsync(order, transactionCancellationToken);
+                }
+
                 if (payment.Status == PaymentStatus.Paid && payment.ItemTransactions.Count == 0)
                 {
                     var providerItems = MapAndValidateProviderItems(order, result);

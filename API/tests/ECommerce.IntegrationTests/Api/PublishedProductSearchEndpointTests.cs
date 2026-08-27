@@ -204,6 +204,25 @@ public sealed class PublishedProductSearchEndpointTests
         var published = paths.GetProperty("/api/products/published").GetProperty("get");
         published.GetProperty("parameters").EnumerateArray()
             .Should().Contain(parameter => parameter.GetProperty("name").GetString() == "Search");
+        foreach (var path in new[]
+                 {
+                     "/api/products/published",
+                     "/api/products/by-collection/{collectionId}",
+                     "/api/products/by-tag/{tagId}",
+                     "/api/products/by-type/{typeId}",
+                     "/api/products/by-brand/{brandId}"
+                 })
+        {
+            var sortBy = paths.GetProperty(path).GetProperty("get").GetProperty("parameters")
+                .EnumerateArray()
+                .Single(parameter => parameter.GetProperty("name").GetString() == "SortBy");
+            sortBy.GetProperty("description").GetString().Should().Contain("4 BestSelling");
+        }
+
+        document.RootElement.GetProperty("components").GetProperty("schemas")
+            .GetProperty("PublishedProductSortBy").GetProperty("enum")
+            .EnumerateArray().Select(value => value.GetInt32())
+            .Should().Equal(0, 1, 2, 3, 4);
     }
 
     private sealed class SearchScenario : IAsyncDisposable

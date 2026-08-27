@@ -16,6 +16,7 @@ describe("active payment recovery dialog", () => {
         orderNumber="ORD-RECOVERY-001"
         orderStatus={0}
         accessMode="guest"
+        sandboxCardNumber="4543590000000006"
         onCancelled={vi.fn()}
       />,
     );
@@ -25,6 +26,7 @@ describe("active payment recovery dialog", () => {
     expect(html).toContain("Ödemeniz henüz tamamlanmadı");
     expect(html).toContain("ORD-RECOVERY-001");
     expect(html).toContain("Ödemeye devam et");
+    expect(html).toContain("4543 5900 0000 0006");
     expect(html).toContain("Siparişi iptal et");
     expect(html).toContain("ayrılan stok yeniden kullanılabilir olur");
     expect(html).not.toContain("Alışverişe devam et");

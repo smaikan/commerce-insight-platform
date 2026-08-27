@@ -28,6 +28,7 @@ import {
 } from "@/modules/checkout/client/checkout-api";
 import { createMemberOrderAction } from "@/modules/checkout/actions";
 import { ActivePaymentRecoveryDialog } from "@/modules/checkout/components/active-payment-recovery-dialog";
+import { SandboxPaymentNotice } from "@/modules/checkout/components/sandbox-payment-notice";
 import { TurnstileChallenge } from "@/modules/checkout/components/turnstile-challenge";
 import type {
   GuestAddressRequest,
@@ -69,12 +70,14 @@ export function CheckoutForm({
   currency,
   turnstileSiteKey,
   orderCreationEnabled,
+  sandboxCardNumber,
   accountAddresses,
 }: {
   shippingMethods: ShippingMethod[];
   currency: string;
   turnstileSiteKey: string;
   orderCreationEnabled: boolean;
+  sandboxCardNumber: string | null;
   accountAddresses: CheckoutAddress[] | null;
 }) {
   const router = useRouter();
@@ -292,6 +295,7 @@ export function CheckoutForm({
           orderNumber={activeOrderRecovery.orderNumber}
           orderStatus={activeOrderRecovery.orderStatus}
           accessMode={isMember ? "member" : "guest"}
+          sandboxCardNumber={sandboxCardNumber}
           onCancelled={() => setActiveOrderRecovery({ kind: "clear" })}
         />
       </>
@@ -547,6 +551,8 @@ export function CheckoutForm({
               }}
             />
           ) : null}
+
+          {sandboxCardNumber ? <div className="mt-5"><SandboxPaymentNotice cardNumber={sandboxCardNumber} /></div> : null}
 
           <button type="submit" disabled={checkoutBlocked || isSubmitting || (!isMember && challengeRequired && !turnstileToken)} aria-busy={isSubmitting} className="focus-ring mt-6 min-h-12 w-full rounded-lg bg-brand-700 px-5 text-sm font-bold text-white hover:bg-brand-950 disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-muted">
             {isSubmitting ? "Güvenli ödeme hazırlanıyor…" : "Güvenli ödemeye geç"}

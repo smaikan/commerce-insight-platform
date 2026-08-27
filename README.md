@@ -14,6 +14,10 @@ Deployment yapılandırması aşağıdaki adresleri kullanır; erişilebilirlik 
 - **Yönetim Paneli (Admin):** [https://admin.serhateleven.com.tr](https://admin.serhateleven.com.tr)
 - **Backend API:** [https://api.serhateleven.com.tr](https://api.serhateleven.com.tr)
 
+## API Dokümantasyonu
+
+API'yi entegre edecek geliştiriciler için hazırlanan [insan odaklı API rehberi](docs/api/README.md); hızlı başlangıç, kimlik doğrulama, yetki kuralları, temel iş akışları ve **286 operasyonun** görev bazlı endpoint sözleşmelerini içerir. Makine tarafından okunabilir güncel sözleşme için [OpenAPI JSON](docs/api/openapi.json) dosyasını kullanabilirsiniz.
+
 ---
 
 ## Projenin Teknik Yaklaşımı
@@ -163,6 +167,7 @@ Uygulama kapsamı, doğrulama sonuçları ve açık API sözleşmeleri için [`U
 │   ├── admin/                         # Yönetim Paneli (Next.js 16 - Port 3001)
 │   └── docs/                          # API sözleşmeleri, mimari rehberler ve dökümantasyon
 │
+├── docs/api/                          # İnsan odaklı, görev bazlı API dokümantasyonu
 ├── docker-compose.yml                 # SQL Server, Redis, API ve UI konteyner orkestrasyonu
 └── README.md                          # Proje Ana Dökümanı
 ```

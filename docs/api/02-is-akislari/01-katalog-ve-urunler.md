@@ -15,6 +15,18 @@ Yetki: **Public**.
 
 Yanıt sayfalıdır ve kart için gereken ürün özeti, ana görsel, fiyat ve görünürlük bilgilerini taşır. Storefront aynı satır için ayrıca ürün detayı/görsel isteği yaparak N+1 oluşturmamalıdır.
 
+Sıralama değerleri geriye uyumludur: `Newest=0`, `Popularity=1`, `DisplayOrder=2`, `Title=3`, `BestSelling=4`. `Popularity` ağırlıklı etkileşim puanını; `BestSelling` yalnız kesinleşmiş ödeme sonrası kalan net ürün adedini kullanır. Eşit değerler `Product.Id ASC` ile kararlı sıralanır.
+
+## Net satış metriği yaşam döngüsü
+
+- Pending, kesin başarısız veya provider sonucu belirsiz siparişler sayılmaz.
+- Ücretli sipariş yalnız ödeme `Paid` kesinleşince; sıfır tutarlı sipariş sipariş `Paid` olunca bir kez eklenir.
+- Callback, worker, retry ve reconciliation aynı sipariş kalemini ikinci kez artıramaz.
+- Başarılı finansal sipariş iptali bütün kalemleri; onaylı refund/iade yalnız ilgili ürün ve adedi bir kez azaltır.
+- Kısmi refund kalan adedi satış metriğinde tutar. Exchange yeni satış veya satış reversal'ı oluşturmaz.
+- `TotalPurchaseCount` ve buna bağlı `PopularityScore` mevcut etkileşim metriği anlamıyla korunur; `BestSelling` ayrı `NetSalesQuantity` alanını kullanır.
+- Geçmiş kayıtlar migration sırasında `PaidAt`, tamamlanmış finansal iptal ve onaylı/tamamlanmış refund kalemlerinden tekrar çalıştırılabilir biçimde türetilir.
+
 Public filtre seçenekleri ürün adediyle birlikte şu endpointlerden alınır:
 
 - `GET /api/products/published/facets/brands`
@@ -98,4 +110,3 @@ Birden fazla varyant varsa `hasVariants=true` olmalıdır. Varyantın `name` ve 
 
 - [Katalog ve etkileşim endpointleri](../03-endpoint-referansi/02-katalog/README.md)
 - [Stok endpointleri](../03-endpoint-referansi/04-operasyon/README.md)
-

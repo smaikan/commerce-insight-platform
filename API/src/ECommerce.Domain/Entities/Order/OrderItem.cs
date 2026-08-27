@@ -27,6 +27,8 @@ public sealed class OrderItem : BaseEntity
     public string? ImageAltSnapshot { get; private set; }
     public decimal UnitPrice { get; private set; }
     public int Quantity { get; private set; }
+    public int PaidSalesQuantity { get; private set; }
+    public int ReversedSalesQuantity { get; private set; }
     public decimal TotalPrice { get; private set; }
     public decimal DiscountTotal { get; private set; }
     // Burada eski siparişlerde kaynak şema oran bilgisini saklamadığından nullable vergi oranı snapshot'ını taşıyorum.
@@ -101,6 +103,38 @@ public sealed class OrderItem : BaseEntity
         var validatedTaxRatePercentage = ValidateTaxRatePercentage(taxRatePercentage);
         TaxRatePercentage = validatedTaxRatePercentage;
         TaxTotal = ValidateTaxTotal(taxTotal, TotalPrice, DiscountTotal, validatedTaxRatePercentage);
+    }
+
+    // Burada ödeme kesinleştiğinde sipariş kalemini yalnız eksik kalan adet kadar satış metriğine dahil ediyorum.
+    public int RecordPaidSale()
+    {
+        var quantityToRecord = Quantity - PaidSalesQuantity;
+        if (quantityToRecord <= 0)
+        {
+            return 0;
+        }
+
+        PaidSalesQuantity = Quantity;
+        return quantityToRecord;
+    }
+
+    // Burada kesin finansal ters işlemi yalnız daha önce sayılmış ve henüz terslenmemiş adetlere uyguluyorum.
+    public int ReversePaidSale(int quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new DomainException("Reversed sales quantity must be greater than zero.");
+        }
+
+        var availableQuantity = PaidSalesQuantity - ReversedSalesQuantity;
+        var quantityToReverse = Math.Min(quantity, availableQuantity);
+        if (quantityToReverse <= 0)
+        {
+            return 0;
+        }
+
+        ReversedSalesQuantity += quantityToReverse;
+        return quantityToReverse;
     }
 
     // Burada sipariş kaleminin adet ve birim fiyatından taşmasız toplam fiyatı hesaplıyorum.

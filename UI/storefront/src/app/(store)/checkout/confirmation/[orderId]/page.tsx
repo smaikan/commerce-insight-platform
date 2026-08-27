@@ -5,6 +5,7 @@ import { isUuid } from "@/lib/validation/identifiers";
 import { siteConfig } from "@/lib/site-config";
 import { hasAuthSessionCookie } from "@/lib/auth/cookies";
 import { OrderConfirmation } from "@/modules/checkout/components/order-confirmation";
+import { getSandboxPaymentInfo } from "@/modules/checkout/config";
 
 export const metadata: Metadata = {
   title: "Sipariş onayı",
@@ -23,5 +24,5 @@ export default async function ConfirmationPage({ params, searchParams }: Confirm
   const query = await searchParams;
   const guestAccess = query.access === "guest";
   const accessMode = !guestAccess && await hasAuthSessionCookie() ? "member" : "guest";
-  return <OrderConfirmation orderId={orderId} currency={siteConfig.currency} accessMode={accessMode} />;
+  return <OrderConfirmation orderId={orderId} currency={siteConfig.currency} accessMode={accessMode} sandboxCardNumber={getSandboxPaymentInfo()?.cardNumber ?? null} />;
 }

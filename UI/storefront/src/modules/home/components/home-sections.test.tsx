@@ -77,6 +77,7 @@ describe("Home page components", () => {
     expect(html).toContain("En Çok Satanlar");
     expect(html).toContain("Yeni Gelenler");
     expect(html).toContain("Test Küpe");
+    expect(html).toContain("/products?sort=best-selling");
   });
 
   it("renders HomeBentoCategories with asymmetric cards", () => {
