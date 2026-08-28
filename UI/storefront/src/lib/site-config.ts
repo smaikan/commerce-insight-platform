@@ -5,7 +5,7 @@ function absoluteOrigin(value: string | undefined, fallback: string): string {
 
 // Burada marka, canonical origin, API origin ve para birimini tek sunucu yapılandırmasından okuyorum.
 export const siteConfig = {
-  name: process.env.SITE_NAME?.trim() || "SERANTIS",
+  name: process.env.SITE_NAME?.trim() || "ELEVEN",
   description:
     process.env.SITE_DESCRIPTION?.trim() ||
     "Özenle seçilen ürünleri keşfedin ve güvenle alışveriş yapın.",
