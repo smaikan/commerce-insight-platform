@@ -90,6 +90,53 @@ public sealed class AdminDashboardReader : IAdminDashboardReader
         }
     }
 
+    // Burada sipariş ve iletişim iş kuyruğu sayaçlarını tek SQL round-trip'inde topluyorum.
+    public async Task<AdminWorkQueueSummaryDto> GetWorkQueueSummaryAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = _context.Database.GetDbConnection();
+        var shouldCloseConnection = connection.State != ConnectionState.Open;
+        if (shouldCloseConnection)
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT
+                    (SELECT COUNT(*)
+                     FROM [Orders]
+                     WHERE [Status] IN (@pendingStatus, @confirmedStatus, @paidStatus)) AS OrdersAwaitingProcessingCount,
+                    (SELECT COUNT(*)
+                     FROM [ContactMessages]
+                     WHERE [Status] = @newContactMessageStatus) AS NewContactMessageCount;
+                """;
+            AddParameter(command, "@pendingStatus", OrderStatus.Pending.ToString());
+            AddParameter(command, "@confirmedStatus", OrderStatus.Confirmed.ToString());
+            AddParameter(command, "@paidStatus", OrderStatus.Paid.ToString());
+            AddParameter(command, "@newContactMessageStatus", ContactMessageStatus.New.ToString());
+
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            if (!await reader.ReadAsync(cancellationToken))
+            {
+                throw new InvalidOperationException("Admin work queue aggregate query did not return a result.");
+            }
+
+            return new AdminWorkQueueSummaryDto(
+                ReadInt32(reader, 0),
+                ReadInt32(reader, 1),
+                DateTime.UtcNow);
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
     // Burada sağlayıcı bağımsız aggregate sayısını API sözleşmesindeki int değere dönüştürüyorum.
     private static int ReadInt32(DbDataReader reader, int ordinal) =>
         Convert.ToInt32(reader.GetValue(ordinal), CultureInfo.InvariantCulture);

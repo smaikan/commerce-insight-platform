@@ -4,7 +4,7 @@
 
 Bu dokümantasyon, projedeki ASP.NET Core API'yi kullanan geliştiriciler için hazırlanmıştır. Amacı yalnızca endpoint listesini göstermek değil; doğru yetkiyle istek göndermeyi, hata durumlarını yönetmeyi ve temel e-ticaret akışlarını güvenli biçimde kurmayı açıklamaktır.
 
-Dokümantasyon 26 Ağustos 2026 tarihli sözleşmeyi esas alır ve **286 HTTP operasyonunu** kapsar. Örneklerdeki kimlikler, e-posta adresleri ve tokenlar temsilidir.
+Dokümantasyon 27 Ağustos 2026 tarihli sözleşmeyi esas alır ve **287 HTTP operasyonunu** kapsar. Örneklerdeki kimlikler, e-posta adresleri ve tokenlar temsilidir.
 
 ## Nereden başlamalıyım?
 

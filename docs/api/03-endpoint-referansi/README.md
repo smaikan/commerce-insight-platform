@@ -2,14 +2,14 @@
 
 [API dokümantasyonuna dön](../README.md)
 
-Bu referans güncel OpenAPI sözleşmesindeki **286 operasyonun tamamını** kapsar. Her bölümde endpoint, erişim seviyesi, kısa amaç ve ayrıntılı sözleşme bağlantısı bulunur.
+Bu referans güncel OpenAPI sözleşmesindeki **287 operasyonun tamamını** kapsar. Her bölümde endpoint, erişim seviyesi, kısa amaç ve ayrıntılı sözleşme bağlantısı bulunur.
 
 | Bölüm | Operasyon |
 | --- | ---: |
 | [Kimlik ve kullanıcılar](./01-kimlik-ve-kullanicilar/README.md) | 25 |
 | [Katalog](./02-katalog/README.md) | 77 |
 | [Satış ve sipariş](./03-satis-ve-siparis/README.md) | 43 |
-| [Operasyon](./04-operasyon/README.md) | 22 |
+| [Operasyon](./04-operasyon/README.md) | 23 |
 | [Muhasebe](./05-muhasebe/README.md) | 84 |
 | [Mağaza ve iletişim](./06-magaza-ve-iletisim/README.md) | 35 |
 

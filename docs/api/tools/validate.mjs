@@ -95,7 +95,7 @@ for (const [path, pathItem] of Object.entries(openApi.paths ?? {})) {
   }
 }
 
-if (openApiOperations.length !== 286) failures.push(`OpenAPI operasyon sayısı 286 değil: ${openApiOperations.length}`);
+if (openApiOperations.length !== 287) failures.push(`OpenAPI operasyon sayısı 287 değil: ${openApiOperations.length}`);
 for (const key of openApiOperations) {
   if (!documentedOperations.has(key)) failures.push(`Endpoint dokümanı eksik: ${key}`);
 }

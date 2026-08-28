@@ -153,8 +153,8 @@ for (const [path, pathItem] of Object.entries(openApi.paths ?? {})) {
   }
 }
 
-if (operations.length !== 286) {
-  throw new Error(`Beklenen 286 operasyon yerine ${operations.length} operasyon bulundu.`);
+if (operations.length !== 287) {
+  throw new Error(`Beklenen 287 operasyon yerine ${operations.length} operasyon bulundu.`);
 }
 
 const knownKeys = new Set(operations.map(({ method, path }) => normalizedOperationKey(method, path)));
@@ -444,7 +444,7 @@ const rootLines = [
   "",
   "[API dokümantasyonuna dön](../README.md)",
   "",
-  "Bu referans güncel OpenAPI sözleşmesindeki **286 operasyonun tamamını** kapsar. Her bölümde endpoint, erişim seviyesi, kısa amaç ve ayrıntılı sözleşme bağlantısı bulunur.",
+  "Bu referans güncel OpenAPI sözleşmesindeki **287 operasyonun tamamını** kapsar. Her bölümde endpoint, erişim seviyesi, kısa amaç ve ayrıntılı sözleşme bağlantısı bulunur.",
   "",
   "| Bölüm | Operasyon |",
   "| --- | ---: |",
@@ -490,4 +490,4 @@ rootLines.push(
 
 writeFileSync(join(referenceRoot, "README.md"), rootLines.join("\n"));
 
-console.log(`286 operasyon için ${indexDirectories.length} görev indeksi üretildi.`);
+console.log(`287 operasyon için ${indexDirectories.length} görev indeksi üretildi.`);

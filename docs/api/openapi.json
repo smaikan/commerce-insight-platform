@@ -6990,6 +6990,41 @@
         }
       }
     },
+    "/api/dashboard/work-queue-summary": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminWorkQueueSummaryDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminWorkQueueSummaryDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminWorkQueueSummaryDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/dashboard/product-analytics": {
       "get": {
         "tags": [
@@ -22317,6 +22352,29 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "AdminWorkQueueSummaryDto": {
+        "required": [
+          "generatedAtUtc",
+          "newContactMessageCount",
+          "ordersAwaitingProcessingCount"
+        ],
+        "type": "object",
+        "properties": {
+          "ordersAwaitingProcessingCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "newContactMessageCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "generatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
       },
       "DashboardOverviewDto": {
         "required": [
