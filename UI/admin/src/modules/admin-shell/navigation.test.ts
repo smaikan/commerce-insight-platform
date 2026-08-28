@@ -24,8 +24,8 @@ describe("admin navigation", () => {
 
     expect(enabledItems).toEqual([
       { label: "Genel Bakış", href: "/dashboard", status: "available" },
-      { label: "Siparişler", href: "/orders", status: "available" },
-      { label: "İletişim Mesajları", href: "/contact-messages", status: "available" },
+      { label: "Siparişler", href: "/orders", status: "available", workQueueKey: "orders" },
+      { label: "İletişim Mesajları", href: "/contact-messages", status: "available", workQueueKey: "contactMessages" },
       { label: "Müşteriler", href: "/customers", status: "available" },
       { label: "İndirimler", href: "/coupons", status: "available" },
       { label: "Ürünler", href: "/products", status: "available" },

@@ -2,6 +2,7 @@ import type { AuthUser } from "@/lib/auth/contracts";
 import { logoutAction } from "@/modules/auth/actions";
 import { AdminSidebar } from "@/modules/admin-shell/components/admin-sidebar";
 import { MobileNavigation } from "@/modules/admin-shell/components/mobile-navigation";
+import type { AdminWorkQueueSummaryData } from "@/modules/dashboard/types";
 
 // Burada doğrulanmış yönetici kimliğini yalnız gerekli profil özeti ve server-side logout eylemiyle shell'e bağlıyorum.
 type AdminStoreBrand = {
@@ -9,10 +10,18 @@ type AdminStoreBrand = {
 };
 
 // Burada kabuğun marka kimliğini API'den gelen gerçek mağaza adıyla taşıyorum.
-export function AdminShell({ children, user, store }: Readonly<{
+export function AdminShell({
+  children,
+  user,
+  store,
+  initialWorkQueueSummary,
+  initialWorkQueueUnavailable,
+}: Readonly<{
   children: React.ReactNode;
   user: AuthUser;
   store: AdminStoreBrand;
+  initialWorkQueueSummary: AdminWorkQueueSummaryData | null;
+  initialWorkQueueUnavailable: boolean;
 }>) {
   return (
     <div className="min-h-dvh bg-page">
@@ -23,11 +32,19 @@ export function AdminShell({ children, user, store }: Readonly<{
         Ana içeriğe geç
       </a>
 
-      <AdminSidebar siteName={store.displayName} />
+      <AdminSidebar
+        siteName={store.displayName}
+        initialWorkQueueSummary={initialWorkQueueSummary}
+        initialWorkQueueUnavailable={initialWorkQueueUnavailable}
+      />
 
       <div className="min-h-dvh lg:pl-64">
         <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-surface-strong px-4 text-foreground sm:px-5 lg:px-6">
-          <MobileNavigation siteName={store.displayName} />
+          <MobileNavigation
+            siteName={store.displayName}
+            initialWorkQueueSummary={initialWorkQueueSummary}
+            initialWorkQueueUnavailable={initialWorkQueueUnavailable}
+          />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">{user.firstName} {user.lastName}</p>
             <p className="hidden truncate text-xs text-muted sm:block">Yönetici hesabı</p>

@@ -2,8 +2,17 @@
 
 import { useEffect, useRef } from "react";
 import { AdminNavigation } from "@/modules/admin-shell/components/admin-navigation";
+import type { AdminWorkQueueSummaryData } from "@/modules/dashboard/types";
 
-export function MobileNavigation({ siteName }: { siteName: string }) {
+export function MobileNavigation({
+  siteName,
+  initialWorkQueueSummary,
+  initialWorkQueueUnavailable,
+}: {
+  siteName: string;
+  initialWorkQueueSummary: AdminWorkQueueSummaryData | null;
+  initialWorkQueueUnavailable: boolean;
+}) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -58,7 +67,12 @@ export function MobileNavigation({ siteName }: { siteName: string }) {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto py-3">
-          <AdminNavigation onNavigate={closeNavigation} />
+          <AdminNavigation
+            initialSummary={initialWorkQueueSummary}
+            initialUnavailable={initialWorkQueueUnavailable}
+            mode="mobile"
+            onNavigate={closeNavigation}
+          />
         </div>
       </dialog>
     </>

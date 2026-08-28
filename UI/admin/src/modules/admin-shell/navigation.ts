@@ -1,7 +1,10 @@
+import type { WorkQueueKey } from "@/modules/admin-shell/work-queue";
+
 export type NavigationItem = {
   label: string;
   href?: string;
   status: "available" | "next" | "planned" | "future" | "in-development";
+  workQueueKey?: WorkQueueKey;
 };
 
 export type NavigationSection = {
@@ -20,8 +23,8 @@ export const navigationSections: NavigationSection[] = [
   {
     label: "Satış",
     items: [
-      { label: "Siparişler", href: "/orders", status: "available" },
-      { label: "İletişim Mesajları", href: "/contact-messages", status: "available" },
+      { label: "Siparişler", href: "/orders", status: "available", workQueueKey: "orders" },
+      { label: "İletişim Mesajları", href: "/contact-messages", status: "available", workQueueKey: "contactMessages" },
       { label: "Müşteriler", href: "/customers", status: "available" },
       { label: "İndirimler", href: "/coupons", status: "available" },
     ],

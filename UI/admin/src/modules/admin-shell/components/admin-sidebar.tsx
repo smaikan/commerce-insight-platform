@@ -1,6 +1,15 @@
 import { AdminNavigation } from "@/modules/admin-shell/components/admin-navigation";
+import type { AdminWorkQueueSummaryData } from "@/modules/dashboard/types";
 
-export function AdminSidebar({ siteName }: { siteName: string }) {
+export function AdminSidebar({
+  siteName,
+  initialWorkQueueSummary,
+  initialWorkQueueUnavailable,
+}: {
+  siteName: string;
+  initialWorkQueueSummary: AdminWorkQueueSummaryData | null;
+  initialWorkQueueUnavailable: boolean;
+}) {
   return (
     <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
       <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border px-4">
@@ -11,7 +20,11 @@ export function AdminSidebar({ siteName }: { siteName: string }) {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto py-3">
-        <AdminNavigation />
+        <AdminNavigation
+          initialSummary={initialWorkQueueSummary}
+          initialUnavailable={initialWorkQueueUnavailable}
+          mode="desktop"
+        />
       </div>
     </aside>
   );
